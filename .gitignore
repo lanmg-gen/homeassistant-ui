@@ -1,6 +1,9 @@
 # Android 应用
 android-app/
 
+# 同步脚本
+sync-to-github.bat
+
 # 操作系统文件
 .DS_Store
 Thumbs.db
