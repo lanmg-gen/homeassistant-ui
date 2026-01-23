@@ -501,11 +501,18 @@
 
         .printer-status-icon {
             position: absolute;
-            top: 6px;
-            right: 6px;
-            font-size: 14px;
+            top: 4px;
+            right: 4px;
+            font-size: 20px;
             z-index: 10;
             transition: all 0.3s ease;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+
+        .printer-status-icon:hover {
+            transform: scale(1.2);
         }
 
         .printer-status-icon.online {
@@ -516,6 +523,21 @@
         .printer-status-icon.offline {
             color: #9ca3af;
             opacity: 0.5;
+        }
+
+        .printer-status-icon.blinking {
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+                color: #4ade80;
+            }
+            50% {
+                opacity: 0.3;
+                color: #4ade80;
+            }
         }
 
         /* 3D打印机弹窗样式 */
@@ -637,6 +659,110 @@
         .printer-loading-text {
             color: #6b7280;
             font-size: 14px;
+        }
+
+        /* 3D打印机电源控制确认弹窗样式 */
+        .printer-power-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1100;
+            animation: fadeIn 0.2s ease-out;
+            padding: 20px;
+        }
+
+        .printer-power-container {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 320px;
+            padding: 24px;
+            animation: scaleIn 0.2s ease-out;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .printer-power-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .printer-power-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .printer-power-content {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .printer-power-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .printer-power-message {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .printer-power-warning {
+            font-size: 13px;
+            color: #dc2626;
+            background: #fef2f2;
+            padding: 10px 12px;
+            border-radius: 8px;
+            line-height: 1.4;
+        }
+
+        .printer-power-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .printer-power-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .printer-power-btn:active {
+            transform: scale(0.95);
+        }
+
+        .cancel-btn {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .cancel-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .confirm-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .confirm-btn:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
         }
 
         /* URL类型设备卡片样式 */
@@ -1486,8 +1612,11 @@
                             <div class="printer-card" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                 <div class="grid-device-icon">{{ device.icon }}</div>
                                 <div class="grid-device-name">{{ device.name }}</div>
-                                <div class="grid-device-status">点击打开</div>
-                                <div class="printer-status-icon" :class="printerStatusClass">●</div>
+                                <div class="grid-device-status">{{ printerBlinking ? '正在开机' : (printerOnline ? '点击打开' : '关机') }}</div>
+                                <div class="printer-status-icon" :class="[
+                                    printerStatusClass,
+                                    { 'blinking': printerBlinking }
+                                ]" @click.stop="togglePrinterPower(device)">●</div>
                             </div>
                         </template>
                     </div>
@@ -1759,6 +1888,30 @@
                         <div class="printer-spinner"></div>
                         <div class="printer-loading-text">加载中...</div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3D打印机电源控制确认弹窗 -->
+        <div v-if="showPrinterPowerModal" class="printer-power-modal" @click.self="showPrinterPowerModal = false">
+            <div class="printer-power-container">
+                <div class="printer-power-header">
+                    <div class="printer-power-title">3D打印机电源控制</div>
+                </div>
+                <div class="printer-power-content">
+                    <div class="printer-power-icon">🖨️</div>
+                    <div class="printer-power-message">
+                        确认要{{ printerPowerAction === 'on' ? '开机' : '关机' }}吗？
+                    </div>
+                    <div class="printer-power-warning">
+                        ⚠️ 请确保3D打印机处于安全状态后再操作电源
+                    </div>
+                </div>
+                <div class="printer-power-buttons">
+                    <button class="printer-power-btn cancel-btn" @click="showPrinterPowerModal = false">取消</button>
+                    <button class="printer-power-btn confirm-btn" @click="confirmPrinterPower">
+                        {{ printerPowerAction === 'on' ? '开机' : '关机' }}
+                    </button>
                 </div>
             </div>
         </div>

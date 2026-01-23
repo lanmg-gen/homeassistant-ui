@@ -245,6 +245,7 @@ const DEVICE_PRINTER_3D = {
     name: 'voron2.4',
     icon: '🖨️',
     controlUrl: 'http://192.168.4.6/?printer=98cf22853c45c005073ff07237fed9d9#/',
+    powerEntity: 'switch.3dda_yin_ji',
     deviceType: 'url',
     description: '3D打印机控制（弹窗显示）'
 };

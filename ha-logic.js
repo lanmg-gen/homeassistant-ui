@@ -151,7 +151,13 @@ const app = createApp({
             showPrinterModal: false,
             printerUrl: '',
             printerLoading: true,
-            printerOnline: false
+            printerOnline: false,
+            printerPowerOn: false,
+            printerBlinking: false,
+            // 3D打印机电源控制弹窗
+            showPrinterPowerModal: false,
+            printerPowerDevice: null,
+            printerPowerAction: 'on'
         }
     },
 
@@ -525,10 +531,15 @@ const app = createApp({
 
         // 检查3D打印机状态
         this.checkPrinterStatus();
+        this.checkPrinterPowerStatus();
     },
 
     beforeUnmount() {
         this.stopAutoRefresh();
+        // 清理打印机状态检查定时器
+        if (this.printerStatusCheckInterval) {
+            clearInterval(this.printerStatusCheckInterval);
+        }
     },
 
     methods: {
@@ -1911,13 +1922,35 @@ const app = createApp({
                 const printerUrl = 'http://192.168.4.6/?printer=98cf22853c45c005073ff07237fed9d9#/';
                 await fetch(printerUrl, {
                     method: 'GET',
-                    mode: 'no-cors'
+                    mode: 'no-cors',
+                    signal: AbortSignal.timeout(5000) // 5秒超时
                 });
                 // 如果请求完成（即使被CORS阻止），也认为打印机在线
                 this.printerOnline = true;
             } catch (error) {
                 // 如果请求失败，认为打印机离线
                 this.printerOnline = false;
+                // 不输出错误日志，避免控制台刷屏
+            }
+        },
+
+        // 检查3D打印机电源状态
+        async checkPrinterPowerStatus() {
+            try {
+                const printerDevice = DEVICE_CARDS.find(card => card.deviceType === 'url');
+                if (printerDevice && printerDevice.powerEntity) {
+                    const state = await this.fetchDeviceState(printerDevice.powerEntity);
+                    this.printerPowerOn = state.state === 'on';
+
+                    // 如果电源开启但打印机离线，开始闪烁
+                    if (this.printerPowerOn && !this.printerOnline) {
+                        this.printerBlinking = true;
+                    } else {
+                        this.printerBlinking = false;
+                    }
+                }
+            } catch (error) {
+                console.error('检查打印机电源状态失败:', error);
             }
         },
 
@@ -1938,6 +1971,98 @@ const app = createApp({
             this.showPrinterModal = false;
             this.printerUrl = '';
             this.printerLoading = false;
+        },
+
+        // 切换3D打印机电源 - 打开确认弹窗
+        async togglePrinterPower(device) {
+            if (!device.powerEntity) {
+                vant.showToast({ message: '未配置电源实体', type: 'fail' });
+                return;
+            }
+
+            try {
+                // 获取当前电源状态
+                const currentState = await this.fetchDeviceState(device.powerEntity);
+                const isOn = currentState.state === 'on';
+
+                // 保存设备信息和要执行的操作
+                this.printerPowerDevice = device;
+                this.printerPowerAction = isOn ? 'off' : 'on';
+
+                // 打开确认弹窗
+                this.showPrinterPowerModal = true;
+
+            } catch (error) {
+                vant.showToast({ message: '获取电源状态失败', type: 'fail' });
+            }
+        },
+
+        // 确认3D打印机电源操作
+        async confirmPrinterPower() {
+            if (!this.printerPowerDevice || !this.printerPowerDevice.powerEntity) {
+                vant.showToast({ message: '配置错误', type: 'fail' });
+                this.showPrinterPowerModal = false;
+                return;
+            }
+
+            try {
+                const action = this.printerPowerAction;
+
+                // 执行电源切换
+                if (action === 'on') {
+                    await this.callService('switch', 'turn_on', { entity_id: this.printerPowerDevice.powerEntity });
+                    vant.showToast({ message: '正在开机...', type: 'success' });
+
+                    // 设置电源开启状态，开始闪烁
+                    this.printerPowerOn = true;
+                    this.printerBlinking = true;
+
+                    // 定期检查打印机是否在线
+                    this.startPrinterStatusCheck();
+                } else {
+                    await this.callService('switch', 'turn_off', { entity_id: this.printerPowerDevice.powerEntity });
+                    vant.showToast({ message: '正在关机...', type: 'success' });
+
+                    // 停止闪烁
+                    this.printerPowerOn = false;
+                    this.printerBlinking = false;
+                }
+
+                // 关闭弹窗
+                this.showPrinterPowerModal = false;
+
+                // 等待2秒后重新检查打印机状态
+                setTimeout(() => {
+                    this.checkPrinterStatus();
+                }, 2000);
+
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 定期检查打印机状态
+        startPrinterStatusCheck() {
+            const checkInterval = setInterval(async () => {
+                // 如果电源已关闭，停止检查
+                if (!this.printerPowerOn) {
+                    clearInterval(checkInterval);
+                    this.printerBlinking = false;
+                    return;
+                }
+
+                // 检查打印机是否在线
+                await this.checkPrinterStatus();
+
+                // 如果打印机已在线，停止闪烁
+                if (this.printerOnline) {
+                    clearInterval(checkInterval);
+                    this.printerBlinking = false;
+                }
+            }, 3000); // 每3秒检查一次
+
+            // 将定时器保存到实例上，方便清理
+            this.printerStatusCheckInterval = checkInterval;
         }
     }
 });
