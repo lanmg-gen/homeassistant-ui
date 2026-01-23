@@ -1,0 +1,1762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧家庭控制中心</title>
+
+    <!-- Vant样式已内联到页面中,无需额外引入 -->
+    <style>
+        /* 全局样式 - 扁平化设计 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+            color: #333;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 毛玻璃效果 */
+        .glass {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .glass-light {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        /* 页面容器 */
+        .page-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 60px;
+            overflow-x: hidden;
+        }
+
+        /* 顶部标题栏 */
+        .header {
+            padding: 6px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        /* 天气组件 */
+        .weather-widget {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+        }
+
+        .weather-temp {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            min-width: 50px;
+        }
+
+        .weather-condition {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            max-width: 80px;
+        }
+
+        .weather-city {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
+        .weather-loading {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* 状态栏区域 */
+        .status-bar {
+            margin: 0 16px 4px 16px;
+            padding: 8px;
+            background: transparent;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+            animation: scaleIn 0.5s ease-out;
+            animation-delay: 0.1s;
+            animation-fill-mode: both;
+        }
+
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .status-bar-title {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2px;
+            margin-top: -4px;
+            font-weight: 500;
+        }
+
+        .status-items {
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+        }
+
+        .status-item {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-text {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .status-item:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .status-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .status-icon:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .status-icon:nth-child(3) {
+            animation-delay: 1s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .status-label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            flex-shrink: 0;
+        }
+
+        .status-value {
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .loading {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .error {
+            color: rgba(255, 100, 100, 0.9);
+        }
+
+        .status-active {
+            color: rgba(100, 255, 150, 1);
+            text-shadow: 0 0 10px rgba(100, 255, 150, 0.5);
+        }
+
+        .status-cleaning {
+            color: rgba(255, 200, 100, 1);
+            text-shadow: 0 0 10px rgba(255, 200, 100, 0.5);
+        }
+
+        .status-docked {
+            color: rgba(100, 200, 255, 1);
+            text-shadow: 0 0 10px rgba(100, 200, 255, 0.5);
+        }
+
+        /* 顶部固定卡片容器 */
+        .top-fixed-card {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border:
+                1px solid rgba(255, 255, 255, 0.25),
+                1px solid rgba(255, 255, 255, 0.15);
+            box-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+            z-index: 100;
+            animation: slideDown 0.4s ease-out;
+            padding-bottom: 4px;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            flex: 1;
+            padding: 0 16px 16px;
+            overflow-y: auto;
+            padding-top: 135px;
+        }
+
+        /* 页面内容 */
+        .page-content {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 章节标题 */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            margin: 0 0 12px 0;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 设备网格布局 - 三列 */
+        .device-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 1fr;
+            gap: 10px;
+            padding: 4px;
+        }
+
+        /* 设备卡片网格版 - 毛玻璃效果 */
+        .device-grid-card {
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 12px 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border:
+                1px solid rgba(255, 255, 255, 0.25),
+                1px solid rgba(255, 255, 255, 0.15);
+            box-shadow:
+                0 4px 12px rgba(0, 0, 0, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            animation: scaleIn 0.4s ease-out;
+            aspect-ratio: 1;
+        }
+
+        .device-grid-card:nth-child(1) { animation-delay: 0.1s; }
+        .device-grid-card:nth-child(2) { animation-delay: 0.2s; }
+        .device-grid-card:nth-child(3) { animation-delay: 0.3s; }
+        .device-grid-card:nth-child(4) { animation-delay: 0.4s; }
+        .device-grid-card:nth-child(5) { animation-delay: 0.5s; }
+        .device-grid-card:nth-child(6) { animation-delay: 0.6s; }
+        .device-grid-card:nth-child(7) { animation-delay: 0.7s; }
+        .device-grid-card:nth-child(8) { animation-delay: 0.8s; }
+        .device-grid-card:nth-child(9) { animation-delay: 0.9s; }
+        .device-grid-card:nth-child(10) { animation-delay: 1.0s; }
+        .device-grid-card:nth-child(11) { animation-delay: 1.1s; }
+        .device-grid-card:nth-child(12) { animation-delay: 1.2s; }
+
+        .device-grid-card:active {
+            transform: scale(0.95);
+        }
+
+        .device-grid-card.active .grid-device-icon {
+            filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1))
+                    drop-shadow(0 0 40px rgba(255, 255, 255, 0.8));
+            animation: iconPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 20px rgba(255, 255, 255, 1))
+                        drop-shadow(0 0 40px rgba(255, 255, 255, 0.8));
+            }
+            50% {
+                transform: scale(1.1);
+                filter: drop-shadow(0 0 30px rgba(255, 255, 255, 1))
+                        drop-shadow(0 0 60px rgba(255, 255, 255, 0.9));
+            }
+        }
+
+        /* 开启状态的网格卡片 */
+        .device-grid-card.active {
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(255, 255, 255, 0.4),
+                        0 0 20px rgba(255, 255, 255, 0.3),
+                        inset 0 0 30px rgba(255, 255, 255, 0.2);
+        }
+
+        .device-grid-card.active .grid-device-name {
+            color: white;
+        }
+
+        .device-grid-card.active .grid-device-status {
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .grid-device-icon {
+            font-size: 30px;
+            margin-bottom: 6px;
+        }
+
+        .grid-device-name {
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 4px;
+        }
+
+        .grid-device-status {
+            font-size: 9px;
+            font-weight: 600;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 空调卡片样式 */
+        .device-grid-card.span-2 {
+            grid-column: span 2;
+            grid-row: span 1;
+            aspect-ratio: auto !important;
+            height: calc((100vw - 40px - 20px) / 3) !important;
+        }
+
+        @media (min-width: 768px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 280px - 20px) / 3) !important;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 280px - 20px) / 3) !important;
+            }
+        }
+
+        .climate-card {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 12px;
+            height: 100%;
+        }
+
+        .climate-info {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+
+        .climate-temp-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .climate-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .climate-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .climate-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .climate-btn {
+            flex: 1;
+            padding: 6px 8px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+
+        .climate-btn:active {
+            transform: scale(0.95);
+        }
+
+        .cool-btn:hover {
+            background: rgba(59, 130, 246, 0.6);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .heat-btn:hover {
+            background: rgba(239, 68, 68, 0.6);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .climate-card.active {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 3D打印机卡片样式 */
+        .printer-card {
+            position: relative;
+        }
+
+        .printer-status-icon {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 14px;
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .printer-status-icon.online {
+            color: #4ade80;
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+        }
+
+        .printer-status-icon.offline {
+            color: #9ca3af;
+            opacity: 0.5;
+        }
+
+        /* 3D打印机弹窗样式 */
+        .printer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-out;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .printer-modal-container {
+            background: white;
+            border-radius: 20px;
+            width: 95%;
+            max-width: 800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            animation: scaleIn 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        .printer-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            color: white;
+        }
+
+        .printer-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .printer-modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .printer-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .printer-modal-close:active {
+            transform: scale(0.95);
+        }
+
+        .printer-modal-content {
+            flex: 1;
+            overflow: hidden;
+            background: #f5f5f5;
+        }
+
+        .printer-modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .printer-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 16px;
+        }
+
+        .printer-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .printer-loading-text {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        /* URL类型设备卡片样式 */
+        /* 显示类型设备卡片样式（冰箱温度） */
+        .display-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 8px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .display-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .display-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .display-temp-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 8px 10px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .display-temp-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .display-temp-label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .display-temp-value {
+            font-size: 17px;
+            font-weight: 700;
+            color: #667eea;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .display-temp-unit {
+            font-size: 12px;
+            color: #888;
+            font-weight: 500;
+            margin-left: 2px;
+        }
+
+        /* URL类型设备卡片样式 */
+        .device-grid-card:not(.climate-card):not(.span-2):not([data-type='url']) {
+            cursor: pointer;
+        }
+
+        .device-grid-card[data-type='url'] {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .device-grid-card[data-type='url']:active {
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .device-grid-card[data-type='url'] .grid-device-icon {
+            animation: bounce 0.5s ease;
+        }
+
+        /* 传统设备卡片（保留特殊控制） */
+        .device-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+
+        .device-card:active {
+            transform: scale(0.98);
+        }
+
+        .device-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .device-icon {
+            font-size: 28px;
+            margin-right: 12px;
+        }
+
+        .device-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .device-status {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            color: #1976d2;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 自动化日志 */
+        .automation-log {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .log-item {
+            padding: 14px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .log-item:active {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .log-trigger {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .log-action {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 32px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        /* 自动化条件 */
+        .automation-conditions {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .condition-item {
+            padding: 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .condition-item:active {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .condition-item:last-child {
+            border-bottom: none;
+        }
+
+        .condition-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .condition-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 10px;
+        }
+
+        .condition-status {
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .condition-status.active {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.05));
+            color: #4caf50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .condition-status.inactive {
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* 设置卡片 */
+        .settings-card {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .settings-card:active {
+            transform: scale(0.98);
+        }
+
+        .settings-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .settings-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .settings-input {
+            flex: 1;
+            max-width: 200px;
+            padding: 10px 14px;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            font-size: 14px;
+            margin-left: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .settings-info {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* 自定义底部导航栏 - 毛玻璃效果 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border:
+                1px solid rgba(255, 255, 255, 0.25),
+                1px solid rgba(255, 255, 255, 0.15);
+            box-shadow:
+                0 -4px 12px rgba(0, 0, 0, 0.08),
+                0 -1px 2px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 100;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px 16px;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 4px;
+            background: #ffffff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-4px);
+        }
+
+        .nav-item:active {
+            background: rgba(102, 126, 234, 0.1);
+            transform: scale(0.95);
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.1);
+            animation: bounce 0.5s ease;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0) scale(1.1);
+            }
+            50% {
+                transform: translateY(-3px) scale(1.1);
+            }
+        }
+
+        .nav-item.active {
+            color: #ffffff;
+        }
+
+        .nav-icon {
+            font-size: 22px;
+            margin-bottom: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-text {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        /* 配置提示 */
+        .config-tip {
+            background: rgba(255, 243, 205, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 234, 167, 0.5);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px;
+            font-size: 14px;
+            color: #856404;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .success-tip {
+            background: linear-gradient(135deg, rgba(212, 237, 218, 0.95), rgba(195, 230, 203, 0.95));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(195, 230, 203, 0.5);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px;
+            font-size: 14px;
+            color: #155724;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            font-weight: 500;
+        }
+
+        .error-details {
+            background: linear-gradient(135deg, rgba(248, 215, 218, 0.95), rgba(245, 198, 203, 0.95));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(245, 198, 203, 0.5);
+            border-radius: 16px;
+            padding: 16px;
+            margin: 16px;
+            font-size: 13px;
+            color: #721c24;
+            white-space: pre-wrap;
+            word-break: break-all;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .debug-info {
+            background: rgba(233, 236, 239, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(222, 226, 230, 0.5);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.5);
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        }
+
+        .cors-help {
+            background: linear-gradient(135deg, rgba(255, 243, 205, 0.98), rgba(255, 238, 188, 0.98));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 234, 167, 0.6);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 16px;
+            font-size: 13px;
+            color: #856404;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .cors-help h4 {
+            margin: 0 0 12px 0;
+            color: #d68910;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .cors-help code {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .cors-help ul {
+            margin: 12px 0;
+            padding-left: 20px;
+        }
+
+        .cors-help li {
+            margin: 6px 0;
+            line-height: 1.6;
+        }
+
+        .cors-help pre {
+            background: rgba(0, 0, 0, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+            overflow-x: auto;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .refresh-indicator {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 3px solid rgba(76, 175, 80, 0.8);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 自定义设置弹窗 */
+        .custom-settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            animation: fadeIn 0.3s ease-out;
+            padding: 20px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .custom-settings-container {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            max-width: 400px;
+            width: 100%;
+            padding: 24px;
+            animation: scaleIn 0.3s ease-out;
+        }
+
+        .custom-settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-settings-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .custom-settings-close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .custom-settings-close-btn:hover {
+            opacity: 1;
+        }
+
+        .custom-settings-group {
+            margin-bottom: 20px;
+        }
+
+        .custom-settings-group-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 12px;
+        }
+
+        .custom-settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .custom-settings-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .custom-settings-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            flex: 1;
+        }
+
+        .custom-settings-input {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 120px;
+            transition: all 0.3s;
+        }
+
+        .custom-settings-input:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .custom-settings-select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 120px;
+        }
+
+        .custom-settings-save-btn {
+            width: 100%;
+            padding: 14px;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: all 0.3s;
+        }
+
+        .custom-settings-save-btn:hover {
+            background: rgba(102, 126, 234, 1);
+        }
+
+        .custom-settings-save-btn:active {
+            transform: scale(0.98);
+        }
+
+        .pulse-animation {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.7;
+                transform: scale(1.02);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="page-container">
+        <!-- 错误详情显示区域 -->
+        <div v-if="connectionError" class="error-details">
+            <strong>连接失败原因：</strong><br>
+            {{ connectionError }}
+        </div>
+
+
+
+        <!-- 顶部固定卡片 -->
+        <div class="top-fixed-card">
+            <!-- 标题栏 -->
+            <div class="header">
+                <div class="header-title">智慧家庭控制中心</div>
+                <div class="weather-widget" @click="fetchWeather">
+                    <div class="weather-temp" v-if="!weatherLoading">{{ weatherTemp }}℃</div>
+                    <div class="weather-icon" v-if="!weatherLoading">{{ weatherIcon }}</div>
+                    <div class="weather-city">{{ weatherCityName }}</div>
+                    <div v-if="weatherLoading" class="weather-loading">加载中...</div>
+                </div>
+            </div>
+
+            <!-- 状态栏 -->
+            <div class="status-bar">
+                <div class="status-bar-title">
+                    设备状态概览
+                    <span v-if="isFirstLoading" style="font-size: 12px; color: #999; margin-left: 8px;">
+                        📡 首次加载中...
+                    </span>
+                    <span v-else-if="autoRefreshEnabled" style="font-size: 12px; color: #4ade80; margin-left: 8px;">
+                        ✓ 自动刷新
+                    </span>
+                </div>
+                <div class="status-items">
+                    <!-- 扫地机状态 -->
+                    <div class="status-item">
+                        <div class="status-icon">🤖</div>
+                        <div class="status-text">
+                            <div class="status-label">扫地机</div>
+                            <div class="status-value" :class="vacuumClass">
+                                {{ vacuumStatus }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 氛围灯倒计时 -->
+                    <div class="status-item">
+                        <div class="status-icon">💡</div>
+                        <div class="status-text">
+                            <div class="status-label">氛围灯</div>
+                            <div class="status-value" :class="ambientLightClass">
+                                {{ ambientLightStatus }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 投喂器统计 -->
+                    <div class="status-item">
+                        <div class="status-icon">🐾</div>
+                        <div class="status-text">
+                            <div class="status-label">投喂器</div>
+                            <div class="status-value" :class="petFeedingClass">
+                                {{ petFeedingStatus }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要内容区域 -->
+        <div class="main-content">
+
+            <!-- 主页 - 设备控制 -->
+            <div v-if="activeTab === 0" class="page-content">
+                <div class="section-title">设备控制</div>
+
+                <!-- 动态设备卡片布局 - 根据配置文件渲染 -->
+                <div class="device-grid">
+                    <div
+                        v-for="(device, index) in DEVICE_CARDS"
+                        :key="index"
+                        class="device-grid-card"
+                        :class="{
+                            active: device.deviceType !== 'display' && getCachedDeviceState(device.stateEntity) === 'on',
+                            'span-2': device.span === 2,
+                            'climate-card': device.deviceType === 'climate'
+                        }"
+                        :data-type="device.deviceType || ''"
+                        @click="handleDeviceClick(device)"
+                    >
+                        <!-- 空调卡片特殊布局 -->
+                        <template v-if="device.deviceType === 'climate'">
+                            <div class="climate-info">
+                                <div class="climate-temp-info">
+                                    <span class="climate-label">温度</span>
+                                    <span class="climate-value">{{ airConditionerTemp }}℃</span>
+                                </div>
+                                <div class="climate-temp-info">
+                                    <span class="climate-label">湿度</span>
+                                    <span class="climate-value">{{ airConditionerHumidity }}%</span>
+                                </div>
+                            </div>
+                            <div class="climate-buttons">
+                                <button class="climate-btn cool-btn" @click.stop="setAirConditionerCool">❄️ 制冷</button>
+                                <button class="climate-btn heat-btn" @click.stop="setAirConditionerHeat">🔥 制热</button>
+                            </div>
+                        </template>
+                        <!-- 普通设备卡片 -->
+                        <template v-else-if="device.deviceType !== 'url' && device.deviceType !== 'display'">
+                            <div class="grid-device-icon">{{ device.icon }}</div>
+                            <div class="grid-device-name">{{ device.name }}</div>
+                            <div class="grid-device-status" :class="getDeviceStatusClass(device)">
+                                {{ getDeviceStatusText(device) }}
+                            </div>
+                        </template>
+                        <!-- 显示类型设备（冰箱温度） -->
+                        <template v-else-if="device.deviceType === 'display'">
+                            <div class="display-card">
+                                <div class="display-icon">{{ device.icon }}</div>
+                                <div class="display-title">{{ device.name }}</div>
+                                <div class="display-temp-row">
+                                    <span class="display-temp-label">🧊 冷藏</span>
+                                    <div style="display: flex; align-items: baseline;">
+                                        <span class="display-temp-value">{{ getSensorValue(device.sensors?.fridge) }}</span>
+                                        <span class="display-temp-unit">℃</span>
+                                    </div>
+                                </div>
+                                <div class="display-temp-row">
+                                    <span class="display-temp-label">❄️ 冷冻</span>
+                                    <div style="display: flex; align-items: baseline;">
+                                        <span class="display-temp-value">{{ getSensorValue(device.sensors?.freezer) }}</span>
+                                        <span class="display-temp-unit">℃</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <!-- URL链接类设备 -->
+                        <template v-else-if="device.deviceType === 'url'">
+                            <div class="printer-card" style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <div class="grid-device-icon">{{ device.icon }}</div>
+                                <div class="grid-device-name">{{ device.name }}</div>
+                                <div class="grid-device-status">点击打开</div>
+                                <div class="printer-status-icon" :class="printerStatusClass">●</div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- 自动化页面 -->
+            <div v-if="activeTab === 1" class="page-content">
+                <div class="section-title">自动化触发记录</div>
+                <div class="automation-log">
+                    <div class="log-item" v-for="(log, index) in automationLogs" :key="index">
+                        <div class="log-time">{{ log.time }}</div>
+                        <div class="log-trigger">{{ log.trigger }}</div>
+                        <div class="log-action">{{ log.action }}</div>
+                    </div>
+                    <div v-if="automationLogs.length === 0" class="empty-state">
+                        暂无自动化触发记录
+                    </div>
+                </div>
+
+                <div class="section-title" style="margin-top: 24px;">自动化条件</div>
+                <div class="automation-conditions">
+                    <div class="condition-item">
+                        <div class="condition-name">🏠 主人回家</div>
+                        <div class="condition-desc">当主人到达家附近1km时</div>
+                        <div class="condition-status active">✓ 已启用</div>
+                    </div>
+                    <div class="condition-item">
+                        <div class="condition-name">🕒 定时关灯</div>
+                        <div class="condition-desc">每晚23:00自动关闭氛围灯</div>
+                        <div class="condition-status active">✓ 已启用</div>
+                    </div>
+                    <div class="condition-item">
+                        <div class="condition-name">🌅 日出开灯</div>
+                        <div class="condition-desc">日出时自动开启氛围灯</div>
+                        <div class="condition-status inactive">○ 已禁用</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div v-if="activeTab === 2" class="page-content">
+                <div class="section-title">参数设置</div>
+
+                <!-- 错误详情显示区域 -->
+                <div v-if="connectionError" class="error-details" style="margin-bottom: 16px;">
+                    <strong>连接失败原因：</strong><br>
+                    {{ connectionError }}
+                </div>
+
+                <!-- Home Assistant配置 -->
+                <div class="settings-card">
+                    <div class="settings-title">Home Assistant 连接</div>
+                    <div class="settings-item">
+                        <span class="settings-label">服务器地址</span>
+                        <input class="settings-input" :value="haUrl || '未配置'" readonly style="background: transparent; cursor: default; border: none; padding: 8px 0;">
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">访问令牌</span>
+                        <input class="settings-input" :value="accessToken ? '已配置' : '未配置'" readonly style="background: transparent; cursor: default; border: none; padding: 8px 0;">
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">配置方式</span>
+                        <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">请在 ha-device-config.js 文件中修改</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">连接状态</span>
+                        <span
+                            :style="{
+                                fontSize: '14px',
+                                fontWeight: 'bold'
+                            }"
+                        >
+                            <span v-if="connectionStatus === true" style="color: #4ade80;">已连接</span>
+                            <span v-else style="color: #f87171;">未连接</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 刷新设置 -->
+                <div class="settings-card">
+                    <div class="settings-title">自动刷新设置</div>
+                    <div class="settings-item">
+                        <span class="settings-label">刷新间隔</span>
+                        <input class="settings-input" v-model.number="refreshIntervalSeconds" type="number" placeholder="1" style="max-width: 80px;" @input="applyRefreshInterval">
+                        <span style="margin-left: 8px; color: #666; font-size: 13px;">秒</span>
+                    </div>
+                    <div class="settings-item">
+                        <span class="settings-label">自动刷新</span>
+                        <van-switch v-model="autoRefreshEnabled" size="20" @change="applyRefreshInterval" />
+                    </div>
+                </div>
+
+                <!-- 自定义设置 -->
+                <div class="settings-card">
+                    <div class="settings-title">自定义设置</div>
+                    <div class="settings-actions">
+                        <div 
+                            style="
+                                font-size: 16px;
+                                font-weight: 700;
+                                color: white;
+                                cursor: pointer;
+                                padding: 8px 0;
+                            "
+                            @click="openCustomSettings"
+                        >卡片设置</div>
+                    </div>
+                </div>
+
+                <!-- 刷新数据 -->
+                <div class="settings-card">
+                    <div class="settings-title">数据管理</div>
+                    <div class="debug-actions">
+                        <van-button size="small" type="primary" @click="updateAllData">刷新数据</van-button>
+                        <van-button size="small" type="default" @click="testConnection">测试连接</van-button>
+                    </div>
+                    <!-- CORS配置帮助 -->
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
+                        <h4 style="color: white; margin: 0 0 12px 0;">🔧 解决CORS跨域问题</h4>
+                        <p style="color: rgba(255, 255, 255, 0.9);">如果连接失败,可能是CORS跨域限制。请在Home Assistant的<code>configuration.yaml</code>中添加:</p>
+                        <pre style="background: rgba(255, 255, 255, 0.15); padding: 8px; border-radius: 4px; margin: 8px 0; overflow-x: auto; color: white;">http:
+  cors_allowed_origins:
+    - "http://localhost:*"
+    - "http://127.0.0.1:*"
+    - "http://192.168.*:*"</pre>
+                        <p style="color: rgba(255, 255, 255, 0.9);"><strong>操作步骤:</strong></p>
+                        <ul style="color: rgba(255, 255, 255, 0.9);">
+                            <li>1. 在Home Assistant服务器上找到<code>configuration.yaml</code>文件</li>
+                            <li>2. 添加上述配置(如果没有http部分则新增)</li>
+                            <li>3. 重启Home Assistant服务</li>
+                            <li>4. 重新打开此页面测试连接</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 计时器设置 -->
+                <div class="settings-card">
+                    <div class="settings-title">氛围灯定时器</div>
+                    <div class="settings-item">
+                        <span class="settings-label">定时时长(秒)</span>
+                        <input class="settings-input" v-model.number="timerDuration" type="number" placeholder="1800">
+                    </div>
+                    <div class="settings-actions">
+                        <van-button type="primary" size="small" @click="applyTimerDuration">应用设置</van-button>
+                        <van-button type="warning" size="small" @click="startAmbientLightTimer">启动定时</van-button>
+                    </div>
+                </div>
+
+                <!-- 关于 -->
+                <div class="settings-card">
+                    <div class="settings-title">关于</div>
+                    <div class="settings-info">
+                        <div>Home Assistant 控制面板 v1.0</div>
+                        <div style="margin-top: 8px; color: #666; font-size: 12px;">
+                            基于 Vue 3 + Vant UI 构建
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 自定义设置弹窗 -->
+                <!-- 暂时屏蔽自定义设置弹窗 -->
+                <!--
+                <div v-if="showCustomSettings" class="custom-settings-modal" @click.self="showCustomSettings = false">
+                    <div class="custom-settings-container">
+                        <div class="custom-settings-header">
+                            <div class="custom-settings-title">自定义设置</div>
+                            <button class="custom-settings-close-btn" @click="showCustomSettings = false">×</button>
+                        </div>
+
+                        <div class="custom-settings-group">
+                            <div class="custom-settings-group-title">界面设置</div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">卡片透明度</span>
+                                <input type="number" class="custom-settings-input" v-model.number="customSettings.cardOpacity" min="10" max="50">
+                            </div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">边框粗细</span>
+                                <select class="custom-settings-select" v-model.number="customSettings.borderWidth">
+                                    <option value="1">1px</option>
+                                    <option value="2">2px</option>
+                                    <option value="3">3px</option>
+                                </select>
+                            </div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">圆角大小</span>
+                                <input type="number" class="custom-settings-input" v-model.number="customSettings.borderRadius" min="8" max="30">
+                            </div>
+                        </div>
+
+                        <div class="custom-settings-group">
+                            <div class="custom-settings-group-title">布局设置</div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">设备列数</span>
+                                <select class="custom-settings-select" v-model.number="customSettings.gridColumns">
+                                    <option value="2">2列</option>
+                                    <option value="3">3列</option>
+                                    <option value="4">4列</option>
+                                </select>
+                            </div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">卡片间距</span>
+                                <input type="number" class="custom-settings-input" v-model.number="customSettings.cardGap" min="5" max="20">
+                            </div>
+                        </div>
+
+                        <div class="custom-settings-group">
+                            <div class="custom-settings-group-title">动画设置</div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">动画速度</span>
+                                <select class="custom-settings-select" v-model="customSettings.animationSpeed">
+                                    <option value="0.2">快</option>
+                                    <option value="0.3">中</option>
+                                    <option value="0.5">慢</option>
+                                </select>
+                            </div>
+                            <div class="custom-settings-row">
+                                <span class="custom-settings-label">启用动画</span>
+                                <van-switch v-model="customSettings.enableAnimation" size="20" />
+                            </div>
+                        </div>
+
+                        <button class="custom-settings-save-btn" @click="saveCustomSettings">保存设置</button>
+                    </div>
+                </div>
+                -->
+            </div>
+
+        </div>
+
+        <!-- 底部导航栏 -->
+        <div class="bottom-nav">
+            <div class="nav-item" :class="{ active: activeTab === 0 }" @click="activeTab = 0">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-text">主页</div>
+            </div>
+            <div class="nav-item" :class="{ active: activeTab === 1 }" @click="activeTab = 1">
+                <div class="nav-icon">⚙️</div>
+                <div class="nav-text">自动化</div>
+            </div>
+            <div class="nav-item" :class="{ active: activeTab === 2 }" @click="activeTab = 2">
+                <div class="nav-icon">👤</div>
+                <div class="nav-text">设置</div>
+            </div>
+        </div>
+
+        <!-- 3D打印机弹窗 -->
+        <div v-if="showPrinterModal" class="printer-modal" @click.self="showPrinterModal = false">
+            <div class="printer-modal-container">
+                <div class="printer-modal-header">
+                    <div class="printer-modal-title">
+                        <span>🖨️</span>
+                        <span>3D打印机控制</span>
+                    </div>
+                    <button class="printer-modal-close" @click="showPrinterModal = false">×</button>
+                </div>
+                <div class="printer-modal-content">
+                    <iframe
+                        v-if="!printerLoading && printerUrl"
+                        :src="printerUrl"
+                        class="printer-modal-iframe"
+                        frameborder="0"
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                    ></iframe>
+                    <div v-if="printerLoading" class="printer-loading">
+                        <div class="printer-spinner"></div>
+                        <div class="printer-loading-text">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 引入本地Vue和Vant JS文件 -->
+    <script src="vue.global.js"></script>
+    <script src="vant.min.js"></script>
+
+    <script charset="UTF-8" src="ha-config.js"></script>
+    <script charset="UTF-8" src="ha-device-config.js"></script>
+    <script charset="UTF-8" src="ha-logic.js"></script>
+</body>
+</html>
