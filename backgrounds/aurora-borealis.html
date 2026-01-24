@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>动态背景 - 极光效果</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, #020111 0%, #1a1a2e 100%);
+            overflow: hidden;
+        }
+
+        .aurora {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .aurora-layer {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            animation: aurora 15s ease-in-out infinite alternate;
+            opacity: 0.6;
+        }
+
+        .aurora-layer:nth-child(1) {
+            background: conic-gradient(from 0deg at 50% 50%,
+                #00ff88 0deg,
+                #00d4ff 60deg,
+                #0066ff 120deg,
+                #8800ff 180deg,
+                #ff0066 240deg,
+                #ffaa00 300deg,
+                #00ff88 360deg
+            );
+            animation-duration: 20s;
+            filter: blur(80px);
+        }
+
+        .aurora-layer:nth-child(2) {
+            background: conic-gradient(from 180deg at 30% 70%,
+                #ff0088 0deg,
+                #0088ff 120deg,
+                #00ff88 240deg,
+                #ff0088 360deg
+            );
+            animation-duration: 25s;
+            filter: blur(100px);
+            opacity: 0.4;
+        }
+
+        .aurora-layer:nth-child(3) {
+            background: conic-gradient(from 90deg at 70% 30%,
+                #00ffff 0deg,
+                #ff00ff 180deg,
+                #ffff00 360deg
+            );
+            animation-duration: 30s;
+            filter: blur(120px);
+            opacity: 0.3;
+        }
+
+        @keyframes aurora {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+            33% {
+                transform: translate(5%, -5%) rotate(5deg) scale(1.1);
+            }
+            66% {
+                transform: translate(-5%, 5%) rotate(-5deg) scale(0.9);
+            }
+            100% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+            }
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, white, transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 90px 40px, white, transparent),
+                radial-gradient(2px 2px at 160px 120px, rgba(255,255,255,0.9), transparent),
+                radial-gradient(1px 1px at 230px 80px, white, transparent),
+                radial-gradient(2px 2px at 300px 150px, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1px 1px at 370px 50px, white, transparent),
+                radial-gradient(2px 2px at 450px 180px, rgba(255,255,255,0.8), transparent);
+            background-size: 550px 200px;
+            animation: twinkle 5s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-container">
+        <div class="aurora">
+            <div class="aurora-layer"></div>
+            <div class="aurora-layer"></div>
+            <div class="aurora-layer"></div>
+        </div>
+        <div class="stars"></div>
+    </div>
+</body>
+</html>

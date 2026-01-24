@@ -124,11 +124,26 @@ const app = createApp({
             connectionStatus: null,  // 连接状态：null=未测试, true=已连接, false=未连接
             // 自动刷新配置
             autoRefreshEnabled: true,
-            autoRefreshInterval: 1000,
-            refreshIntervalSeconds: 1,
+            autoRefreshInterval: 3000,
+            refreshIntervalSeconds: 3,
             autoRefreshTimer: null,
             isRefreshing: false,
             isFirstLoading: true,
+            showDeviceGrid: false, // 控制设备网格的延迟显示
+            // 背景设置
+            currentBackground: localStorage.getItem('currentBackground') || 'default',
+            _currentBackground: null, // 用于防止重复加载背景
+            backgrounds: {
+                'blue-gradient-waves': 'backgrounds/blue-gradient-waves.html',
+                'particle-network': 'backgrounds/particle-network.html',
+                'aurora-borealis': 'backgrounds/aurora-borealis.html',
+                'starfield': 'backgrounds/starfield.html'
+            },
+            // 设备操作过渡状态
+            deviceTransitionStates: {},
+            // 智能刷新
+            highRefreshUntil: null, // 高频刷新截止时间戳
+            deviceStateHistory: {}, // 设备状态历史，用于检测状态稳定
             // 自动化日志
             automationLogs: [],
             // 动态设备状态存储
@@ -156,8 +171,13 @@ const app = createApp({
             printerBlinking: false,
             // 3D打印机电源控制弹窗
             showPrinterPowerModal: false,
+            isPrinterPowerModalOpen: false,
+            isPrinterPowerModalClosing: false,
             printerPowerDevice: null,
-            printerPowerAction: 'on'
+            printerPowerAction: 'on',
+            // 点击位置追踪
+            modalClickX: 0,
+            modalClickY: 0
         }
     },
 
@@ -259,6 +279,15 @@ const app = createApp({
             if (state === 'idle') return 'status-active';
 
             return '';
+        },
+
+        // 弹窗容器位置样式
+        modalContainerStyles() {
+            // 始终设置CSS变量,初始和关闭状态使用点击位置
+            return {
+                '--start-x': `${this.modalClickX}px`,
+                '--start-y': `${this.modalClickY}px`
+            };
         },
 
         // 餐厅灯状态显示
@@ -502,7 +531,23 @@ const app = createApp({
         }
     },
 
-        mounted() {
+    watch: {
+        currentBackground(newVal) {
+            // 当背景改变时，更新body的class和iframe
+            if (this._backgroundTimer) {
+                clearTimeout(this._backgroundTimer);
+            }
+            this._backgroundTimer = setTimeout(() => {
+                this.updateBackground(newVal);
+            }, 100);
+        }
+    },
+
+    mounted() {
+        // 初始化背景
+        this._currentBackground = null; // 确保第一次会加载
+        this.updateBackground(this.currentBackground);
+
         // 加载保存的配置并更新全局常量
         const savedUrl = localStorage.getItem('haUrl');
         const savedToken = localStorage.getItem('accessToken');
@@ -526,12 +571,21 @@ const app = createApp({
         this.initDeviceStates();
         this.startAutoRefresh();
 
-        // 获取天气数据
-        this.fetchWeather();
+        // 获取天气数据（静默失败）
+        this.fetchWeather().catch(() => {});
 
-        // 检查3D打印机状态
-        this.checkPrinterStatus();
-        this.checkPrinterPowerStatus();
+        // 检查3D打印机状态（静默，不显示错误）
+        this.checkPrinterStatus().catch(() => {});
+        this.checkPrinterPowerStatus().catch(() => {});
+
+        // 调试：确保弹窗初始状态为 false
+        this.showPrinterModal = false;
+        this.showPrinterPowerModal = false;
+
+        // 延迟显示设备网格，让顶部和底部先渲染
+        setTimeout(() => {
+            this.showDeviceGrid = true;
+        }, 100); // 100ms后显示设备网格
     },
 
     beforeUnmount() {
@@ -543,6 +597,57 @@ const app = createApp({
     },
 
     methods: {
+        // 更新背景
+        updateBackground(background) {
+            const container = document.getElementById('dynamic-bg-container');
+            console.log('Updating background to:', background);
+
+            // 检查是否已经是这个背景，避免重复加载
+            if (this._currentBackground === background) {
+                console.log('Background is already', background, ', skipping');
+                return;
+            }
+            this._currentBackground = background;
+
+            // 保存到localStorage
+            localStorage.setItem('currentBackground', background);
+
+            if (background !== 'default') {
+                document.body.classList.add('has-dynamic-background');
+                // 创建或更新iframe
+                container.innerHTML = '';
+                const iframe = document.createElement('iframe');
+                iframe.src = this.backgrounds[background];
+                iframe.className = 'dynamic-background';
+                iframe.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    border: none;
+                    z-index: -1;
+                    pointer-events: none;
+                    display: block;
+                    width: 100vw;
+                    height: 100vh;
+                    background: transparent;
+                `;
+                console.log('Created iframe with src:', iframe.src);
+                container.appendChild(iframe);
+            } else {
+                // 默认背景：移除iframe和body的class，不重新加载页面
+                document.body.classList.remove('has-dynamic-background');
+                container.innerHTML = '';
+            }
+        },
+
+        // 背景切换
+        changeBackground() {
+            // v-model已经处理了数据绑定，这个方法只用于占位
+            // 实际逻辑由watch currentBackground处理
+        },
+
         // 扫地机器人控制
         toggleVacuumControl() {
             const state = this.vacuumData?.state;
@@ -1163,7 +1268,6 @@ const app = createApp({
 
         async fetchDeviceState(entityId) {
             if (!entityId) {
-                console.warn('fetchDeviceState: entityId is undefined');
                 return null;
             }
 
@@ -1181,7 +1285,6 @@ const app = createApp({
 
                 return await response.json();
             } catch (error) {
-                console.error(`fetchDeviceState error for ${entityId}:`, error);
                 throw error;
             }
         },
@@ -1608,6 +1711,12 @@ const app = createApp({
             }, this.autoRefreshInterval);
         },
 
+        // 重启自动刷新（在改变刷新频率时使用）
+        restartAutoRefresh() {
+            this.stopAutoRefresh();
+            this.startAutoRefresh();
+        },
+
         stopAutoRefresh() {
             if (this.autoRefreshTimer) {
                 clearInterval(this.autoRefreshTimer);
@@ -1620,13 +1729,63 @@ const app = createApp({
 
             try {
                 this.isRefreshing = true;
-                // 使用静默更新,避免闪烁
-                await this.silentUpdateAllData();
-                // 更新动态设备状态
-                this.updateAllDeviceStates();
+
+                // 检查是否需要高频刷新（通过刷新间隔判断）
+                const isHighRefreshMode = this.autoRefreshInterval === 1000;
+
+                if (isHighRefreshMode) {
+                    // 高频刷新：更新所有设备状态
+                    await this.silentUpdateAllData();
+
+                    // 检查设备状态是否稳定
+                    this.checkDeviceStability();
+                } else {
+                    // 低频刷新：只更新动态设备状态，减少网络请求
+                    this.updateAllDeviceStates();
+                }
             } finally {
                 this.isRefreshing = false;
             }
+        },
+
+        // 检查设备状态稳定性
+        checkDeviceStability() {
+            DEVICE_CARDS.forEach(device => {
+                if (!device.stateEntity) return;
+
+                const currentState = this.deviceStates[device.stateEntity]?.state;
+
+                // 获取历史状态
+                const history = this.deviceStateHistory[device.stateEntity] || [];
+
+                // 添加当前状态到历史
+                history.push(currentState);
+                if (history.length > 3) {
+                    history.shift(); // 只保留最近3次状态
+                }
+
+                this.deviceStateHistory = {
+                    ...this.deviceStateHistory,
+                    [device.stateEntity]: history
+                };
+
+                // 检查最近3次状态是否一致
+                const isStable = history.length === 3 && history.every(s => s === history[0]);
+
+                if (isStable) {
+                    // 状态已稳定，可以停止高频刷新
+                    // 检查是否所有设备都稳定
+                    const allStable = Object.values(this.deviceStateHistory).every(
+                        h => h && h.length === 3 && h.every((s, i, arr) => s === arr[0])
+                    );
+
+                    if (allStable) {
+                        // 所有设备状态稳定，恢复低频刷新
+                        this.autoRefreshInterval = 3000;
+                        this.restartAutoRefresh();
+                    }
+                }
+            });
         },
 
         applyRefreshInterval() {
@@ -1734,6 +1893,10 @@ const app = createApp({
 
         // 获取设备状态（从缓存）
         getCachedDeviceState(entityId) {
+            // 如果有过渡状态，优先返回过渡状态
+            if (this.deviceTransitionStates[entityId] !== undefined) {
+                return this.deviceTransitionStates[entityId];
+            }
             return this.deviceStates[entityId]?.state || 'off';
         },
 
@@ -1809,21 +1972,69 @@ const app = createApp({
 
             try {
                 if (deviceType === 'light') {
-                    // 灯具开关
+                    // 灯具开关 - 使用过渡状态
+                    const newState = state === 'on' ? 'off' : 'on';
+                    this.deviceTransitionStates = {
+                        ...this.deviceTransitionStates,
+                        [device.stateEntity]: newState
+                    };
+
                     if (state === 'on') {
                         await this.callService('light', 'turn_off', { entity_id: device.controlEntity });
                     } else {
                         await this.callService('light', 'turn_on', { entity_id: device.controlEntity });
                     }
+
+                    // 立即清空该设备的历史状态
+                    this.deviceStateHistory = {
+                        ...this.deviceStateHistory,
+                        [device.stateEntity]: []
+                    };
+
+                    // 启动高频刷新（1秒间隔），快速获取设备真实状态
+                    this.autoRefreshInterval = 1000;
+                    this.restartAutoRefresh();
+
+                    // 延迟3秒后恢复3秒刷新，并清除过渡状态
+                    setTimeout(() => {
+                        this.getDeviceStateData(device.stateEntity);
+                        delete this.deviceTransitionStates[device.stateEntity];
+                    }, 3000);
                 } else if (deviceType === 'vacuum') {
                     // 扫地机控制
+                    let newState;
                     if (state === 'cleaning') {
+                        newState = 'paused';
                         await this.callService('vacuum', 'pause', { entity_id: device.controlEntity });
                     } else if (state === 'paused' || state === 'idle' || state === 'docked') {
+                        newState = 'cleaning';
                         await this.callService('vacuum', 'start', { entity_id: device.controlEntity });
                     } else {
+                        newState = 'returning';
                         await this.callService('vacuum', 'return_to_base', { entity_id: device.controlEntity });
                     }
+
+                    // 使用过渡状态
+                    this.deviceTransitionStates = {
+                        ...this.deviceTransitionStates,
+                        [device.stateEntity]: newState
+                    };
+
+                    // 立即清空该设备的历史状态
+                    this.deviceStateHistory = {
+                        ...this.deviceStateHistory,
+                        [device.stateEntity]: []
+                    };
+
+                    // 启动高频刷新（1秒间隔），快速获取设备真实状态
+                    this.autoRefreshInterval = 1000;
+                    this.restartAutoRefresh();
+
+                    // 延迟3秒后恢复3秒刷新，并清除过渡状态
+                    setTimeout(() => {
+                        this.getDeviceStateData(device.stateEntity);
+                        delete this.deviceTransitionStates[device.stateEntity];
+                    }, 3000);
                 } else if (deviceType === 'feeder') {
                     // 宠物投喂
                     await this.callService('number', 'set_value', {
@@ -1831,13 +2042,37 @@ const app = createApp({
                         value: 1
                     });
                     vant.showToast({ message: '投喂成功', type: 'success' });
+                    // 立即刷新该设备状态
+                    this.getDeviceStateData(device.stateEntity);
                 } else if (deviceType === 'switch') {
-                    // 开关控制（包括热水器等开关设备）
+                    // 开关控制（包括热水器等开关设备）- 使用过渡状态
+                    const newState = state === 'on' ? 'off' : 'on';
+                    this.deviceTransitionStates = {
+                        ...this.deviceTransitionStates,
+                        [device.stateEntity]: newState
+                    };
+
                     if (state === 'on') {
                         await this.callService('switch', 'turn_off', { entity_id: device.controlEntity });
                     } else {
                         await this.callService('switch', 'turn_on', { entity_id: device.controlEntity });
                     }
+
+                    // 延迟1.5秒后刷新状态，给设备响应时间
+                    setTimeout(() => {
+                        this.getDeviceStateData(device.stateEntity);
+                        delete this.deviceTransitionStates[device.stateEntity];
+
+                        // 清空该设备的历史状态
+                        this.deviceStateHistory = {
+                            ...this.deviceStateHistory,
+                            [device.stateEntity]: []
+                        };
+
+                        // 启动高频刷新（1秒间隔），快速获取设备真实状态
+                        this.autoRefreshInterval = 1000;
+                        this.restartAutoRefresh();
+                    }, 1500);
                 } else if (deviceType === 'url') {
                     // URL链接类设备（如3D打印机等）- 打开弹窗
                     // 只有在打印机在线时才打开弹窗
@@ -1848,7 +2083,7 @@ const app = createApp({
                     }
                 }
             } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
+                // 操作失败，静默处理，UI会在下次刷新时自动恢复
             }
         },
 
@@ -1950,7 +2185,7 @@ const app = createApp({
                     }
                 }
             } catch (error) {
-                console.error('检查打印机电源状态失败:', error);
+                // 静默失败，不输出错误日志
             }
         },
 
@@ -1974,10 +2209,18 @@ const app = createApp({
         },
 
         // 切换3D打印机电源 - 打开确认弹窗
-        async togglePrinterPower(device) {
+        async togglePrinterPower(device, event) {
             if (!device.powerEntity) {
                 vant.showToast({ message: '未配置电源实体', type: 'fail' });
                 return;
+            }
+
+            // 记录点击位置（直接使用点击坐标）
+            if (event) {
+                const rect = event.target.getBoundingClientRect();
+                // 使用目标元素的中心点作为起始位置
+                this.modalClickX = rect.left + rect.width / 2;
+                this.modalClickY = rect.top + rect.height / 2;
             }
 
             try {
@@ -1989,19 +2232,40 @@ const app = createApp({
                 this.printerPowerDevice = device;
                 this.printerPowerAction = isOn ? 'off' : 'on';
 
-                // 打开确认弹窗
+                // 重置动画状态
+                this.isPrinterPowerModalOpen = false;
+                this.isPrinterPowerModalClosing = false;
+
+                // 立即显示弹窗（初始位置）
                 this.showPrinterPowerModal = true;
+
+                // 使用setTimeout确保DOM已渲染，然后触发动画
+                setTimeout(() => {
+                    this.isPrinterPowerModalOpen = true;
+                }, 50);
 
             } catch (error) {
                 vant.showToast({ message: '获取电源状态失败', type: 'fail' });
             }
         },
 
+        // 关闭电源控制弹窗（带动画）
+        closePrinterPowerModal() {
+            this.isPrinterPowerModalClosing = true;
+            this.isPrinterPowerModalOpen = false;
+
+            // 等待动画完成后隐藏弹窗 (0.6秒动画时长)
+            setTimeout(() => {
+                this.showPrinterPowerModal = false;
+                this.isPrinterPowerModalClosing = false;
+            }, 600);
+        },
+
         // 确认3D打印机电源操作
         async confirmPrinterPower() {
             if (!this.printerPowerDevice || !this.printerPowerDevice.powerEntity) {
                 vant.showToast({ message: '配置错误', type: 'fail' });
-                this.showPrinterPowerModal = false;
+                this.closePrinterPowerModal();
                 return;
             }
 
@@ -2028,8 +2292,8 @@ const app = createApp({
                     this.printerBlinking = false;
                 }
 
-                // 关闭弹窗
-                this.showPrinterPowerModal = false;
+                // 关闭弹窗（带动画）
+                this.closePrinterPowerModal();
 
                 // 等待2秒后重新检查打印机状态
                 setTimeout(() => {

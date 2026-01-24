@@ -7,6 +7,100 @@
 
     <!-- Vant样式已内联到页面中,无需额外引入 -->
     <style>
+        /* Vue v-cloak - 防止未编译的模板闪烁 */
+        [v-cloak] {
+            display: none !important;
+        }
+
+        /* 渐进式渲染动画 */
+        .fade-in-up {
+            animation: fadeInUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 动态背景层 */
+        .dynamic-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: none;
+            z-index: -1;
+            pointer-events: none;
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 页面容器 - 移除背景，让动态背景显示 */
+        .page-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 60px;
+            overflow-x: hidden;
+            position: relative;
+            background: transparent;
+        }
+
+        /* 当没有动态背景时，使用默认渐变背景 */
+        body:has(.dynamic-background) .page-container {
+            background: transparent;
+        }
+
+        body:not(:has(.dynamic-background)) {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 启动加载动画容器 */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         /* 全局样式 - 扁平化设计 */
         * {
             margin: 0;
@@ -17,10 +111,20 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
-            color: #333;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.95);
             min-height: 100vh;
             overflow-x: hidden;
+        }
+
+        /* 当没有动态背景时，保持body背景 */
+        body:not(.has-dynamic-background) {
+            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 50%, #93c5fd 100%);
+        }
+
+        /* 当有动态背景时，移除body的背景 */
+        body.has-dynamic-background {
+            background: transparent;
         }
 
         /* 毛玻璃效果 */
@@ -46,6 +150,13 @@
             flex-direction: column;
             padding-bottom: 60px;
             overflow-x: hidden;
+            position: relative;
+            background: transparent;
+        }
+
+        /* 当有动态背景时，所有文字变为白色 */
+        body.has-dynamic-background .page-container * {
+            color: rgba(255, 255, 255, 0.95) !important;
         }
 
         /* 顶部标题栏 */
@@ -105,7 +216,7 @@
             border-radius: 0;
             border: none;
             box-shadow: none;
-            animation: scaleIn 0.5s ease-out;
+            animation: scaleIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             animation-delay: 0.1s;
             animation-fill-mode: both;
         }
@@ -141,9 +252,9 @@
             align-items: center;
             gap: 8px;
             padding: 6px 10px;
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .status-text {
@@ -155,7 +266,7 @@
 
         .status-item:active {
             transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .status-icon {
@@ -226,19 +337,19 @@
             top: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(3px);
+            -webkit-backdrop-filter: blur(3px);
             border:
-                1px solid rgba(255, 255, 255, 0.25),
-                1px solid rgba(255, 255, 255, 0.15);
+                1px solid rgba(255, 255, 255, 0.05),
+                1px solid rgba(255, 255, 255, 0.02);
             box-shadow:
                 0 4px 12px rgba(0, 0, 0, 0.08),
                 0 1px 2px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35),
-                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.02);
             z-index: 100;
-            animation: slideDown 0.4s ease-out;
+            animation: slideDown 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             padding-bottom: 4px;
         }
 
@@ -263,7 +374,7 @@
 
         /* 页面内容 */
         .page-content {
-            animation: fadeInUp 0.5s ease-out;
+            animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         @keyframes fadeInUp {
@@ -299,20 +410,20 @@
 
         /* 设备卡片网格版 - 毛玻璃效果 */
         .device-grid-card {
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             border-radius: 18px;
             padding: 12px 8px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             border:
-                1px solid rgba(255, 255, 255, 0.25),
-                1px solid rgba(255, 255, 255, 0.15);
+                1px solid rgba(255, 255, 255, 0.05),
+                1px solid rgba(255, 255, 255, 0.02);
             box-shadow:
                 0 4px 12px rgba(0, 0, 0, 0.08),
                 0 1px 2px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35),
-                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.01);
             cursor: pointer;
             position: relative;
             overflow: hidden;
@@ -320,7 +431,7 @@
             flex-direction: column;
             align-items: center;
             text-align: center;
-            animation: scaleIn 0.4s ease-out;
+            animation: scaleIn 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             aspect-ratio: 1;
         }
 
@@ -362,11 +473,11 @@
 
         /* 开启状态的网格卡片 */
         .device-grid-card.active {
-            background: rgba(255, 255, 255, 0.6);
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 8px 32px rgba(255, 255, 255, 0.4),
-                        0 0 20px rgba(255, 255, 255, 0.3),
-                        inset 0 0 30px rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(255, 255, 255, 0.25),
+                        0 0 20px rgba(255, 255, 255, 0.2),
+                        inset 0 0 30px rgba(255, 255, 255, 0.12);
         }
 
         .device-grid-card.active .grid-device-name {
@@ -468,7 +579,7 @@
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             background: rgba(255, 255, 255, 0.2);
             color: white;
             backdrop-filter: blur(10px);
@@ -505,7 +616,7 @@
             right: 4px;
             font-size: 20px;
             z-index: 10;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             cursor: pointer;
             padding: 4px;
             line-height: 1;
@@ -526,7 +637,7 @@
         }
 
         .printer-status-icon.blinking {
-            animation: blink 1s ease-in-out infinite;
+            animation: blink 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
         }
 
         @keyframes blink {
@@ -554,7 +665,7 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             padding: 20px;
         }
 
@@ -568,15 +679,20 @@
         }
 
         .printer-modal-container {
-            background: white;
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
             width: 95%;
             max-width: 800px;
             height: 80vh;
             display: flex;
             flex-direction: column;
-            animation: scaleIn 0.3s ease-out;
+            animation: scaleIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
             overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08),
+                        0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         .printer-modal-header {
@@ -584,7 +700,10 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             color: white;
         }
 
@@ -597,23 +716,23 @@
         }
 
         .printer-modal-close {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             font-size: 24px;
             width: 36px;
             height: 36px;
-            border-radius: 50%;
+            border-radius: 12px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .printer-modal-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
         }
 
         .printer-modal-close:active {
@@ -647,7 +766,7 @@
             border: 4px solid #e5e7eb;
             border-top-color: #3b82f6;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
         }
 
         @keyframes spin {
@@ -657,7 +776,7 @@
         }
 
         .printer-loading-text {
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.85);
             font-size: 14px;
         }
 
@@ -671,22 +790,62 @@
             background: rgba(0, 0, 0, 0.6);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            display: flex;
-            justify-content: center;
-            align-items: center;
             z-index: 1100;
-            animation: fadeIn 0.2s ease-out;
-            padding: 20px;
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none;
+        }
+
+        .printer-power-modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .printer-power-modal.closing {
+            opacity: 0;
+            pointer-events: none;
         }
 
         .printer-power-container {
-            background: white;
+            position: fixed;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 16px;
             width: 90%;
             max-width: 320px;
             padding: 24px;
-            animation: scaleIn 0.2s ease-out;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 8px 32px rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+                        opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 初始状态: 在点击位置,缩放为0 */
+        .printer-power-container:not(.open):not(.closing) {
+            top: var(--start-y, 50%);
+            left: var(--start-x, 50%);
+            transform: translate(-50%, -50%) scale(0);
+        }
+
+        /* 打开状态: 在中心,缩放为1 */
+        .printer-power-container.open {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        /* 关闭状态: 返回点击位置,缩放为0 */
+        .printer-power-container.closing {
+            top: var(--start-y, 50%);
+            left: var(--start-x, 50%);
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
         }
 
         .printer-power-header {
@@ -697,7 +856,8 @@
         .printer-power-title {
             font-size: 18px;
             font-weight: 700;
-            color: #1f2937;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .printer-power-content {
@@ -713,17 +873,19 @@
         .printer-power-message {
             font-size: 16px;
             font-weight: 600;
-            color: #374151;
+            color: rgba(255, 255, 255, 0.9);
             margin-bottom: 12px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
         .printer-power-warning {
             font-size: 13px;
-            color: #dc2626;
-            background: #fef2f2;
+            color: rgba(255, 255, 255, 0.85);
+            background: rgba(220, 38, 38, 0.15);
             padding: 10px 12px;
             border-radius: 8px;
             line-height: 1.4;
+            border: 1px solid rgba(220, 38, 38, 0.3);
         }
 
         .printer-power-buttons {
@@ -739,7 +901,7 @@
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .printer-power-btn:active {
@@ -747,22 +909,26 @@
         }
 
         .cancel-btn {
-            background: #f3f4f6;
-            color: #6b7280;
+            background: rgba(107, 114, 128, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .cancel-btn:hover {
-            background: #e5e7eb;
+            background: rgba(107, 114, 128, 0.5);
+            border-color: rgba(255, 255, 255, 0.5);
         }
 
         .confirm-btn {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
         }
 
         .confirm-btn:hover {
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
         }
 
         /* URL类型设备卡片样式 */
@@ -848,26 +1014,29 @@
 
         .device-grid-card[data-type='url'] {
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .device-grid-card[data-type='url']:active {
             transform: scale(0.95);
-            background: rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .device-grid-card[data-type='url'] .grid-device-icon {
-            animation: bounce 0.5s ease;
+            animation: bounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
         /* 传统设备卡片（保留特殊控制） */
         .device-card {
-            background: white;
+            background: rgba(255, 255, 255, 0.01);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .device-card:active {
@@ -888,17 +1057,20 @@
         .device-name {
             font-size: 16px;
             font-weight: bold;
-            color: #333;
+            color: white;
         }
 
         .device-status {
             font-size: 14px;
             font-weight: bold;
             padding: 8px 12px;
-            background: #f5f5f5;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 6px;
             margin-bottom: 12px;
-            color: #1976d2;
+            color: white;
         }
 
         .device-actions {
@@ -909,18 +1081,18 @@
 
         /* 自动化日志 */
         .automation-log {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 18px;
             padding: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .log-item {
             padding: 14px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .log-item:active {
@@ -970,7 +1142,7 @@
         .condition-item {
             padding: 16px;
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .condition-item:active {
@@ -1023,7 +1195,7 @@
             padding: 20px;
             margin-bottom: 16px;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .settings-card:active {
@@ -1072,12 +1244,37 @@
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .settings-actions {
             display: flex;
             gap: 10px;
             margin-top: 16px;
+        }
+
+        .settings-select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            width: 100%;
+            max-width: 200px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .settings-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .settings-select option {
+            background: #1a1a2e;
+            color: white;
         }
 
         .settings-info {
@@ -1091,23 +1288,23 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(255, 255, 255, 0.12);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
             border:
-                1px solid rgba(255, 255, 255, 0.25),
-                1px solid rgba(255, 255, 255, 0.15);
+                1px solid rgba(255, 255, 255, 0.05),
+                1px solid rgba(255, 255, 255, 0.02);
             box-shadow:
                 0 -4px 12px rgba(0, 0, 0, 0.08),
                 0 -1px 2px rgba(0, 0, 0, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35),
-                inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+                inset 0 1px 0 rgba(255, 255, 255, 0.05),
+                inset 0 -1px 0 rgba(255, 255, 255, 0.02);
             display: flex;
             justify-content: space-around;
             padding: 8px 0;
             padding-bottom: max(8px, env(safe-area-inset-bottom));
             z-index: 100;
-            animation: slideUp 0.4s ease-out;
+            animation: slideUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         @keyframes slideUp {
@@ -1128,7 +1325,7 @@
             cursor: pointer;
             padding: 5px 16px;
             border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             position: relative;
         }
 
@@ -1143,7 +1340,7 @@
             background: #ffffff;
             border-radius: 50%;
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .nav-item.active::before {
@@ -1177,7 +1374,7 @@
         .nav-icon {
             font-size: 22px;
             margin-bottom: 2px;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .nav-text {
@@ -1318,7 +1515,7 @@
             justify-content: center;
             align-items: center;
             z-index: 200;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
             padding: 20px;
         }
 
@@ -1332,15 +1529,15 @@
         }
 
         .custom-settings-container {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             max-width: 400px;
             width: 100%;
             padding: 24px;
-            animation: scaleIn 0.3s ease-out;
+            animation: scaleIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
         .custom-settings-header {
@@ -1390,7 +1587,7 @@
             align-items: center;
             margin-bottom: 16px;
             padding: 12px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.02);
             border-radius: 12px;
         }
 
@@ -1406,10 +1603,10 @@
 
         .custom-settings-input {
             padding: 8px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             font-size: 14px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.03);
             color: white;
             width: 120px;
             transition: all 0.3s;
@@ -1422,10 +1619,10 @@
 
         .custom-settings-select {
             padding: 8px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
             font-size: 14px;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.03);
             color: white;
             width: 120px;
         }
@@ -1469,7 +1666,15 @@
     </style>
 </head>
 <body>
-    <div id="app" class="page-container">
+    <!-- 启动加载动画 -->
+    <div id="loadingScreen" class="loading-screen" style="display: none;">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 动态背景iframe容器 - 放在body下 -->
+    <div id="dynamic-bg-container"></div>
+
+    <div id="app" v-cloak class="page-container">
         <!-- 错误详情显示区域 -->
         <div v-if="connectionError" class="error-details">
             <strong>连接失败原因：</strong><br>
@@ -1547,7 +1752,7 @@
                 <div class="section-title">设备控制</div>
 
                 <!-- 动态设备卡片布局 - 根据配置文件渲染 -->
-                <div class="device-grid">
+                <div v-if="showDeviceGrid" class="device-grid fade-in-up">
                     <div
                         v-for="(device, index) in DEVICE_CARDS"
                         :key="index"
@@ -1616,7 +1821,7 @@
                                 <div class="printer-status-icon" :class="[
                                     printerStatusClass,
                                     { 'blinking': printerBlinking }
-                                ]" @click.stop="togglePrinterPower(device)">●</div>
+                                ]" @click.stop="togglePrinterPower(device, $event)">●</div>
                             </div>
                         </template>
                     </div>
@@ -1692,7 +1897,7 @@
                             }"
                         >
                             <span v-if="connectionStatus === true" style="color: #4ade80;">已连接</span>
-                            <span v-else style="color: #f87171;">未连接</span>
+                            <span v-else style="color: #fca5a5;">未连接</span>
                         </span>
                     </div>
                 </div>
@@ -1708,6 +1913,21 @@
                     <div class="settings-item">
                         <span class="settings-label">自动刷新</span>
                         <van-switch v-model="autoRefreshEnabled" size="20" @change="applyRefreshInterval" />
+                    </div>
+                </div>
+
+                <!-- 背景设置 -->
+                <div class="settings-card">
+                    <div class="settings-title">背景主题</div>
+                    <div class="settings-item">
+                        <span class="settings-label">选择背景</span>
+                        <select class="settings-select" v-model="currentBackground">
+                            <option value="default">默认蓝色渐变</option>
+                            <option value="blue-gradient-waves">蓝色渐变波浪</option>
+                            <option value="particle-network">粒子网络</option>
+                            <option value="aurora-borealis">极光效果</option>
+                            <option value="starfield">星空闪烁</option>
+                        </select>
                     </div>
                 </div>
 
@@ -1865,7 +2085,7 @@
         </div>
 
         <!-- 3D打印机弹窗 -->
-        <div v-if="showPrinterModal" class="printer-modal" @click.self="showPrinterModal = false">
+        <div v-if="showPrinterModal" v-cloak class="printer-modal" @click.self="showPrinterModal = false">
             <div class="printer-modal-container">
                 <div class="printer-modal-header">
                     <div class="printer-modal-title">
@@ -1893,8 +2113,12 @@
         </div>
 
         <!-- 3D打印机电源控制确认弹窗 -->
-        <div v-if="showPrinterPowerModal" class="printer-power-modal" @click.self="showPrinterPowerModal = false">
-            <div class="printer-power-container">
+        <div v-if="showPrinterPowerModal" v-cloak class="printer-power-modal"
+             :class="{ open: isPrinterPowerModalOpen, closing: isPrinterPowerModalClosing }"
+             @click.self="closePrinterPowerModal">
+            <div class="printer-power-container"
+                 :class="{ open: isPrinterPowerModalOpen, closing: isPrinterPowerModalClosing }"
+                 :style="modalContainerStyles">
                 <div class="printer-power-header">
                     <div class="printer-power-title">3D打印机电源控制</div>
                 </div>
@@ -1908,7 +2132,7 @@
                     </div>
                 </div>
                 <div class="printer-power-buttons">
-                    <button class="printer-power-btn cancel-btn" @click="showPrinterPowerModal = false">取消</button>
+                    <button class="printer-power-btn cancel-btn" @click="closePrinterPowerModal">取消</button>
                     <button class="printer-power-btn confirm-btn" @click="confirmPrinterPower">
                         {{ printerPowerAction === 'on' ? '开机' : '关机' }}
                     </button>
