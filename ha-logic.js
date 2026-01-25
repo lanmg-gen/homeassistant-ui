@@ -1741,7 +1741,7 @@ const app = createApp({
                     this.checkDeviceStability();
                 } else {
                     // 低频刷新：只更新动态设备状态，减少网络请求
-                    this.updateAllDeviceStates();
+                    await this.updateAllDeviceStates();
                 }
             } finally {
                 this.isRefreshing = false;
@@ -2114,18 +2114,23 @@ const app = createApp({
 
         // 获取设备状态数据
         async getDeviceStateData(entityId) {
+            if (!entityId) return;
+
             try {
                 const data = await this.fetchDeviceState(entityId);
-                this.deviceStates = {
-                    ...this.deviceStates,
-                    [entityId]: data
-                };
+                if (data) {
+                    // 使用 Vue.set 或直接赋值来触发响应式更新
+                    this.deviceStates[entityId] = data;
+                }
             } catch (error) {
+                // 静默失败，不显示错误
             }
         },
 
         // 更新所有设备状态
-        updateAllDeviceStates() {
+        async updateAllDeviceStates() {
+            const updatePromises = [];
+
             DEVICE_CARDS.forEach(device => {
                 // 跳过URL类型的设备（如3D打印机），它们不需要HA状态
                 if (device.deviceType === 'url') {
@@ -2136,7 +2141,7 @@ const app = createApp({
                 if (device.deviceType === 'display' && device.sensors) {
                     Object.values(device.sensors).forEach(sensorEntityId => {
                         if (sensorEntityId) {
-                            this.getDeviceStateData(sensorEntityId);
+                            updatePromises.push(this.getDeviceStateData(sensorEntityId));
                         }
                     });
                     return;
@@ -2144,9 +2149,12 @@ const app = createApp({
 
                 // 普通设备获取stateEntity
                 if (device.stateEntity) {
-                    this.getDeviceStateData(device.stateEntity);
+                    updatePromises.push(this.getDeviceStateData(device.stateEntity));
                 }
             });
+
+            // 等待所有设备状态更新完成
+            await Promise.all(updatePromises);
         },
 
         // ==================== 3D打印机控制方法 ====================
