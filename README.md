@@ -73,6 +73,27 @@ const HA_CONFIG = {
 4. 地址填入访问路径,如 `/local/smart-home-panel/ha-panel.html`
 5. 保存并使用
 
+## 故障排除
+
+### 解决 CORS 跨域问题
+
+如果连接失败,可能是 CORS 跨域限制。请在 Home Assistant 的 `configuration.yaml` 中添加:
+
+```yaml
+http:
+  cors_allowed_origins:
+    - "http://localhost:*"
+    - "http://127.0.0.1:*"
+    - "http://192.168.*:*"
+```
+
+**操作步骤:**
+
+1. 在 Home Assistant 服务器上找到 `configuration.yaml` 文件
+2. 添加上述配置(如果没有 http 部分则新增)
+3. 重启 Home Assistant 服务
+4. 重新打开此页面测试连接
+
 > **注意**: 本项目专为移动端优化,未适配桌面端显示,建议在移动设备或手机浏览器中使用。
 
 ## 依赖库

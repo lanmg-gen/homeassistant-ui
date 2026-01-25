@@ -931,6 +931,184 @@
             box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
         }
 
+        /* 背景选择弹窗样式 */
+        .background-options {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .background-option {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .background-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateX(4px);
+        }
+
+        .background-option.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .background-option-icon {
+            font-size: 32px;
+            margin-right: 16px;
+        }
+
+        .background-option-text {
+            flex: 1;
+        }
+
+        .background-option-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.95);
+            margin-bottom: 4px;
+        }
+
+        .background-option-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .background-option-check {
+            font-size: 20px;
+            color: #3b82f6;
+            font-weight: bold;
+        }
+
+        /* 通用弹出卡片样式 */
+        .generic-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1100;
+            opacity: 0;
+            transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            pointer-events: none;
+        }
+
+        .generic-modal.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .generic-modal.closing {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .generic-container {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                        0 8px 32px rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+                        opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .generic-container.small {
+            max-width: 320px;
+        }
+
+        .generic-container.medium {
+            max-width: 380px;
+        }
+
+        .generic-container.large {
+            max-width: 480px;
+        }
+
+        .generic-container:not(.open):not(.closing) {
+            top: var(--start-y, 50%);
+            left: var(--start-x, 50%);
+            transform: translate(-50%, -50%) scale(0);
+        }
+
+        .generic-container.open {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .generic-container.closing {
+            top: var(--start-y, 50%);
+            left: var(--start-x, 50%);
+            transform: translate(-50%, -50%) scale(0);
+            opacity: 0;
+        }
+
+        .generic-header {
+            text-align: center;
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .generic-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .generic-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .generic-footer {
+            padding: 16px 24px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .generic-close-btn {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .generic-close-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
         /* URL类型设备卡片样式 */
         /* 显示类型设备卡片样式（冰箱温度） */
         .display-card {
@@ -1831,7 +2009,7 @@
 
             <!-- 自动化页面 -->
             <div v-if="activeTab === 1" class="page-content">
-                <div class="section-title">自动化触发记录</div>
+                <div class="section-title">自动化触发记录 <span style="font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: normal;">(开发中...)</span></div>
                 <div class="automation-log">
                     <div class="log-item" v-for="(log, index) in automationLogs" :key="index">
                         <div class="log-time">{{ log.time }}</div>
@@ -1843,7 +2021,7 @@
                     </div>
                 </div>
 
-                <div class="section-title" style="margin-top: 24px;">自动化条件</div>
+                <div class="section-title" style="margin-top: 24px;">自动化条件 <span style="font-size: 12px; color: rgba(255, 255, 255, 0.5); font-weight: normal;">(开发中...)</span></div>
                 <div class="automation-conditions">
                     <div class="condition-item">
                         <div class="condition-name">🏠 主人回家</div>
@@ -1917,73 +2095,21 @@
                 </div>
 
                 <!-- 背景设置 -->
-                <div class="settings-card">
+                <div class="settings-card" @click="openBackgroundModal">
                     <div class="settings-title">背景主题</div>
                     <div class="settings-item">
                         <span class="settings-label">选择背景</span>
-                        <select class="settings-select" v-model="currentBackground">
-                            <option value="default">默认蓝色渐变</option>
-                            <option value="blue-gradient-waves">蓝色渐变波浪</option>
-                            <option value="particle-network">粒子网络</option>
-                            <option value="aurora-borealis">极光效果</option>
-                            <option value="starfield">星空闪烁</option>
-                        </select>
+                        <span style="color: #999; font-size: 14px;">{{ backgroundName }}</span>
+                        <span style="margin-left: auto; color: #999;">›</span>
                     </div>
                 </div>
 
-                <!-- 自定义设置 -->
-                <div class="settings-card">
-                    <div class="settings-title">自定义设置</div>
-                    <div class="settings-actions">
-                        <div 
-                            style="
-                                font-size: 16px;
-                                font-weight: 700;
-                                color: white;
-                                cursor: pointer;
-                                padding: 8px 0;
-                            "
-                            @click="openCustomSettings"
-                        >卡片设置</div>
-                    </div>
-                </div>
-
-                <!-- 刷新数据 -->
+                <!-- 关于 -->
                 <div class="settings-card">
                     <div class="settings-title">数据管理</div>
                     <div class="debug-actions">
                         <van-button size="small" type="primary" @click="updateAllData">刷新数据</van-button>
                         <van-button size="small" type="default" @click="testConnection">测试连接</van-button>
-                    </div>
-                    <!-- CORS配置帮助 -->
-                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.2);">
-                        <h4 style="color: white; margin: 0 0 12px 0;">🔧 解决CORS跨域问题</h4>
-                        <p style="color: rgba(255, 255, 255, 0.9);">如果连接失败,可能是CORS跨域限制。请在Home Assistant的<code>configuration.yaml</code>中添加:</p>
-                        <pre style="background: rgba(255, 255, 255, 0.15); padding: 8px; border-radius: 4px; margin: 8px 0; overflow-x: auto; color: white;">http:
-  cors_allowed_origins:
-    - "http://localhost:*"
-    - "http://127.0.0.1:*"
-    - "http://192.168.*:*"</pre>
-                        <p style="color: rgba(255, 255, 255, 0.9);"><strong>操作步骤:</strong></p>
-                        <ul style="color: rgba(255, 255, 255, 0.9);">
-                            <li>1. 在Home Assistant服务器上找到<code>configuration.yaml</code>文件</li>
-                            <li>2. 添加上述配置(如果没有http部分则新增)</li>
-                            <li>3. 重启Home Assistant服务</li>
-                            <li>4. 重新打开此页面测试连接</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- 计时器设置 -->
-                <div class="settings-card">
-                    <div class="settings-title">氛围灯定时器</div>
-                    <div class="settings-item">
-                        <span class="settings-label">定时时长(秒)</span>
-                        <input class="settings-input" v-model.number="timerDuration" type="number" placeholder="1800">
-                    </div>
-                    <div class="settings-actions">
-                        <van-button type="primary" size="small" @click="applyTimerDuration">应用设置</van-button>
-                        <van-button type="warning" size="small" @click="startAmbientLightTimer">启动定时</van-button>
                     </div>
                 </div>
 
@@ -2136,6 +2262,75 @@
                     <button class="printer-power-btn confirm-btn" @click="confirmPrinterPower">
                         {{ printerPowerAction === 'on' ? '开机' : '关机' }}
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 通用弹出卡片 -->
+        <div v-if="showGenericModal" v-cloak class="generic-modal"
+             :class="{ open: isGenericModalOpen, closing: isGenericModalClosing }"
+             @click.self="closeGenericModal">
+            <div class="generic-container"
+                 :class="{ open: isGenericModalOpen, closing: isGenericModalClosing }"
+                 :style="genericModalStyles"
+                 :class="{ 'large': genericModalSize === 'large', 'medium': genericModalSize === 'medium', 'small': genericModalSize === 'small' }">
+                <div class="generic-header">
+                    <div class="generic-title">{{ genericModalTitle }}</div>
+                </div>
+                <div class="generic-content">
+                    <slot name="content"></slot>
+                </div>
+                <div class="generic-footer" v-if="genericModalShowFooter">
+                    <slot name="footer">
+                        <button class="generic-close-btn" @click="closeGenericModal">关闭</button>
+                    </slot>
+                </div>
+            </div>
+        </div>
+
+        <!-- 背景选择弹窗 - 使用通用组件 -->
+        <div v-if="showBackgroundModal" v-cloak class="generic-modal"
+             :class="{ open: isBackgroundModalOpen, closing: isBackgroundModalClosing }"
+             @click.self="closeBackgroundModal">
+            <div class="generic-container medium"
+                 :class="{ open: isBackgroundModalOpen, closing: isBackgroundModalClosing }"
+                 :style="backgroundModalStyles">
+                <div class="generic-header">
+                    <div class="generic-title">背景主题</div>
+                </div>
+                <div class="generic-content">
+                    <div class="background-options">
+                        <div class="background-option"
+                             v-for="(path, key) in backgrounds"
+                             :key="key"
+                             :class="{ active: currentBackground === key }"
+                             @click="selectBackground(key)">
+                            <div class="background-option-icon">
+                                {{ key === 'blue-gradient-waves' ? '🌊' :
+                                   key === 'particle-network' ? '🕸️' :
+                                   key === 'aurora-borealis' ? '🌌' :
+                                   key === 'starfield' ? '✨' : '🎨' }}
+                            </div>
+                            <div class="background-option-text">
+                                <div class="background-option-name">{{ backgroundNameMap[key] }}</div>
+                                <div class="background-option-desc">{{ backgroundDescMap[key] }}</div>
+                            </div>
+                            <div class="background-option-check" v-if="currentBackground === key">✓</div>
+                        </div>
+                        <div class="background-option"
+                             :class="{ active: currentBackground === 'default' }"
+                             @click="selectBackground('default')">
+                            <div class="background-option-icon">🎨</div>
+                            <div class="background-option-text">
+                                <div class="background-option-name">默认蓝色渐变</div>
+                                <div class="background-option-desc">经典蓝色主题</div>
+                            </div>
+                            <div class="background-option-check" v-if="currentBackground === 'default'">✓</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="generic-footer">
+                    <button class="generic-close-btn" @click="closeBackgroundModal">关闭</button>
                 </div>
             </div>
         </div>

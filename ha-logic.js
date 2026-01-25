@@ -34,7 +34,7 @@ window.ACCESS_TOKEN = ACCESS_TOKEN;
 // 获取各个实体的配置
 const PET_FEEDING_ENTITY = STATUS_CONFIGS.petFeeding.counterEntity;
 const AMBIENT_LIGHT_ENTITY = STATUS_CONFIGS.ambientLight.stateEntity;
-const AMBIENT_LIGHT_TIMER = STATUS_CONFIGS.ambientLight.timerEntity;
+const AMBIENT_LIGHT_TIMER_ENTITY = STATUS_CONFIGS.ambientLight.timerEntity;
 const VACUUM_ENTITY = STATUS_CONFIGS.vacuum.stateEntity;
 const MASTER_BEDROOM_LIGHT_ENTITY = DEVICE_CONFIGS.masterBedroomLight.stateEntity;
 const DINING_LIGHT_ENTITY = DEVICE_CONFIGS.diningLight.stateEntity;
@@ -63,10 +63,6 @@ const app = createApp({
             ambientLightData: null,
             ambientLightError: null,
             ambientLightLoading: true,
-            // 氛围灯定时器数据
-            ambientLightTimerData: null,
-            ambientLightTimerError: null,
-            ambientLightTimerLoading: true,
             // 天气数据
             weatherData: null,
             weatherError: null,
@@ -129,6 +125,8 @@ const app = createApp({
             autoRefreshTimer: null,
             isRefreshing: false,
             isFirstLoading: true,
+            // 氛围灯计时器每秒刷新
+            ambientLightTimerRefreshTimer: null,
             showDeviceGrid: false, // 控制设备网格的延迟显示
             // 背景设置
             currentBackground: localStorage.getItem('currentBackground') || 'default',
@@ -151,17 +149,11 @@ const app = createApp({
             // 设置页面数据
             haUrl: HA_CONFIG.url || 'http://192.168.4.5:8123',
             accessToken: HA_CONFIG.token || '',
-            timerDuration: 1800,
             ambientLightSettingsVisible: false,
-            // 自定义设置
-            customSettings: {
-                cardOpacity: 15,
-                borderWidth: 1,
-                borderRadius: 12,
-                gridColumns: 3,
-                cardGap: 12
-            },
-            showCustomSettings: false,
+            // 氛围灯计时器数据
+            ambientLightTimerData: null,
+            ambientLightTimerError: null,
+            ambientLightTimerLoading: true,
             // 3D打印机弹窗
             showPrinterModal: false,
             printerUrl: '',
@@ -177,7 +169,22 @@ const app = createApp({
             printerPowerAction: 'on',
             // 点击位置追踪
             modalClickX: 0,
-            modalClickY: 0
+            modalClickY: 0,
+            // 背景选择弹窗
+            showBackgroundModal: false,
+            isBackgroundModalOpen: false,
+            isBackgroundModalClosing: false,
+            backgroundClickX: 0,
+            backgroundClickY: 0,
+            // 通用弹出卡片
+            showGenericModal: false,
+            isGenericModalOpen: false,
+            isGenericModalClosing: false,
+            genericModalTitle: '',
+            genericModalSize: 'medium',
+            genericModalShowFooter: true,
+            genericClickX: 0,
+            genericClickY: 0
         }
     },
 
@@ -200,48 +207,48 @@ const app = createApp({
 
         // 氛围灯状态显示
         ambientLightStatus() {
-            if (this.ambientLightTimerLoading) return '加载中...';
-            if (this.ambientLightTimerError) return '获取失败';
-            if (!this.ambientLightTimerData) return '未知状态';
+            if (this.ambientLightLoading) return '加载中...';
+            if (this.ambientLightError) return '获取失败';
+            if (!this.ambientLightData) return '未知状态';
 
-            const state = this.ambientLightTimerData.state;
-            const attributes = this.ambientLightTimerData.attributes || {};
+            const state = this.ambientLightData.state;
+            if (state === 'off') return '关闭';
 
-            // 如果定时器运行中,显示剩余时间
-            if (state === 'active') {
-                if (attributes.finishes_at) {
-                    // 将finishes_at换算成本地时间并计算剩余时间
-                    const localTime = new Date(attributes.finishes_at);
+            // 如果灯是开启的，检查倒计时
+            if (this.ambientLightTimerData) {
+                // HA timer实体返回的数据格式：{ state: 'active'/'idle'/'paused', attributes: { remaining: 1800, ... } }
+                const timerState = this.ambientLightTimerData.state;
+                const attributes = this.ambientLightTimerData.attributes || {};
+
+                // 检查timer是否处于活动状态，并获取剩余时间
+                if (timerState === 'active' && attributes.finishes_at) {
+                    const finishesAt = new Date(attributes.finishes_at);
                     const now = new Date();
-                    const endTime = localTime.getTime();
-                    const currentTime = now.getTime();
-                    const remainingSeconds = Math.max(0, Math.floor((endTime - currentTime) / 1000));
-                    const minutes = Math.floor(remainingSeconds / 60);
-                    const seconds = remainingSeconds % 60;
-                    const remainingTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    return remainingTime;
-                } else if (attributes.remaining !== undefined && attributes.remaining !== null) {
-                    return attributes.remaining;
-                } else if (attributes.duration) {
-                    return `${attributes.duration}s`;
+                    const remaining = Math.floor((finishesAt - now) / 1000);
+
+                    if (remaining > 0) {
+                        const minutes = Math.floor(remaining / 60);
+                        const seconds = remaining % 60;
+                        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                    }
                 }
-                return '运行中';
-            } else if (state === 'idle') {
-                return '未启动';
-            } else if (state === 'paused') {
-                return '已暂停';
-            } else {
-                return state;
+
+                // 也可以尝试从attributes.remaining获取（HA版本兼容）
+                if (attributes.remaining && attributes.remaining > 0) {
+                    const remaining = attributes.remaining;
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                }
             }
+
+            return '开启';
         },
 
         // 氛围灯状态样式类
         ambientLightClass() {
-            if (this.ambientLightTimerLoading) return 'loading';
-            if (this.ambientLightTimerError) return 'error';
-            if (this.ambientLightTimerData?.state === 'active') {
-                return 'status-cleaning';
-            }
+            if (this.ambientLightLoading) return 'loading';
+            if (this.ambientLightError) return 'error';
             return '';
         },
 
@@ -528,10 +535,60 @@ const app = createApp({
         // 3D打印机在线状态
         printerStatusClass() {
             return this.printerOnline ? 'online' : 'offline';
+        },
+
+        // 背景名称显示
+        backgroundName() {
+            const nameMap = {
+                'default': '默认蓝色渐变',
+                'blue-gradient-waves': '蓝色渐变波浪',
+                'particle-network': '粒子网络',
+                'aurora-borealis': '极光效果',
+                'starfield': '星空闪烁'
+            };
+            return nameMap[this.currentBackground] || '默认蓝色渐变';
+        },
+
+        // 背景模态框样式
+        backgroundModalStyles() {
+            return {
+                '--start-x': this.backgroundClickX + 'px',
+                '--start-y': this.backgroundClickY + 'px'
+            };
+        },
+
+        // 通用弹出卡片样式
+        genericModalStyles() {
+            return {
+                '--start-x': this.genericClickX + 'px',
+                '--start-y': this.genericClickY + 'px'
+            };
+        },
+
+        // 背景名称映射
+        backgroundNameMap() {
+            return {
+                'default': '默认蓝色渐变',
+                'blue-gradient-waves': '蓝色渐变波浪',
+                'particle-network': '粒子网络',
+                'aurora-borealis': '极光效果',
+                'starfield': '星空闪烁'
+            };
+        },
+
+        // 背景描述映射
+        backgroundDescMap() {
+            return {
+                'default': '经典蓝色主题',
+                'blue-gradient-waves': '流动的蓝色波浪',
+                'particle-network': '动态粒子网络',
+                'aurora-borealis': '绚丽极光效果',
+                'starfield': '闪烁星空背景'
+            };
         }
     },
 
-    watch: {
+        watch: {
         currentBackground(newVal) {
             // 当背景改变时，更新body的class和iframe
             if (this._backgroundTimer) {
@@ -540,6 +597,17 @@ const app = createApp({
             this._backgroundTimer = setTimeout(() => {
                 this.updateBackground(newVal);
             }, 100);
+        },
+
+        // 监控氛围灯状态，当开启时启动每秒刷新计时器
+        'ambientLightData.state'(newState, oldState) {
+            if (newState === 'on' && oldState !== 'on') {
+                // 氛围灯开启，启动每秒刷新计时器
+                this.startAmbientLightTimerRefresh();
+            } else if (newState === 'off' && oldState !== 'off') {
+                // 氛围灯关闭，停止计时器刷新
+                this.stopAmbientLightTimerRefresh();
+            }
         }
     },
 
@@ -571,6 +639,13 @@ const app = createApp({
         this.initDeviceStates();
         this.startAutoRefresh();
 
+        // 检查氛围灯初始状态，如果已开启则启动每秒刷新
+        setTimeout(() => {
+            if (this.ambientLightData && this.ambientLightData.state === 'on') {
+                this.startAmbientLightTimerRefresh();
+            }
+        }, 500); // 等待数据初始化完成
+
         // 获取天气数据（静默失败）
         this.fetchWeather().catch(() => {});
 
@@ -590,6 +665,7 @@ const app = createApp({
 
     beforeUnmount() {
         this.stopAutoRefresh();
+        this.stopAmbientLightTimerRefresh();
         // 清理打印机状态检查定时器
         if (this.printerStatusCheckInterval) {
             clearInterval(this.printerStatusCheckInterval);
@@ -1051,26 +1127,6 @@ const app = createApp({
             }
         },
 
-        async startAmbientLightTimer() {
-            try {
-                await this.callService('timer', 'start', { entity_id: AMBIENT_LIGHT_TIMER });
-                vant.showToast({ message: '定时器已启动', type: 'success' });
-                this.silentUpdateAmbientLightTimerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
-        },
-
-        async stopAmbientLightTimer() {
-            try {
-                await this.callService('timer', 'cancel', { entity_id: AMBIENT_LIGHT_TIMER });
-                vant.showToast({ message: '定时器已停止', type: 'success' });
-                this.silentUpdateAmbientLightTimerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
-        },
-
         showAmbientLightSettings() {
             this.ambientLightSettingsVisible = true;
         },
@@ -1143,19 +1199,6 @@ const app = createApp({
             window.HA_URL = this.haUrl;
             window.ACCESS_TOKEN = this.accessToken;
             vant.showToast({ message: '配置已保存', type: 'success' });
-        },
-
-        async applyTimerDuration() {
-            try {
-                await this.callService('timer', 'start', {
-                    entity_id: AMBIENT_LIGHT_TIMER,
-                    duration: this.timerDuration
-                });
-                vant.showToast({ message: '定时器设置已应用', type: 'success' });
-                this.silentUpdateAmbientLightTimerData();
-            } catch (error) {
-                vant.showToast({ message: '应用失败', type: 'fail' });
-            }
         },
 
         async testConnection() {
@@ -1317,7 +1360,7 @@ const app = createApp({
             try {
                 this.ambientLightTimerLoading = true;
                 this.ambientLightTimerError = null;
-                this.ambientLightTimerData = await this.fetchDeviceState(AMBIENT_LIGHT_TIMER);
+                this.ambientLightTimerData = await this.fetchDeviceState(AMBIENT_LIGHT_TIMER_ENTITY);
             } catch (error) {
                 this.ambientLightTimerError = error.message;
             } finally {
@@ -1493,10 +1536,10 @@ const app = createApp({
             }
         },
 
-        // 静默更新氛围灯定时器数据
+        // 静默更新氛围灯计时器数据
         async silentUpdateAmbientLightTimerData() {
             try {
-                const data = await this.fetchDeviceState(AMBIENT_LIGHT_TIMER);
+                const data = await this.fetchDeviceState(AMBIENT_LIGHT_TIMER_ENTITY);
                 if (data) {
                     this.ambientLightTimerData = data;
                     this.ambientLightTimerError = null;
@@ -1724,6 +1767,22 @@ const app = createApp({
             }
         },
 
+        // 氛围灯计时器每秒刷新
+        startAmbientLightTimerRefresh() {
+            this.stopAmbientLightTimerRefresh();
+
+            this.ambientLightTimerRefreshTimer = setInterval(() => {
+                this.silentUpdateAmbientLightTimerData();
+            }, 1000); // 1秒刷新一次
+        },
+
+        stopAmbientLightTimerRefresh() {
+            if (this.ambientLightTimerRefreshTimer) {
+                clearInterval(this.ambientLightTimerRefreshTimer);
+                this.ambientLightTimerRefreshTimer = null;
+            }
+        },
+
         async autoRefreshData() {
             if (this.isRefreshing) return;
 
@@ -1799,67 +1858,6 @@ const app = createApp({
                     type: 'success'
                 });
             }
-        },
-
-        openCustomSettings() {
-            // 打开自定义设置弹窗
-            this.showCustomSettings = true;
-        },
-
-        saveCustomSettings() {
-            // 保存自定义设置到localStorage和配置文件
-            localStorage.setItem('customSettings', JSON.stringify(this.customSettings));
-
-            vant.showToast({
-                message: '设置已保存',
-                type: 'success'
-            });
-            this.showCustomSettings = false;
-            this.applyCustomSettings();
-        },
-
-        applyCustomSettings() {
-            // 应用自定义设置到页面样式
-            const settings = this.customSettings || {};
-
-            // 应用卡片样式
-            const cards = document.querySelectorAll('.device-grid-card, .automation-log, .automation-conditions, .settings-card');
-            cards.forEach(card => {
-                if (card.style) {
-                    const cardOpacity = settings.cardOpacity !== undefined ? settings.cardOpacity : 15;
-                    const borderWidth = settings.borderWidth !== undefined ? settings.borderWidth : 1;
-                    const borderRadius = settings.borderRadius !== undefined ? settings.borderRadius : 12;
-
-                    card.style.setProperty('--card-opacity', cardOpacity / 100);
-                    card.style.background = `rgba(255, 255, 255, ${cardOpacity / 100})`;
-                    card.style.border = `${borderWidth}px solid rgba(255, 255,255, 0.3)`;
-                    card.style.borderRadius = `${borderRadius}px`;
-                }
-            });
-
-            // 应用网格布局
-            const grid = document.querySelector('.device-grid');
-            if (grid) {
-                const gridColumns = settings.gridColumns !== undefined ? settings.gridColumns : 3;
-                const cardGap = settings.cardGap !== undefined ? settings.cardGap : 12;
-
-                grid.style.gridTemplateColumns = `repeat(${gridColumns}, 1fr)`;
-                grid.style.gap = `${cardGap}px`;
-            }
-        },
-
-        loadCustomSettings() {
-            // 从localStorage加载自定义设置
-            const savedSettings = localStorage.getItem('customSettings');
-            if (savedSettings) {
-                try {
-                    const parsed = JSON.parse(savedSettings);
-                    this.customSettings = { ...this.customSettings, ...parsed };
-                } catch (error) {
-                }
-            }
-            // 应用设置到DOM
-            this.applyCustomSettings();
         },
 
         parseIniFile(content) {
@@ -2328,13 +2326,89 @@ const app = createApp({
 
                 // 如果打印机已在线，停止闪烁
                 if (this.printerOnline) {
-                    clearInterval(checkInterval);
                     this.printerBlinking = false;
+                    clearInterval(checkInterval);
                 }
-            }, 3000); // 每3秒检查一次
+            }, 3000);
+        },
 
-            // 将定时器保存到实例上，方便清理
-            this.printerStatusCheckInterval = checkInterval;
+        // 打开背景选择弹窗
+        openBackgroundModal(event) {
+            if (event) {
+                const rect = event.target.getBoundingClientRect();
+                this.backgroundClickX = rect.left + rect.width / 2;
+                this.backgroundClickY = rect.top + rect.height / 2;
+            }
+
+            this.isBackgroundModalOpen = false;
+            this.isBackgroundModalClosing = false;
+            this.showBackgroundModal = true;
+
+            setTimeout(() => {
+                this.isBackgroundModalOpen = true;
+            }, 50);
+        },
+
+        // 关闭背景选择弹窗
+        closeBackgroundModal() {
+            this.isBackgroundModalClosing = true;
+            this.isBackgroundModalOpen = false;
+
+            setTimeout(() => {
+                this.showBackgroundModal = false;
+                this.isBackgroundModalClosing = false;
+            }, 600);
+        },
+
+        // 选择背景
+        selectBackground(backgroundKey) {
+            this.currentBackground = backgroundKey;
+            vant.showToast({
+                message: '背景已切换',
+                type: 'success'
+            });
+            // 关闭弹窗
+            this.closeBackgroundModal();
+        },
+
+        // 打开通用弹出卡片
+        openGenericModal(options) {
+            const {
+                title = '提示',
+                size = 'medium',
+                showFooter = true,
+                onClick = null
+            } = options;
+
+            // 获取点击位置
+            if (onClick) {
+                const rect = onClick.target.getBoundingClientRect();
+                this.genericClickX = rect.left + rect.width / 2;
+                this.genericClickY = rect.top + rect.height / 2;
+            }
+
+            this.genericModalTitle = title;
+            this.genericModalSize = size;
+            this.genericModalShowFooter = showFooter;
+
+            this.isGenericModalOpen = false;
+            this.isGenericModalClosing = false;
+            this.showGenericModal = true;
+
+            setTimeout(() => {
+                this.isGenericModalOpen = true;
+            }, 50);
+        },
+
+        // 关闭通用弹出卡片
+        closeGenericModal() {
+            this.isGenericModalClosing = true;
+            this.isGenericModalOpen = false;
+
+            setTimeout(() => {
+                this.showGenericModal = false;
+                this.isGenericModalClosing = false;
+            }, 600);
         }
     }
 });
