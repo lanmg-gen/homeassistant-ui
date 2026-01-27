@@ -7,6 +7,25 @@
 
     <!-- Vant样式已内联到页面中,无需额外引入 -->
     <style>
+        /* 禁用文本选择和长按菜单 - 优化触屏体验 */
+        * {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            outline: none;
+        }
+
+        /* 允许输入框和文本区域选择文本 */
+        input, textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+
         /* Vue v-cloak - 防止未编译的模板闪烁 */
         [v-cloak] {
             display: none !important;
@@ -267,6 +286,7 @@
         .status-item:active {
             transform: scale(0.95);
             background: rgba(255, 255, 255, 0.2);
+            transition: transform 0.1s ease;
         }
 
         .status-icon {
@@ -450,6 +470,31 @@
 
         .device-grid-card:active {
             transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
+        /* 优化按钮触摸反馈 */
+        button:active {
+            transform: scale(0.95);
+            transition: transform 0.1s ease;
+        }
+
+        /* 优化触屏点击区域 */
+        .grid-device-icon,
+        .grid-device-name,
+        .grid-device-status,
+        .status-item,
+        .tab-button:active,
+        .climate-btn:active,
+        .climate-settings-btn:active {
+            transform: scale(0.95);
+        }
+
+        .tab-button,
+        .climate-btn,
+        .climate-settings-btn {
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .device-grid-card.active .grid-device-icon {
@@ -487,6 +532,28 @@
         .device-grid-card.active .grid-device-status {
             color: rgba(255, 255, 255, 0.95);
             background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 洗衣机运行中状态 */
+        .device-grid-card.active-running {
+            background: rgba(74, 222, 128, 0.15);
+            border: 2px solid rgba(74, 222, 128, 0.6);
+            box-shadow: 0 8px 32px rgba(74, 222, 128, 0.25),
+                        0 0 20px rgba(74, 222, 128, 0.2),
+                        inset 0 0 30px rgba(74, 222, 128, 0.12);
+        }
+
+        .device-grid-card.active-running .grid-device-icon {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .device-grid-card.active-running .grid-device-name {
+            color: #4ade80;
+        }
+
+        .device-grid-card.active-running .grid-device-status {
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.25);
         }
 
         .grid-device-icon {
@@ -553,6 +620,22 @@
             gap: 6px;
         }
 
+        .climate-settings-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 4px 8px;
+        }
+
+        .climate-settings-btn:hover {
+            color: white;
+            transform: rotate(45deg);
+        }
+
         .climate-label {
             font-size: 13px;
             color: rgba(255, 255, 255, 0.7);
@@ -591,6 +674,30 @@
             transform: scale(0.95);
         }
 
+        .climate-btn.active {
+            transform: scale(1.05);
+        }
+
+        .fan-btn.active {
+            background: rgba(34, 197, 94, 0.8);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+        }
+
+        .cool-btn.active {
+            background: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+        }
+
+        .heat-btn.active {
+            background: rgba(239, 68, 68, 0.8);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .fan-btn:hover {
+            background: rgba(34, 197, 94, 0.6);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
+        }
+
         .cool-btn:hover {
             background: rgba(59, 130, 246, 0.6);
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
@@ -603,6 +710,206 @@
 
         .climate-card.active {
             background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* 空调设置弹窗样式 */
+        .ac-settings-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding: 8px;
+        }
+
+        .ac-setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .ac-setting-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 4px;
+        }
+
+        .ac-setting-value {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .ac-temp-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ac-temp-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .ac-temp-display {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .ac-temp-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .ac-temp-btn:active {
+            transform: scale(0.9);
+        }
+
+        .ac-mode-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ac-fan-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ac-swing-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ac-power-btn:active {
+            transform: scale(0.95);
+        }
+
+        .ac-setting-item.disabled {
+            opacity: 0.6;
+        }
+
+        .ac-disabled-hint {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        .ac-mode-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .ac-mode-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ac-mode-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .ac-mode-btn.active {
+            transform: scale(1.05);
+            background: rgba(102, 126, 234, 0.8);
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .ac-power-btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ac-power-btn.on {
+            background: rgba(239, 68, 68, 0.8);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+
+        .ac-power-btn:not(.on) {
+            background: rgba(34, 197, 94, 0.8);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.6);
+        }
+
+        .ac-power-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .ac-fan-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .ac-fan-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .ac-fan-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .ac-fan-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        .ac-swing-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .ac-swing-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ac-swing-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .ac-swing-btn.active {
+            background: rgba(102, 126, 234, 0.8);
+            box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
         }
 
         /* 3D打印机卡片样式 */
@@ -1022,7 +1329,8 @@
             border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 16px;
             width: 90%;
-            max-height: 80vh;
+            height: 90vh;
+            max-height: 90vh;
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
                         0 8px 32px rgba(255, 255, 255, 0.1);
@@ -1035,6 +1343,15 @@
             flex-direction: column;
         }
 
+        .generic-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .generic-container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
         .generic-container.small {
             max-width: 320px;
         }
@@ -1045,6 +1362,11 @@
 
         .generic-container.large {
             max-width: 480px;
+        }
+
+        .generic-container.xlarge {
+            max-width: 95vw;
+            height: 90vh;
         }
 
         .generic-container:not(.open):not(.closing) {
@@ -1086,6 +1408,15 @@
             padding: 16px;
         }
 
+        .generic-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .generic-content {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
         .generic-footer {
             padding: 16px 24px 20px;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -1107,6 +1438,7 @@
         .generic-close-btn:hover {
             background: rgba(255, 255, 255, 0.25);
             transform: translateY(-2px);
+        }
         }
 
         /* URL类型设备卡片样式 */
@@ -1841,6 +2173,278 @@
                 transform: scale(1.02);
             }
         }
+
+        /* 洗衣机弹窗样式 */
+        .washing-machine-detail {
+            padding: 8px;
+        }
+
+        .wm-status-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .wm-status-icon {
+            font-size: 48px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .wm-status-text {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .wm-status-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .wm-status-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .wm-status-value.running {
+            color: #4ade80;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+
+        .wm-status-value.paused {
+            color: #fbbf24;
+            text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+        }
+
+        .wm-status-value.idle {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .wm-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .wm-info-item {
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .wm-info-label {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .wm-info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .wm-progress-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+        }
+
+        .wm-progress-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .wm-progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .wm-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #3b82f6);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .wm-progress-text {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        /* 洗衣机故障提示 */
+        .wm-fault-section {
+            padding: 16px;
+            background: rgba(239, 68, 68, 0.15);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .wm-fault-icon {
+            font-size: 24px;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .wm-fault-text {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fca5a5;
+        }
+
+        /* 洗衣机控制区 */
+        .wm-controls-section {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+
+        .wm-control-group {
+            margin-bottom: 20px;
+        }
+
+        .wm-control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .wm-control-label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .wm-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wm-select:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .wm-select:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #4ade80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+        }
+
+        .wm-select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .wm-number-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .wm-number {
+            flex: 1;
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+        }
+
+        .wm-btn {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wm-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.05);
+        }
+
+        .wm-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 洗衣机操作按钮 */
+        .wm-actions-section {
+            display: flex;
+            gap: 12px;
+        }
+
+        .wm-action-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wm-btn-start {
+            background: linear-gradient(135deg, #4ade80, #3b82f6);
+        }
+
+        .wm-btn-start:hover {
+            background: linear-gradient(135deg, #22c55e, #2563eb);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .wm-btn-start:active {
+            transform: translateY(0);
+        }
+
+        .wm-btn-pause {
+            background: rgba(251, 191, 36, 0.3);
+            border: 1px solid rgba(251, 191, 36, 0.5);
+        }
+
+        .wm-btn-pause:hover {
+            background: rgba(251, 191, 36, 0.4);
+            border-color: rgba(251, 191, 36, 0.7);
+        }
     </style>
 </head>
 <body>
@@ -1936,7 +2540,8 @@
                         :key="index"
                         class="device-grid-card"
                         :class="{
-                            active: device.deviceType !== 'display' && getCachedDeviceState(device.stateEntity) === 'on',
+                            active: device.deviceType !== 'display' && device.deviceType !== 'washingmachine' && getCachedDeviceState(device.stateEntity) === 'on',
+                            'active-running': device.deviceType === 'washingmachine' && washingMachineData?.state === 'running',
                             'span-2': device.span === 2,
                             'climate-card': device.deviceType === 'climate'
                         }"
@@ -1950,14 +2555,24 @@
                                     <span class="climate-label">温度</span>
                                     <span class="climate-value">{{ airConditionerTemp }}℃</span>
                                 </div>
+                                <div class="climate-settings-btn" @click.stop="openAirConditionerSettings">
+                                    ⚙️
+                                </div>
                                 <div class="climate-temp-info">
                                     <span class="climate-label">湿度</span>
                                     <span class="climate-value">{{ airConditionerHumidity }}%</span>
                                 </div>
                             </div>
                             <div class="climate-buttons">
-                                <button class="climate-btn cool-btn" @click.stop="setAirConditionerCool">❄️ 制冷</button>
-                                <button class="climate-btn heat-btn" @click.stop="setAirConditionerHeat">🔥 制热</button>
+                                <button class="climate-btn fan-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'fan_only' }"
+                                        @click.stop="setAirConditionerFanOnly">🌬️ 送风</button>
+                                <button class="climate-btn cool-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'cool' }"
+                                        @click.stop="setAirConditionerCool">❄️ 制冷</button>
+                                <button class="climate-btn heat-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'heat' }"
+                                        @click.stop="setAirConditionerHeat">🔥 制热</button>
                             </div>
                         </template>
                         <!-- 普通设备卡片 -->
@@ -2002,9 +2617,17 @@
                                 ]" @click.stop="togglePrinterPower(device, $event)">●</div>
                             </div>
                         </template>
+                        <!-- 洗衣机设备 -->
+                        <template v-else-if="device.deviceType === 'washingmachine'">
+                            <div class="grid-device-icon">{{ device.icon }}</div>
+                            <div class="grid-device-name">{{ device.name }}</div>
+                            <div class="grid-device-status">{{ getWashingMachineStatusText(device) }}</div>
+                        </template>
                     </div>
                 </div>
             </div>
+
+
 
 
             <!-- 自动化页面 -->
@@ -2335,14 +2958,239 @@
             </div>
         </div>
 
+        <!-- 空调设置弹窗 -->
+        <div v-if="showAirConditionerSettingsModal" v-cloak class="generic-modal"
+             :class="{ open: isAirConditionerSettingsModalOpen, closing: isAirConditionerSettingsModalClosing }"
+             @click.self="closeAirConditionerSettingsModal">
+            <div class="generic-container large"
+                 :class="{ open: isAirConditionerSettingsModalOpen, closing: isAirConditionerSettingsModalClosing }"
+                 :style="airConditionerSettingsModalStyles">
+                <div class="generic-header">
+                    <div class="generic-title">空调设置</div>
+                </div>
+                <div class="generic-content">
+                    <div class="ac-settings-grid">
+                        <!-- 温度设置 -->
+                        <div class="ac-setting-item" :class="{ disabled: airConditionerCurrentMode === 'fan_only' }">
+                            <div class="ac-setting-label">目标温度</div>
+                            <div class="ac-setting-value">
+                                <button class="ac-temp-btn"
+                                        :disabled="airConditionerCurrentMode === 'fan_only'"
+                                        @click="adjustAirConditionerTemp(-1)">-</button>
+                                <span class="ac-temp-display">{{ airConditionerTargetTemp }}℃</span>
+                                <button class="ac-temp-btn"
+                                        :disabled="airConditionerCurrentMode === 'fan_only'"
+                                        @click="adjustAirConditionerTemp(1)">+</button>
+                            </div>
+                            <div v-if="airConditionerCurrentMode === 'fan_only'" class="ac-disabled-hint">
+                                送风模式下不可调节温度
+                            </div>
+                        </div>
+
+                        <!-- 模式设置 -->
+                        <div class="ac-setting-item">
+                            <div class="ac-setting-label">运行模式</div>
+                            <div class="ac-mode-buttons">
+                                <button class="ac-mode-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'fan_only' }"
+                                        @click="setAirConditionerFanOnly">🌬️ 送风</button>
+                                <button class="ac-mode-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'cool' }"
+                                        @click="setAirConditionerCool">❄️ 制冷</button>
+                                <button class="ac-mode-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'heat' }"
+                                        @click="setAirConditionerHeat">🔥 制热</button>
+                                <button class="ac-mode-btn"
+                                        :class="{ active: airConditionerCurrentMode === 'dry' }"
+                                        @click="setAirConditionerDry">💧 除湿</button>
+                            </div>
+                        </div>
+
+                        <!-- 风速设置 -->
+                        <div class="ac-setting-item">
+                            <div class="ac-setting-label">风速</div>
+                            <div class="ac-fan-buttons">
+                                <button v-for="mode in fanModes"
+                                        :key="mode"
+                                        class="ac-fan-btn"
+                                        :class="{ active: airConditionerFanMode === mode }"
+                                        @click="setAirConditionerFanMode(mode)">
+                                    {{ mode }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 摆风设置 -->
+                        <div class="ac-setting-item">
+                            <div class="ac-setting-label">摆风</div>
+                            <div class="ac-swing-buttons">
+                                <button class="ac-swing-btn"
+                                        :class="{ active: airConditionerSwingMode === 'vertical' }"
+                                        @click="setAirConditionerSwingMode('vertical')">
+                                    📐 垂直摆风
+                                </button>
+                                <button class="ac-swing-btn"
+                                        :class="{ active: airConditionerSwingMode === 'off' }"
+                                        @click="setAirConditionerSwingMode('off')">
+                                    📏 关闭摆风
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 开关控制 -->
+                        <div class="ac-setting-item">
+                            <div class="ac-setting-label">电源</div>
+                            <button class="ac-power-btn"
+                                    :class="{ on: airConditionerCurrentMode !== null }"
+                                    @click="toggleAirConditionerPower">
+                                {{ airConditionerCurrentMode !== null ? '🔴 关闭' : '🟢 开启' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="generic-footer">
+                    <button class="generic-close-btn" @click="closeAirConditionerSettingsModal">关闭</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 洗衣机详情弹窗 -->
+        <div v-if="showWashingMachineModal" v-cloak class="generic-modal"
+             :class="{ open: isWashingMachineModalOpen, closing: isWashingMachineModalClosing }"
+             @click.self="closeWashingMachineModal">
+            <div class="generic-container large"
+                 :class="{ open: isWashingMachineModalOpen, closing: isWashingMachineModalClosing }"
+                 :style="washingMachineModalStyles">
+                <div class="generic-header">
+                    <div class="generic-title">洗衣机详情</div>
+                </div>
+                <div class="generic-content">
+                    <div class="washing-machine-detail">
+                        <div class="wm-status-section">
+                            <div class="wm-status-icon">👕</div>
+                            <div class="wm-status-text">
+                                <div class="wm-status-label">当前状态</div>
+                                <div class="wm-status-value" :class="getWashingMachineStatusClass()">
+                                    {{ getWashingMachineStatusDisplay() }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wm-info-grid">
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">当前状态</div>
+                                <div class="wm-info-value">{{ washingMachineRunState }}</div>
+                            </div>
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">当前阶段</div>
+                                <div class="wm-info-value">{{ washingMachineStage }}</div>
+                            </div>
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">洗涤模式</div>
+                                <div class="wm-info-value">{{ washingMachineProgram }}</div>
+                            </div>
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">剩余时间</div>
+                                <div class="wm-info-value">{{ washingMachineTimeRemaining }}</div>
+                            </div>
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">漂洗次数</div>
+                                <div class="wm-info-value">{{ washingMachineRinse }}</div>
+                            </div>
+                            <div class="wm-info-item">
+                                <div class="wm-info-label">目标水量</div>
+                                <div class="wm-info-value">{{ washingMachineWaterLevel }}</div>
+                            </div>
+                        </div>
+
+                        <div class="wm-fault-section" v-if="washingMachineFault">
+                            <div class="wm-fault-icon">⚠️</div>
+                            <div class="wm-fault-text">{{ washingMachineFault }}</div>
+                        </div>
+
+                        <div class="wm-controls-section">
+                            <div class="wm-control-group">
+                                <div class="wm-control-label">模式选择</div>
+                                <select class="wm-select" v-model="washingMachineMode" @change="changeWashingMachineMode">
+                                    <option value="日常洗">日常洗</option>
+                                    <option value="快速洗">快速洗</option>
+                                    <option value="大件洗">大件洗</option>
+                                    <option value="强力洗">强力洗</option>
+                                    <option value="单脱水">单脱水</option>
+                                    <option value="桶自洁">桶自洁</option>
+                                    <option value="轻柔洗">轻柔洗</option>
+                                    <option value="羊毛洗">羊毛洗</option>
+                                    <option value="婦婴洗">婦婴洗</option>
+                                    <option value="内衣洗">内衣洗</option>
+                                    <option value="棉麻洗">棉麻洗</option>
+                                    <option value="漂+脱">漂+脱</option>
+                                    <option value="桶风干">桶风干</option>
+                                    <option value="除螨洗">除螨洗</option>
+                                    <option value="浸泡洗">浸泡洗</option>
+                                </select>
+                            </div>
+
+                            <div class="wm-control-group">
+                                <div class="wm-control-label">漂洗次数</div>
+                                <div class="wm-number-control">
+                                    <button class="wm-btn" @click="changeRinseTimes(-1)">-</button>
+                                    <span class="wm-number">{{ washingMachineRinse }}</span>
+                                    <button class="wm-btn" @click="changeRinseTimes(1)">+</button>
+                                </div>
+                            </div>
+
+                            <div class="wm-control-group">
+                                <div class="wm-control-label">目标水量</div>
+                                <div class="wm-number-control">
+                                    <button class="wm-btn" @click="changeWaterLevel(-1)">-</button>
+                                    <span class="wm-number">{{ washingMachineWaterLevel }}</span>
+                                    <button class="wm-btn" @click="changeWaterLevel(1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wm-actions-section">
+                            <button class="wm-action-btn wm-btn-start" @click="startWashingMachine">
+                                开始洗涤
+                            </button>
+                            <button class="wm-action-btn wm-btn-pause" @click="pauseWashingMachine">
+                                暂停
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="generic-footer">
+                    <button class="generic-close-btn" @click="closeWashingMachineModal">关闭</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- 引入本地Vue和Vant JS文件 -->
-    <script src="vue.global.js"></script>
-    <script src="vant.min.js"></script>
+    <!-- 引入本地Vue和Vant JS文件 - 使用defer延迟加载 -->
+    <script src="vue.global.js" defer></script>
+    <script src="vant.min.js" defer></script>
 
-    <script charset="UTF-8" src="ha-config.js"></script>
-    <script charset="UTF-8" src="ha-device-config.js"></script>
-    <script charset="UTF-8" src="ha-logic.js"></script>
+    <script charset="UTF-8" src="ha-config.js" defer></script>
+    <script charset="UTF-8" src="ha-device-config.js" defer></script>
+    <script charset="UTF-8" src="ha-logic.js" defer></script>
+
+    <!-- Three.js只在需要时加载 -->
+    <script>
+        // 动态加载Three.js
+        window.loadThreeJS = function() {
+            return new Promise((resolve, reject) => {
+                if (window.THREE) {
+                    resolve();
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'three.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        };
+    </script>
 </body>
 </html>

@@ -271,6 +271,33 @@ const DEVICE_FRIDGE = {
         freezer: 'sensor.midjd6_cn_590940698_610_temperature_p_4_1'  // 冷冻温度
     }
 };
+
+// 洗衣机控制卡片
+const DEVICE_WASHING_MACHINE = {
+    name: '洗衣机',
+    icon: '👕',
+    deviceType: 'washingmachine',
+    description: '洗衣机状态监控',
+    // 核心状态实体
+    stateEntity: 'sensor.mibx2_cn_476777181_v6_status_p_2_2',  // 洗衣机状态（关机/待机中/暂停中/工作中/预约中）
+    // 工作阶段
+    stageEntity: 'sensor.mibx2_cn_476777181_v6_stroke_p_3_6',  // 当前阶段（None/Weighing/Washing/Rinsing/Spin）
+    // 剩余时间
+    timeRemainingEntity: 'sensor.mibx2_cn_476777181_v6_left_time_p_2_10',  // 剩余工作时间（分钟）
+    // 故障状态
+    faultEntity: 'sensor.mibx2_cn_476777181_v6_fault_p_2_4',  // 故障状态
+    // 模式选择
+    modeEntity: 'select.mibx2_cn_476777181_v6_mode_p_2_3',  // 洗涤模式（日常洗/快速洗/大件洗等）
+    // 控制按钮
+    startButton: 'button.mibx2_cn_476777181_v6_start_wash_a_2_1',  // 开始洗涤
+    pauseButton: 'button.mibx2_cn_476777181_v6_pause_a_2_2',  // 暂停
+    // 可调参数
+    rinseEntity: 'number.mibx2_cn_476777181_v6_rinsh_times_p_2_6',  // 漂洗次数
+    waterLevelEntity: 'number.mibx2_cn_476777181_v6_target_water_level_p_2_11',  // 目标水量
+    // 开关
+    powerSwitch: 'switch.mibx2_cn_476777181_v6_on_p_2_1',  // 洗衣机开关
+    childLock: 'switch.mibx2_cn_476777181_v6_physical_controls_locked_p_4_1'  // 童锁
+};
 // ========================================
 // 设备卡片列表（按显示顺序排列）
 // ========================================
@@ -288,23 +315,23 @@ const DEVICE_FRIDGE = {
  * - 调整顺序：在此列表中调整配置对象的位置
  */
 const DEVICE_CARDS = [
-    DEVICE_VACUUM,                    // 1. 扫地机器人
-    DEVICE_AMBIENT_LIGHT,             // 2. 氛围灯
-    DEVICE_PET_FEEDING,               // 3. 宠物投喂
-    DEVICE_DINING_LIGHT,              // 4. 餐厅灯
-    DEVICE_KITCHEN_LIGHT,             // 5. 厨房灯
-    DEVICE_LIVING_ROOM_LIGHT,         // 6. 客厅灯
-    DEVICE_SECOND_BEDROOM_LIGHT,      // 7. 次卧灯
-    DEVICE_GUEST_BEDROOM_LIGHT,       // 8. 工作室灯
-    DEVICE_MASTER_BEDROOM_LIGHT,      // 9. 主卧灯
-    DEVICE_BATHROOM_LIGHT,            // 10. 卫生间灯
-    DEVICE_CORRIDOR1_LIGHT,           // 11. 走廊1
-    DEVICE_CORRIDOR3_LIGHT,           // 12. 走廊2
-    DEVICE_WATER_HEATER,              // 13. 热水器
-    DEVICE_AIR_CONDITIONER,            // 14. 空调（2个卡片宽度）
-    DEVICE_PRINTER_3D,                // 15. 3D打印机
-    DEVICE_FRIDGE                     // 16. 冰箱温度（显示专用）
-
+    DEVICE_VACUUM,                    // 0. 扫地机器人
+    DEVICE_AMBIENT_LIGHT,             // 1. 氛围灯
+    DEVICE_PET_FEEDING,               // 2. 宠物投喂
+    DEVICE_DINING_LIGHT,              // 3. 餐厅灯
+    DEVICE_KITCHEN_LIGHT,             // 4. 厨房灯
+    DEVICE_LIVING_ROOM_LIGHT,         // 5. 客厅灯
+    DEVICE_SECOND_BEDROOM_LIGHT,      // 6. 次卧灯
+    DEVICE_GUEST_BEDROOM_LIGHT,       // 7. 工作室灯
+    DEVICE_MASTER_BEDROOM_LIGHT,      // 8. 主卧灯
+    DEVICE_BATHROOM_LIGHT,            // 9. 卫生间灯
+    DEVICE_CORRIDOR1_LIGHT,           // 10. 走廊1
+    DEVICE_CORRIDOR3_LIGHT,           // 11. 走廊2
+    DEVICE_WATER_HEATER,              // 12. 热水器
+    DEVICE_AIR_CONDITIONER,            // 13. 空调（2个卡片宽度）
+    DEVICE_PRINTER_3D,                // 14. 3D打印机
+    DEVICE_FRIDGE,                    // 15. 冰箱温度（显示专用）
+    DEVICE_WASHING_MACHINE            // 16. 洗衣机
 ];
 
 // ========================================
@@ -340,7 +367,8 @@ const DEVICE_CONFIGS = {
     waterHeater: DEVICE_WATER_HEATER,
     airConditioner: DEVICE_AIR_CONDITIONER,
     printer3D: DEVICE_PRINTER_3D,
-    fridge: DEVICE_FRIDGE
+    fridge: DEVICE_FRIDGE,
+    washingMachine: DEVICE_WASHING_MACHINE
 };
 
 // 状态栏配置导出

@@ -120,8 +120,8 @@ const app = createApp({
             connectionStatus: null,  // 连接状态：null=未测试, true=已连接, false=未连接
             // 自动刷新配置
             autoRefreshEnabled: true,
-            autoRefreshInterval: 3000,
-            refreshIntervalSeconds: 3,
+            autoRefreshInterval: 5000,
+            refreshIntervalSeconds: 5,
             autoRefreshTimer: null,
             isRefreshing: false,
             isFirstLoading: true,
@@ -184,7 +184,27 @@ const app = createApp({
             genericModalSize: 'medium',
             genericModalShowFooter: true,
             genericClickX: 0,
-            genericClickY: 0
+            genericClickY: 0,
+            // 空调设置弹窗
+            showAirConditionerSettingsModal: false,
+            isAirConditionerSettingsModalOpen: false,
+            isAirConditionerSettingsModalClosing: false,
+            airConditionerSettingsClickX: 0,
+            airConditionerSettingsClickY: 0,
+            // 洗衣机数据
+            washingMachineData: null,
+            washingMachineError: null,
+            washingMachineLoading: true,
+            // 洗衣机控制数据
+            washingMachineMode: '日常洗',
+            washingMachineRinseValue: 2,
+            washingMachineWaterLevelValue: 5,
+            // 洗衣机详情弹窗
+            showWashingMachineModal: false,
+            isWashingMachineModalOpen: false,
+            isWashingMachineModalClosing: false,
+            washingMachineClickX: 0,
+            washingMachineClickY: 0
         }
     },
 
@@ -482,7 +502,8 @@ const app = createApp({
             if (!this.airConditionerData) return '--';
 
             const attributes = this.airConditionerData.attributes || {};
-            return attributes.temperature || '--';
+            // Home Assistant 空调实体的目标温度字段是 target_temperature
+            return attributes.target_temperature || attributes.temperature || '--';
         },
 
         // 空调模式显示
@@ -493,6 +514,48 @@ const app = createApp({
 
             const state = this.airConditionerData.state;
             return state === 'off' ? '关闭' : state;
+        },
+
+        // 空调当前模式（用于按钮激活状态）
+        airConditionerCurrentMode() {
+            if (!this.airConditionerData) return null;
+
+            // 优先使用 attributes.hvac_mode（Home Assistant 空调实体的标准模式字段）
+            const attributes = this.airConditionerData.attributes || {};
+            const hvacMode = attributes.hvac_mode;
+
+            if (hvacMode === 'fan_only') return 'fan_only';
+            if (hvacMode === 'cool') return 'cool';
+            if (hvacMode === 'heat') return 'heat';
+
+            // 降级使用 state 字段
+            const state = this.airConditionerData.state;
+            if (state === 'fan_only') return 'fan_only';
+            if (state === 'cool') return 'cool';
+            if (state === 'heat') return 'heat';
+
+            return null;
+        },
+
+        // 空调风速
+        airConditionerFanMode() {
+            if (!this.airConditionerData) return null;
+            const attributes = this.airConditionerData.attributes || {};
+            return attributes.fan_mode || null;
+        },
+
+        // 空调摆风模式
+        airConditionerSwingMode() {
+            if (!this.airConditionerData) return null;
+            const attributes = this.airConditionerData.attributes || {};
+            return attributes.swing_mode || null;
+        },
+
+        // 可用风速列表
+        fanModes() {
+            if (!this.airConditionerData) return [];
+            const attributes = this.airConditionerData.attributes || {};
+            return attributes.fan_modes || ['自动', '一档', '二档', '三档', '四档', '五档', '六档', '七档', 'Max档'];
         },
 
         // 天气相关计算属性
@@ -584,6 +647,113 @@ const app = createApp({
                 'particle-network': '动态粒子网络',
                 'aurora-borealis': '绚丽极光效果',
                 'starfield': '闪烁星空背景'
+            };
+        },
+
+        // 空调设置弹窗样式
+        airConditionerSettingsModalStyles() {
+            return {
+                '--start-x': this.airConditionerSettingsClickX + 'px',
+                '--start-y': this.airConditionerSettingsClickY + 'px'
+            };
+        },
+
+        // 洗衣机运行状态
+        washingMachineRunState() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const statusData = this.deviceStates[device.stateEntity];
+            if (!statusData) return '未知';
+            return statusData.state || '未知';
+        },
+
+        // 洗衣机剩余时间
+        washingMachineTimeRemaining() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const timeData = this.deviceStates[device.timeRemainingEntity];
+            if (!timeData) return '--:--';
+            const minutes = parseInt(timeData.state) || 0;
+            if (minutes === 0) return '--:--';
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            if (hours > 0) {
+                return `${hours}小时${mins}分钟`;
+            }
+            return `${mins}分钟`;
+        },
+
+        // 洗衣机当前程序
+        washingMachineProgram() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const modeData = this.deviceStates[device.modeEntity];
+            if (!modeData) return '未设置';
+            return modeData.state || '未设置';
+        },
+
+        // 洗衣机温度
+        washingMachineTemp() {
+            return '--';
+        },
+
+        // 洗衣机漂洗次数
+        washingMachineRinse() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const rinseData = this.deviceStates[device.rinseEntity];
+            if (!rinseData) return '--';
+            const times = parseInt(rinseData.state);
+            if (isNaN(times)) return '--';
+            return `${times}次`;
+        },
+
+        // 洗衣机脱水转速
+        washingMachineSpin() {
+            return '--';
+        },
+
+        // 洗衣机进度
+        washingMachineProgress() {
+            return 0;
+        },
+
+        // 洗衣机当前阶段
+        washingMachineStage() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const stageData = this.deviceStates[device.stageEntity];
+            if (!stageData) return '未知';
+            const stageMap = {
+                'None': '待机',
+                'Weighing': '称重',
+                'Washing': '洗涤中',
+                'Rinsing': '漂洗中',
+                'Spin': '脱水中'
+            };
+            return stageMap[stageData.state] || stageData.state;
+        },
+
+        // 洗衣机故障状态
+        washingMachineFault() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const faultData = this.deviceStates[device.faultEntity];
+            if (!faultData) return null;
+            const fault = faultData.state;
+            if (fault === '无故障' || fault === 'unknown') return null;
+            return fault;
+        },
+
+        // 洗衣机水量
+        washingMachineWaterLevel() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const waterData = this.deviceStates[device.waterLevelEntity];
+            if (!waterData) return '--';
+            const level = parseInt(waterData.state);
+            if (isNaN(level)) return '--';
+            return `${level}档`;
+        },
+
+        // 洗衣机弹窗样式
+        washingMachineModalStyles() {
+            return {
+                '--start-x': this.washingMachineClickX + 'px',
+                '--start-y': this.washingMachineClickY + 'px'
             };
         }
     },
@@ -1041,15 +1211,49 @@ const app = createApp({
             }
         },
 
+        // 空调送风
+        async setAirConditionerFanOnly() {
+            try {
+                // 如果当前已经是送风模式，则关闭空调
+                if (this.airConditionerCurrentMode === 'fan_only') {
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: 'fan_only'
+                    });
+                    vant.showToast({ message: '空调已设置为送风模式', type: 'success' });
+                }
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
         // 空调制冷
         async setAirConditionerCool() {
             try {
-                await this.callService('climate', 'set_temperature', {
-                    entity_id: AIR_CONDITIONER_ENTITY,
-                    hvac_mode: 'cool',
-                    temperature: 24
-                });
-                vant.showToast({ message: '空调已设置为制冷模式', type: 'success' });
+                // 如果当前已经是制冷模式，则关闭空调
+                if (this.airConditionerCurrentMode === 'cool') {
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    // 先设置模式为制冷，再设置温度
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: 'cool'
+                    });
+                    await this.callService('climate', 'set_temperature', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        temperature: 24
+                    });
+                    vant.showToast({ message: '空调已设置为制冷模式', type: 'success' });
+                }
                 this.silentUpdateAirConditionerData();
             } catch (error) {
                 vant.showToast({ message: '操作失败', type: 'fail' });
@@ -1059,12 +1263,156 @@ const app = createApp({
         // 空调制热
         async setAirConditionerHeat() {
             try {
+                // 如果当前已经是制热模式，则关闭空调
+                if (this.airConditionerCurrentMode === 'heat') {
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    // 先设置模式为制热，再设置温度
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: 'heat'
+                    });
+                    await this.callService('climate', 'set_temperature', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        temperature: 26
+                    });
+                    vant.showToast({ message: '空调已设置为制热模式', type: 'success' });
+                }
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 空调除湿
+        async setAirConditionerDry() {
+            try {
+                // 如果当前已经是除湿模式，则关闭空调
+                if (this.airConditionerCurrentMode === 'dry') {
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: 'dry'
+                    });
+                    vant.showToast({ message: '空调已设置为除湿模式', type: 'success' });
+                }
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 调整空调温度
+        async adjustAirConditionerTemp(delta) {
+            try {
+                // 送风模式下不能调节温度
+                if (this.airConditionerCurrentMode === 'fan_only') {
+                    vant.showToast({ message: '送风模式下不可调节温度', type: 'fail' });
+                    return;
+                }
+
+                const currentTemp = parseFloat(this.airConditionerTargetTemp) || 24;
+                const newTemp = Math.max(16, Math.min(31, currentTemp + delta));
+
+                // 使用空调支持的最小步进0.5
+                const step = 0.5;
+                const roundedTemp = Math.round(newTemp / step) * step;
+
                 await this.callService('climate', 'set_temperature', {
                     entity_id: AIR_CONDITIONER_ENTITY,
-                    hvac_mode: 'heat',
-                    temperature: 26
+                    temperature: roundedTemp
                 });
-                vant.showToast({ message: '空调已设置为制热模式', type: 'success' });
+                vant.showToast({ message: `温度已设置为 ${roundedTemp}℃`, type: 'success' });
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 切换空调电源
+        async toggleAirConditionerPower() {
+            try {
+                if (this.airConditionerCurrentMode !== null) {
+                    // 关闭空调
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    // 开启空调，默认使用制冷模式
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: 'cool'
+                    });
+                    await this.callService('climate', 'set_temperature', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        temperature: 24
+                    });
+                    vant.showToast({ message: '空调已开启', type: 'success' });
+                }
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 打开空调设置弹窗
+        openAirConditionerSettings(event) {
+            if (event) {
+                const rect = event.target.getBoundingClientRect();
+                this.airConditionerSettingsClickX = rect.left + rect.width / 2;
+                this.airConditionerSettingsClickY = rect.top + rect.height / 2;
+            }
+
+            this.isAirConditionerSettingsModalOpen = false;
+            this.isAirConditionerSettingsModalClosing = false;
+            this.showAirConditionerSettingsModal = true;
+
+            setTimeout(() => {
+                this.isAirConditionerSettingsModalOpen = true;
+            }, 50);
+        },
+
+        // 关闭空调设置弹窗
+        closeAirConditionerSettingsModal() {
+            this.isAirConditionerSettingsModalClosing = true;
+            this.isAirConditionerSettingsModalOpen = false;
+
+            setTimeout(() => {
+                this.showAirConditionerSettingsModal = false;
+                this.isAirConditionerSettingsModalClosing = false;
+            }, 600);
+        },
+
+        // 设置空调风速
+        async setAirConditionerFanMode(mode) {
+            try {
+                await this.callService('climate', 'set_fan_mode', {
+                    entity_id: AIR_CONDITIONER_ENTITY,
+                    fan_mode: mode
+                });
+                vant.showToast({ message: `风速已设置为 ${mode}`, type: 'success' });
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 设置空调摆风模式
+        async setAirConditionerSwingMode(mode) {
+            try {
+                await this.callService('climate', 'set_swing_mode', {
+                    entity_id: AIR_CONDITIONER_ENTITY,
+                    swing_mode: mode
+                });
+                vant.showToast({ message: mode === 'vertical' ? '已开启垂直摆风' : '已关闭摆风', type: 'success' });
                 this.silentUpdateAirConditionerData();
             } catch (error) {
                 vant.showToast({ message: '操作失败', type: 'fail' });
@@ -1707,22 +2055,32 @@ const app = createApp({
             this.connectionError = null;
 
             try {
+                // 分批加载设备数据,减少并发请求
+                // 第一批:状态栏设备(3个)
                 await Promise.all([
                     this.initPetFeedingData(),
                     this.initAmbientLightData(),
                     this.initAmbientLightTimerData(),
-                    this.initVacuumData(),
+                    this.initVacuumData()
+                ]);
+
+                // 第二批:常用设备(5个)
+                await Promise.all([
                     this.initDiningLightData(),
                     this.initKitchenLightData(),
+                    this.initLivingRoomLightData(),
+                    this.initMasterBedroomLightData(),
+                    this.initAirConditionerData()
+                ]);
+
+                // 第三批:其他设备(6个)
+                await Promise.all([
                     this.initSecondBedroomLightData(),
                     this.initCorridor1LightData(),
                     this.initCorridor3LightData(),
-                    this.initLivingRoomLightData(),
                     this.initBathroomLightData(),
                     this.initGuestBedroomLightData(),
-                    this.initMasterBedroomLightData(),
-                    this.initWaterHeaterData(),
-                    this.initAirConditionerData()
+                    this.initWaterHeaterData()
                 ]);
 
                 // 首次加载完成
@@ -1793,13 +2151,22 @@ const app = createApp({
                 const isHighRefreshMode = this.autoRefreshInterval === 1000;
 
                 if (isHighRefreshMode) {
-                    // 高频刷新：更新所有设备状态
-                    await this.silentUpdateAllData();
+                    // 高频刷新：只更新状态栏设备和常用设备
+                    await Promise.all([
+                        this.silentUpdatePetFeedingData(),
+                        this.silentUpdateAmbientLightData(),
+                        this.silentUpdateAmbientLightTimerData(),
+                        this.silentUpdateVacuumData(),
+                        this.silentUpdateDiningLightData(),
+                        this.silentUpdateKitchenLightData(),
+                        this.silentUpdateLivingRoomLightData(),
+                        this.silentUpdateMasterBedroomLightData()
+                    ]);
 
                     // 检查设备状态是否稳定
                     this.checkDeviceStability();
                 } else {
-                    // 低频刷新：只更新动态设备状态，减少网络请求
+                    // 低频刷新：更新所有设备状态
                     await this.updateAllDeviceStates();
                 }
             } finally {
@@ -1840,7 +2207,7 @@ const app = createApp({
 
                     if (allStable) {
                         // 所有设备状态稳定，恢复低频刷新
-                        this.autoRefreshInterval = 3000;
+                        this.autoRefreshInterval = 5000;
                         this.restartAutoRefresh();
                     }
                 }
@@ -1913,6 +2280,11 @@ const app = createApp({
             // display类型设备不需要状态文本
             if (deviceType === 'display') {
                 return '';
+            }
+
+            // washingmachine类型设备
+            if (deviceType === 'washingmachine') {
+                return this.getWashingMachineStatusText(device);
             }
 
             const state = this.getCachedDeviceState(device.stateEntity);
@@ -2079,6 +2451,9 @@ const app = createApp({
                     } else {
                         vant.showToast({ message: '打印机离线，无法访问', type: 'fail' });
                     }
+                } else if (deviceType === 'washingmachine') {
+                    // 洗衣机设备 - 打开详情弹窗
+                    this.openWashingMachineModal(event);
                 }
             } catch (error) {
                 // 操作失败，静默处理，UI会在下次刷新时自动恢复
@@ -2100,6 +2475,29 @@ const app = createApp({
                             this.getDeviceStateData(sensorEntityId);
                         }
                     });
+                    return;
+                }
+
+                // washingmachine类型设备需要获取所有相关实体
+                if (device.deviceType === 'washingmachine') {
+                    // 状态实体
+                    if (device.stateEntity) this.getDeviceStateData(device.stateEntity);
+                    // 工作阶段
+                    if (device.stageEntity) this.getDeviceStateData(device.stageEntity);
+                    // 剩余时间
+                    if (device.timeRemainingEntity) this.getDeviceStateData(device.timeRemainingEntity);
+                    // 故障状态
+                    if (device.faultEntity) this.getDeviceStateData(device.faultEntity);
+                    // 模式选择
+                    if (device.modeEntity) this.getDeviceStateData(device.modeEntity);
+                    // 漂洗次数
+                    if (device.rinseEntity) this.getDeviceStateData(device.rinseEntity);
+                    // 目标水量
+                    if (device.waterLevelEntity) this.getDeviceStateData(device.waterLevelEntity);
+                    // 开关状态
+                    if (device.powerSwitch) this.getDeviceStateData(device.powerSwitch);
+                    // 童锁状态
+                    if (device.childLock) this.getDeviceStateData(device.childLock);
                     return;
                 }
 
@@ -2142,6 +2540,29 @@ const app = createApp({
                             updatePromises.push(this.getDeviceStateData(sensorEntityId));
                         }
                     });
+                    return;
+                }
+
+                // washingmachine类型设备需要获取所有相关实体
+                if (device.deviceType === 'washingmachine') {
+                    // 状态实体
+                    if (device.stateEntity) updatePromises.push(this.getDeviceStateData(device.stateEntity));
+                    // 工作阶段
+                    if (device.stageEntity) updatePromises.push(this.getDeviceStateData(device.stageEntity));
+                    // 剩余时间
+                    if (device.timeRemainingEntity) updatePromises.push(this.getDeviceStateData(device.timeRemainingEntity));
+                    // 故障状态
+                    if (device.faultEntity) updatePromises.push(this.getDeviceStateData(device.faultEntity));
+                    // 模式选择
+                    if (device.modeEntity) updatePromises.push(this.getDeviceStateData(device.modeEntity));
+                    // 漂洗次数
+                    if (device.rinseEntity) updatePromises.push(this.getDeviceStateData(device.rinseEntity));
+                    // 目标水量
+                    if (device.waterLevelEntity) updatePromises.push(this.getDeviceStateData(device.waterLevelEntity));
+                    // 开关状态
+                    if (device.powerSwitch) updatePromises.push(this.getDeviceStateData(device.powerSwitch));
+                    // 童锁状态
+                    if (device.childLock) updatePromises.push(this.getDeviceStateData(device.childLock));
                     return;
                 }
 
@@ -2409,6 +2830,221 @@ const app = createApp({
                 this.showGenericModal = false;
                 this.isGenericModalClosing = false;
             }, 600);
+        },
+
+        // ==================== 洗衣机控制方法 ====================
+
+        // 获取洗衣机状态文本（用于卡片显示）
+        getWashingMachineStatusText(device) {
+            const statusData = this.deviceStates[device.stateEntity];
+            if (!statusData) return '加载中...';
+
+            const state = statusData.state;
+            const statusMap = {
+                '关机': '关机',
+                '待机中': '待机',
+                '暂停中': '已暂停',
+                '工作中': '运行中',
+                '预约中': '预约中',
+                'unknown': '未知'
+            };
+
+            return statusMap[state] || state;
+        },
+
+        // 获取洗衣机状态显示（用于弹窗）
+        getWashingMachineStatusDisplay() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const statusData = this.deviceStates[device.stateEntity];
+            if (!statusData) return '加载中...';
+
+            const state = statusData.state;
+            const statusMap = {
+                '关机': '已关机',
+                '待机中': '待机中',
+                '暂停中': '已暂停',
+                '工作中': '洗涤中',
+                '预约中': '延时启动'
+            };
+
+            return statusMap[state] || state;
+        },
+
+        // 获取洗衣机状态样式类
+        getWashingMachineStatusClass() {
+            const statusData = this.deviceStates[DEVICE_CONFIGS.washingMachine.stateEntity];
+            if (!statusData) return 'idle';
+
+            const state = statusData.state;
+            if (state === '工作中') return 'running';
+            if (state === '暂停中') return 'paused';
+            if (state === '预约中') return 'running';
+            return 'idle';
+        },
+
+        // 打开洗衣机详情弹窗
+        openWashingMachineModal(event) {
+            if (event) {
+                const rect = event.target.getBoundingClientRect();
+                this.washingMachineClickX = rect.left + rect.width / 2;
+                this.washingMachineClickY = rect.top + rect.height / 2;
+            }
+
+            this.isWashingMachineModalOpen = false;
+            this.isWashingMachineModalClosing = false;
+            this.showWashingMachineModal = true;
+
+            setTimeout(() => {
+                this.isWashingMachineModalOpen = true;
+            }, 50);
+        },
+
+        // 关闭洗衣机详情弹窗
+        closeWashingMachineModal() {
+            this.isWashingMachineModalClosing = true;
+            this.isWashingMachineModalOpen = false;
+
+            setTimeout(() => {
+                this.showWashingMachineModal = false;
+                this.isWashingMachineModalClosing = false;
+            }, 600);
+        },
+
+        // 更改洗衣机模式
+        async changeWashingMachineMode() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            try {
+                const response = await fetch(`${getHAUrl()}/api/services/select/select_option`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entity_id: device.modeEntity,
+                        option: this.washingMachineMode
+                    })
+                });
+
+                if (response.ok) {
+                    vant.showToast({ message: '模式已设置', type: 'success' });
+                    this.getDeviceStateData(device.modeEntity);
+                } else {
+                    vant.showToast({ message: '设置失败', type: 'fail' });
+                }
+            } catch (error) {
+                vant.showToast({ message: '网络错误', type: 'fail' });
+            }
+        },
+
+        // 更改漂洗次数
+        async changeRinseTimes(delta) {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const currentValue = parseInt(this.deviceStates[device.rinseEntity]?.state) || 0;
+            const newValue = Math.max(0, Math.min(3, currentValue + delta));
+
+            try {
+                const response = await fetch(`${getHAUrl()}/api/services/number/set_value`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entity_id: device.rinseEntity,
+                        value: newValue
+                    })
+                });
+
+                if (response.ok) {
+                    vant.showToast({ message: '漂洗次数已调整', type: 'success' });
+                    this.getDeviceStateData(device.rinseEntity);
+                } else {
+                    vant.showToast({ message: '调整失败', type: 'fail' });
+                }
+            } catch (error) {
+                vant.showToast({ message: '网络错误', type: 'fail' });
+            }
+        },
+
+        // 更改目标水量
+        async changeWaterLevel(delta) {
+            const device = DEVICE_CONFIGS.washingMachine;
+            const currentValue = parseInt(this.deviceStates[device.waterLevelEntity]?.state) || 0;
+            const newValue = Math.max(1, Math.min(8, currentValue + delta));
+
+            try {
+                const response = await fetch(`${getHAUrl()}/api/services/number/set_value`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entity_id: device.waterLevelEntity,
+                        value: newValue
+                    })
+                });
+
+                if (response.ok) {
+                    vant.showToast({ message: '水量已调整', type: 'success' });
+                    this.getDeviceStateData(device.waterLevelEntity);
+                } else {
+                    vant.showToast({ message: '调整失败', type: 'fail' });
+                }
+            } catch (error) {
+                vant.showToast({ message: '网络错误', type: 'fail' });
+            }
+        },
+
+        // 开始洗涤
+        async startWashingMachine() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            try {
+                const response = await fetch(`${getHAUrl()}/api/services/button/press`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entity_id: device.startButton
+                    })
+                });
+
+                if (response.ok) {
+                    vant.showToast({ message: '开始洗涤', type: 'success' });
+                } else {
+                    vant.showToast({ message: '启动失败', type: 'fail' });
+                }
+            } catch (error) {
+                vant.showToast({ message: '网络错误', type: 'fail' });
+            }
+        },
+
+        // 暂停洗涤
+        async pauseWashingMachine() {
+            const device = DEVICE_CONFIGS.washingMachine;
+            try {
+                const response = await fetch(`${getHAUrl()}/api/services/button/press`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getAccessToken()}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        entity_id: device.pauseButton
+                    })
+                });
+
+                if (response.ok) {
+                    vant.showToast({ message: '已暂停', type: 'success' });
+                } else {
+                    vant.showToast({ message: '暂停失败', type: 'fail' });
+                }
+            } catch (error) {
+                vant.showToast({ message: '网络错误', type: 'fail' });
+            }
         }
     }
 });
