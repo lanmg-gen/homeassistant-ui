@@ -716,38 +716,40 @@
         .ac-settings-grid {
             display: flex;
             flex-direction: column;
-            gap: 24px;
-            padding: 8px;
+            gap: 20px;
+            padding: 4px;
         }
 
         .ac-setting-item {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
 
         .ac-setting-label {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         .ac-setting-value {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
+            width: 100%;
         }
 
         .ac-temp-btn {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
             border: none;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.2);
             color: white;
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -762,11 +764,12 @@
         }
 
         .ac-temp-display {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 700;
             color: white;
-            min-width: 80px;
+            flex: 1;
             text-align: center;
+            min-width: 60px;
         }
 
         .ac-temp-btn:disabled {
@@ -799,28 +802,31 @@
         }
 
         .ac-disabled-hint {
-            font-size: 12px;
+            font-size: 11px;
             color: rgba(255, 255, 255, 0.6);
             text-align: center;
-            margin-top: 4px;
+            margin-top: 2px;
         }
 
         .ac-mode-buttons {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
+            gap: 8px;
         }
 
         .ac-mode-btn {
-            padding: 12px 16px;
+            padding: 10px 12px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: rgba(255, 255, 255, 0.15);
             color: white;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .ac-mode-btn:hover {
@@ -828,19 +834,20 @@
         }
 
         .ac-mode-btn.active {
-            transform: scale(1.05);
+            transform: scale(1.02);
             background: rgba(102, 126, 234, 0.8);
             box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
         }
 
         .ac-power-btn {
-            padding: 14px 24px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            white-space: nowrap;
         }
 
         .ac-power-btn.on {
@@ -854,7 +861,7 @@
         }
 
         .ac-power-btn:hover {
-            transform: scale(1.05);
+            transform: scale(1.02);
         }
 
         .ac-fan-buttons {
@@ -864,16 +871,17 @@
         }
 
         .ac-fan-btn {
-            padding: 8px 12px;
+            padding: 6px 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             background: rgba(255, 255, 255, 0.15);
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
             white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .ac-fan-btn:hover {
@@ -887,20 +895,24 @@
 
         .ac-swing-buttons {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .ac-swing-btn {
             flex: 1;
-            padding: 10px 16px;
+            min-width: 0;
+            padding: 8px 12px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             background: rgba(255, 255, 255, 0.15);
             color: white;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .ac-swing-btn:hover {
@@ -910,6 +922,85 @@
         .ac-swing-btn.active {
             background: rgba(102, 126, 234, 0.8);
             box-shadow: 0 0 15px rgba(102, 126, 234, 0.5);
+        }
+
+        /* 空调弹窗响应式优化 - 更严格的约束 */
+        @media (max-width: 420px) {
+            .ac-settings-grid {
+                gap: 16px;
+            }
+
+            .ac-mode-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .ac-swing-buttons {
+                flex-direction: column;
+            }
+
+            .ac-setting-item {
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .ac-settings-grid {
+                padding: 2px;
+                gap: 14px;
+            }
+
+            .ac-fan-buttons {
+                gap: 4px;
+            }
+
+            .ac-fan-btn {
+                padding: 5px 8px;
+                font-size: 10px;
+            }
+
+            .ac-mode-btn,
+            .ac-swing-btn,
+            .ac-power-btn {
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+
+            .ac-setting-label {
+                font-size: 12px;
+            }
+
+            .ac-disabled-hint {
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .ac-settings-grid {
+                gap: 12px;
+            }
+
+            .ac-temp-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+
+            .ac-temp-display {
+                font-size: 20px;
+                min-width: 50px;
+            }
+
+            .ac-mode-btn,
+            .ac-swing-btn,
+            .ac-power-btn {
+                font-size: 11px;
+                padding: 7px 8px;
+            }
+
+            .ac-fan-btn {
+                font-size: 9px;
+                padding: 4px 6px;
+            }
         }
 
         /* 3D打印机卡片样式 */
@@ -1364,6 +1455,136 @@
             max-width: 480px;
         }
 
+        /* 小屏幕弹窗优化 - 更激进的窄屏适配 */
+        @media (max-width: 420px) {
+            .generic-container {
+                width: 96%;
+                height: 82vh;
+                max-height: 82vh;
+            }
+
+            .generic-container.large {
+                max-width: 360px;
+            }
+
+            .generic-container.medium {
+                max-width: 320px;
+            }
+
+            .generic-content {
+                padding: 10px;
+            }
+
+            .generic-footer {
+                padding: 10px 14px 14px;
+            }
+
+            .generic-header {
+                padding: 16px 16px 14px;
+            }
+
+            .generic-title {
+                font-size: 17px;
+            }
+        }
+
+        @media (max-width: 375px) {
+            .generic-container {
+                width: 97%;
+                height: 80vh;
+                max-height: 80vh;
+            }
+
+            .generic-container.large {
+                max-width: 340px;
+            }
+
+            .generic-container.medium {
+                max-width: 300px;
+            }
+
+            .generic-content {
+                padding: 8px;
+            }
+
+            .generic-footer {
+                padding: 8px 12px 12px;
+            }
+
+            .generic-header {
+                padding: 14px 14px 12px;
+            }
+
+            .generic-title {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .generic-container {
+                width: 98%;
+                height: 78vh;
+                max-height: 78vh;
+            }
+
+            .generic-container.large {
+                max-width: 320px;
+            }
+
+            .generic-container.medium {
+                max-width: 280px;
+            }
+
+            .generic-content {
+                padding: 6px;
+            }
+
+            .generic-footer {
+                padding: 6px 10px 10px;
+            }
+
+            .generic-header {
+                padding: 12px 12px 10px;
+            }
+
+            .generic-title {
+                font-size: 15px;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .generic-container {
+                width: 100%;
+                height: 75vh;
+                max-height: 75vh;
+                max-width: 95vw;
+            }
+
+            .generic-container.large {
+                max-width: 95vw;
+            }
+
+            .generic-container.medium {
+                max-width: 95vw;
+            }
+
+            .generic-content {
+                padding: 4px;
+            }
+
+            .generic-footer {
+                padding: 4px 8px 8px;
+            }
+
+            .generic-header {
+                padding: 10px 10px 8px;
+            }
+
+            .generic-title {
+                font-size: 14px;
+            }
+        }
+
         .generic-container.xlarge {
             max-width: 95vw;
             height: 90vh;
@@ -1438,6 +1659,21 @@
         .generic-close-btn:hover {
             background: rgba(255, 255, 255, 0.25);
             transform: translateY(-2px);
+        }
+
+        /* 窄屏关闭按钮优化 */
+        @media (max-width: 375px) {
+            .generic-close-btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .generic-close-btn {
+                padding: 8px;
+                font-size: 13px;
+            }
         }
         }
 
