@@ -26,17 +26,18 @@
 
 ```
 .
+├── app/                      # 应用代码目录
+│   └── ha-logic.js          # Vue应用逻辑
 ├── config/                   # 配置文件目录
 │   ├── ha-config.js          # Home Assistant配置
 │   └── ha-device-config.js   # 设备配置
+├── libs/                     # 外部库文件目录
+│   ├── vue.global.js         # Vue 3框架
+│   ├── vant.min.js           # Vant UI组件库
+│   └── vant.min.css          # Vant样式库
 ├── ha-panel.html           # 主页面文件(包含HTML、CSS)
-├── ha-logic.js             # Vue应用逻辑
 ├── ha-custom-settings.html # 自定义设置页面
 ├── ha-3d-model-card.html   # 3D模型卡片
-├── index.css               # 额外样式
-├── vue.global.js           # Vue 3框架
-├── vant.min.js             # Vant UI组件库
-├── three.min.js            # Three.js 3D库
 └── backgrounds/            # 背景文件目录
 ```
 
@@ -99,9 +100,8 @@ http:
 
 ## 依赖库
 
-- Vue 3 (vue.global.js)
-- Vant (vant.min.js)
-- Three.js (three.min.js)
+- Vue 3 (libs/vue.global.js)
+- Vant (libs/vant.min.js)
 
 ## 浏览器兼容性
 
