@@ -317,162 +317,116 @@ const app = createApp({
             };
         },
 
+        // ==================== 通用状态显示方法 ====================
+
+        // 获取设备的开关状态文本（适用于灯具、开关等设备）
+        getSwitchStatus(data, loading, error) {
+            if (loading) return '加载中...';
+            if (error) return '获取失败';
+            if (!data) return '未知状态';
+
+            return data.state === 'on' ? '已开启' : '已关闭';
+        },
+
+        // 获取设备的开关状态样式类（适用于灯具、开关等设备）
+        getSwitchClass(data, loading, error) {
+            if (loading) return 'loading';
+            if (error) return 'error';
+            return data?.state === 'on' ? 'status-active' : '';
+        },
+
+        // ==================== 各设备状态显示 ====================
+
         // 餐厅灯状态显示
         diningLightStatus() {
-            if (this.diningLightLoading) return '加载中...';
-            if (this.diningLightError) return '获取失败';
-            if (!this.diningLightData) return '未知状态';
-
-            const state = this.diningLightData.state;
-            return state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.diningLightData, this.diningLightLoading, this.diningLightError);
         },
 
         // 餐厅灯状态样式类
         diningLightClass() {
-            if (this.diningLightLoading) return 'loading';
-            if (this.diningLightError) return 'error';
-
-            const state = this.diningLightData?.state;
-            if (state === 'on') return 'status-active';
-
-            return '';
+            return this.getSwitchClass(this.diningLightData, this.diningLightLoading, this.diningLightError);
         },
 
         // 厨房灯状态显示
         kitchenLightStatus() {
-            if (this.kitchenLightLoading) return '加载中...';
-            if (this.kitchenLightError) return '获取失败';
-            if (!this.kitchenLightData) return '未知状态';
-
-            return this.kitchenLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.kitchenLightData, this.kitchenLightLoading, this.kitchenLightError);
         },
 
         kitchenLightClass() {
-            if (this.kitchenLightLoading) return 'loading';
-            if (this.kitchenLightError) return 'error';
-            return this.kitchenLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.kitchenLightData, this.kitchenLightLoading, this.kitchenLightError);
         },
 
         // 次卧灯状态显示
         secondBedroomLightStatus() {
-            if (this.secondBedroomLightLoading) return '加载中...';
-            if (this.secondBedroomLightError) return '获取失败';
-            if (!this.secondBedroomLightData) return '未知状态';
-
-            return this.secondBedroomLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.secondBedroomLightData, this.secondBedroomLightLoading, this.secondBedroomLightError);
         },
 
         secondBedroomLightClass() {
-            if (this.secondBedroomLightLoading) return 'loading';
-            if (this.secondBedroomLightError) return 'error';
-            return this.secondBedroomLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.secondBedroomLightData, this.secondBedroomLightLoading, this.secondBedroomLightError);
         },
 
         // 过道1灯状态显示
         corridor1LightStatus() {
-            if (this.corridor1LightLoading) return '加载中...';
-            if (this.corridor1LightError) return '获取失败';
-            if (!this.corridor1LightData) return '未知状态';
-
-            return this.corridor1LightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.corridor1LightData, this.corridor1LightLoading, this.corridor1LightError);
         },
 
         corridor1LightClass() {
-            if (this.corridor1LightLoading) return 'loading';
-            if (this.corridor1LightError) return 'error';
-            return this.corridor1LightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.corridor1LightData, this.corridor1LightLoading, this.corridor1LightError);
         },
 
         // 过道3灯状态显示
         corridor3LightStatus() {
-            if (this.corridor3LightLoading) return '加载中...';
-            if (this.corridor3LightError) return '获取失败';
-            if (!this.corridor3LightData) return '未知状态';
-
-            return this.corridor3LightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.corridor3LightData, this.corridor3LightLoading, this.corridor3LightError);
         },
 
         corridor3LightClass() {
-            if (this.corridor3LightLoading) return 'loading';
-            if (this.corridor3LightError) return 'error';
-            return this.corridor3LightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.corridor3LightData, this.corridor3LightLoading, this.corridor3LightError);
         },
 
         // 客厅灯状态显示
         livingRoomLightStatus() {
-            if (this.livingRoomLightLoading) return '加载中...';
-            if (this.livingRoomLightError) return '获取失败';
-            if (!this.livingRoomLightData) return '未知状态';
-
-            return this.livingRoomLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.livingRoomLightData, this.livingRoomLightLoading, this.livingRoomLightError);
         },
 
         livingRoomLightClass() {
-            if (this.livingRoomLightLoading) return 'loading';
-            if (this.livingRoomLightError) return 'error';
-            return this.livingRoomLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.livingRoomLightData, this.livingRoomLightLoading, this.livingRoomLightError);
         },
 
         // 卫生间灯状态显示
         bathroomLightStatus() {
-            if (this.bathroomLightLoading) return '加载中...';
-            if (this.bathroomLightError) return '获取失败';
-            if (!this.bathroomLightData) return '未知状态';
-
-            return this.bathroomLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.bathroomLightData, this.bathroomLightLoading, this.bathroomLightError);
         },
 
         bathroomLightClass() {
-            if (this.bathroomLightLoading) return 'loading';
-            if (this.bathroomLightError) return 'error';
-            return this.bathroomLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.bathroomLightData, this.bathroomLightLoading, this.bathroomLightError);
         },
 
         // 客卧灯状态显示
         guestBedroomLightStatus() {
-            if (this.guestBedroomLightLoading) return '加载中...';
-            if (this.guestBedroomLightError) return '获取失败';
-            if (!this.guestBedroomLightData) return '未知状态';
-
-            return this.guestBedroomLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.guestBedroomLightData, this.guestBedroomLightLoading, this.guestBedroomLightError);
         },
 
         guestBedroomLightClass() {
-            if (this.guestBedroomLightLoading) return 'loading';
-            if (this.guestBedroomLightError) return 'error';
-            return this.guestBedroomLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.guestBedroomLightData, this.guestBedroomLightLoading, this.guestBedroomLightError);
         },
 
         // 主卧灯状态显示
         masterBedroomLightStatus() {
-            if (this.masterBedroomLightLoading) return '加载中...';
-            if (this.masterBedroomLightError) return '获取失败';
-            if (!this.masterBedroomLightData) return '未知状态';
-
-            return this.masterBedroomLightData.state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.masterBedroomLightData, this.masterBedroomLightLoading, this.masterBedroomLightError);
         },
 
         masterBedroomLightClass() {
-            if (this.masterBedroomLightLoading) return 'loading';
-            if (this.masterBedroomLightError) return 'error';
-            return this.masterBedroomLightData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.masterBedroomLightData, this.masterBedroomLightLoading, this.masterBedroomLightError);
         },
 
         // 热水器状态显示
         waterHeaterStatus() {
-            if (this.waterHeaterLoading) return '加载中...';
-            if (this.waterHeaterError) return '获取失败';
-            if (!this.waterHeaterData) return '未知状态';
-
-            const state = this.waterHeaterData.state;
-            return state === 'on' ? '已开启' : '已关闭';
+            return this.getSwitchStatus(this.waterHeaterData, this.waterHeaterLoading, this.waterHeaterError);
         },
 
         // 热水器状态样式类
         waterHeaterClass() {
-            if (this.waterHeaterLoading) return 'loading';
-            if (this.waterHeaterError) return 'error';
-            return this.waterHeaterData?.state === 'on' ? 'status-active' : '';
+            return this.getSwitchClass(this.waterHeaterData, this.waterHeaterLoading, this.waterHeaterError);
         },
 
         // 空调温度显示
@@ -834,15 +788,32 @@ const app = createApp({
     },
 
     beforeUnmount() {
+        // 清理所有定时器，防止内存泄漏
         this.stopAutoRefresh();
         this.stopAmbientLightTimerRefresh();
-        // 清理打印机状态检查定时器
-        if (this.printerStatusCheckInterval) {
-            clearInterval(this.printerStatusCheckInterval);
-        }
+        this.clearAllTimers();
+        this.clearAllIntervals();
     },
 
     methods: {
+        // 清理所有setTimeout定时器
+        clearAllTimers() {
+            // 背景定时器
+            if (this._backgroundTimer) {
+                clearTimeout(this._backgroundTimer);
+                this._backgroundTimer = null;
+            }
+        },
+
+        // 清理所有setInterval定时器
+        clearAllIntervals() {
+            // 打印机状态检查定时器
+            if (this.printerStatusCheckInterval) {
+                clearInterval(this.printerStatusCheckInterval);
+                this.printerStatusCheckInterval = null;
+            }
+        },
+
         // 更新背景
         updateBackground(background) {
             const container = document.getElementById('dynamic-bg-container');
@@ -908,6 +879,95 @@ const app = createApp({
             }
         },
 
+        // ==================== 通用设备控制方法 ====================
+
+        // 通用的开关灯控制
+        async toggleLight(entityId, deviceName, updateMethod) {
+            try {
+                const response = await this.callService('light', 'toggle', { entity_id: entityId });
+                vant.showToast({
+                    message: `${deviceName}已切换`,
+                    type: 'success'
+                });
+                if (updateMethod) {
+                    await updateMethod();
+                }
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 通用的开灯控制
+        async turnOnLight(entityId, deviceName, updateMethod) {
+            try {
+                await this.callService('light', 'turn_on', { entity_id: entityId });
+                vant.showToast({ message: `${deviceName}已开启`, type: 'success' });
+                if (updateMethod) {
+                    await updateMethod();
+                }
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 通用的关灯控制
+        async turnOffLight(entityId, deviceName, updateMethod) {
+            try {
+                await this.callService('light', 'turn_off', { entity_id: entityId });
+                vant.showToast({ message: `${deviceName}已关闭`, type: 'success' });
+                if (updateMethod) {
+                    await updateMethod();
+                }
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 通用的开关控制（用于开关类型设备）
+        async toggleSwitch(entityId, deviceName, updateMethod) {
+            try {
+                await this.callService('switch', 'toggle', { entity_id: entityId });
+                vant.showToast({ message: `${deviceName}已切换`, type: 'success' });
+                if (updateMethod) {
+                    await updateMethod();
+                }
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // 通用的空调模式控制
+        async setAirConditionerMode(mode, modeName, temperature = null) {
+            try {
+                // 如果当前已经是该模式，则关闭空调
+                if (this.airConditionerCurrentMode === mode) {
+                    await this.callService('climate', 'turn_off', {
+                        entity_id: AIR_CONDITIONER_ENTITY
+                    });
+                    vant.showToast({ message: '空调已关闭', type: 'success' });
+                } else {
+                    await this.callService('climate', 'set_hvac_mode', {
+                        entity_id: AIR_CONDITIONER_ENTITY,
+                        hvac_mode: mode
+                    });
+
+                    // 如果需要设置温度
+                    if (temperature !== null) {
+                        await this.callService('climate', 'set_temperature', {
+                            entity_id: AIR_CONDITIONER_ENTITY,
+                            temperature: temperature
+                        });
+                    }
+                    vant.showToast({ message: `空调已设置为${modeName}`, type: 'success' });
+                }
+                this.silentUpdateAirConditionerData();
+            } catch (error) {
+                vant.showToast({ message: '操作失败', type: 'fail' });
+            }
+        },
+
+        // ==================== 具体设备控制方法 ====================
+
         async startVacuumClean() {
             try {
                 await this.callService('vacuum', 'start', { entity_id: VACUUM_ENTITY });
@@ -939,57 +999,29 @@ const app = createApp({
         },
 
         async turnOnDiningLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: DINING_LIGHT_ENTITY });
-                vant.showToast({ message: '餐厅灯已开启', type: 'success' });
-                this.silentUpdateDiningLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(DINING_LIGHT_ENTITY, '餐厅灯', this.silentUpdateDiningLightData);
         },
 
         async turnOffDiningLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: DINING_LIGHT_ENTITY });
-                vant.showToast({ message: '餐厅灯已关闭', type: 'success' });
-                this.silentUpdateDiningLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(DINING_LIGHT_ENTITY, '餐厅灯', this.silentUpdateDiningLightData);
         },
 
         async toggleDiningLight() {
-            try {
-                const currentState = this.diningLightData?.state;
-                if (currentState === 'on') {
-                    await this.turnOffDiningLight();
-                } else {
-                    await this.turnOnDiningLight();
-                }
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
+            const currentState = this.diningLightData?.state;
+            if (currentState === 'on') {
+                await this.turnOffDiningLight();
+            } else {
+                await this.turnOnDiningLight();
             }
         },
 
         // 厨房灯控制
         async turnOnKitchenLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: KITCHEN_LIGHT_ENTITY });
-                vant.showToast({ message: '厨房灯已开启', type: 'success' });
-                this.silentUpdateKitchenLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(KITCHEN_LIGHT_ENTITY, '厨房灯', this.silentUpdateKitchenLightData);
         },
 
         async turnOffKitchenLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: KITCHEN_LIGHT_ENTITY });
-                vant.showToast({ message: '厨房灯已关闭', type: 'success' });
-                this.silentUpdateKitchenLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(KITCHEN_LIGHT_ENTITY, '厨房灯', this.silentUpdateKitchenLightData);
         },
 
         async toggleKitchenLight() {
@@ -1003,23 +1035,11 @@ const app = createApp({
 
         // 次卧灯控制
         async turnOnSecondBedroomLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: SECOND_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '次卧灯已开启', type: 'success' });
-                this.silentUpdateSecondBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(SECOND_BEDROOM_LIGHT_ENTITY, '次卧灯', this.silentUpdateSecondBedroomLightData);
         },
 
         async turnOffSecondBedroomLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: SECOND_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '次卧灯已关闭', type: 'success' });
-                this.silentUpdateSecondBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(SECOND_BEDROOM_LIGHT_ENTITY, '次卧灯', this.silentUpdateSecondBedroomLightData);
         },
 
         async toggleSecondBedroomLight() {
@@ -1033,23 +1053,11 @@ const app = createApp({
 
         // 过道1灯控制
         async turnOnCorridor1Light() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: CORRIDOR1_LIGHT_ENTITY });
-                vant.showToast({ message: '过道1灯已开启', type: 'success' });
-                this.silentUpdateCorridor1LightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(CORRIDOR1_LIGHT_ENTITY, '过道1灯', this.silentUpdateCorridor1LightData);
         },
 
         async turnOffCorridor1Light() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: CORRIDOR1_LIGHT_ENTITY });
-                vant.showToast({ message: '过道1灯已关闭', type: 'success' });
-                this.silentUpdateCorridor1LightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(CORRIDOR1_LIGHT_ENTITY, '过道1灯', this.silentUpdateCorridor1LightData);
         },
 
         async toggleCorridor1Light() {
@@ -1063,23 +1071,11 @@ const app = createApp({
 
         // 过道3灯控制
         async turnOnCorridor3Light() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: CORRIDOR3_LIGHT_ENTITY });
-                vant.showToast({ message: '过道3灯已开启', type: 'success' });
-                this.silentUpdateCorridor3LightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(CORRIDOR3_LIGHT_ENTITY, '过道3灯', this.silentUpdateCorridor3LightData);
         },
 
         async turnOffCorridor3Light() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: CORRIDOR3_LIGHT_ENTITY });
-                vant.showToast({ message: '过道3灯已关闭', type: 'success' });
-                this.silentUpdateCorridor3LightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(CORRIDOR3_LIGHT_ENTITY, '过道3灯', this.silentUpdateCorridor3LightData);
         },
 
         async toggleCorridor3Light() {
@@ -1093,23 +1089,11 @@ const app = createApp({
 
         // 客厅灯控制
         async turnOnLivingRoomLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: LIVING_ROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '客厅灯已开启', type: 'success' });
-                this.silentUpdateLivingRoomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(LIVING_ROOM_LIGHT_ENTITY, '客厅灯', this.silentUpdateLivingRoomLightData);
         },
 
         async turnOffLivingRoomLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: LIVING_ROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '客厅灯已关闭', type: 'success' });
-                this.silentUpdateLivingRoomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(LIVING_ROOM_LIGHT_ENTITY, '客厅灯', this.silentUpdateLivingRoomLightData);
         },
 
         async toggleLivingRoomLight() {
@@ -1123,23 +1107,11 @@ const app = createApp({
 
         // 卫生间灯控制
         async turnOnBathroomLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: BATHROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '卫生间灯已开启', type: 'success' });
-                this.silentUpdateBathroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(BATHROOM_LIGHT_ENTITY, '卫生间灯', this.silentUpdateBathroomLightData);
         },
 
         async turnOffBathroomLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: BATHROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '卫生间灯已关闭', type: 'success' });
-                this.silentUpdateBathroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(BATHROOM_LIGHT_ENTITY, '卫生间灯', this.silentUpdateBathroomLightData);
         },
 
         async toggleBathroomLight() {
@@ -1153,23 +1125,11 @@ const app = createApp({
 
         // 客卧灯控制
         async turnOnGuestBedroomLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: GUEST_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '客卧灯已开启', type: 'success' });
-                this.silentUpdateGuestBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(GUEST_BEDROOM_LIGHT_ENTITY, '客卧灯', this.silentUpdateGuestBedroomLightData);
         },
 
         async turnOffGuestBedroomLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: GUEST_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '客卧灯已关闭', type: 'success' });
-                this.silentUpdateGuestBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(GUEST_BEDROOM_LIGHT_ENTITY, '客卧灯', this.silentUpdateGuestBedroomLightData);
         },
 
         async toggleGuestBedroomLight() {
@@ -1183,23 +1143,11 @@ const app = createApp({
 
         // 主卧灯控制
         async turnOnMasterBedroomLight() {
-            try {
-                await this.callService('light', 'turn_on', { entity_id: MASTER_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '主卧灯已开启', type: 'success' });
-                this.silentUpdateMasterBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOnLight(MASTER_BEDROOM_LIGHT_ENTITY, '主卧灯', this.silentUpdateMasterBedroomLightData);
         },
 
         async turnOffMasterBedroomLight() {
-            try {
-                await this.callService('light', 'turn_off', { entity_id: MASTER_BEDROOM_LIGHT_ENTITY });
-                vant.showToast({ message: '主卧灯已关闭', type: 'success' });
-                this.silentUpdateMasterBedroomLightData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.turnOffLight(MASTER_BEDROOM_LIGHT_ENTITY, '主卧灯', this.silentUpdateMasterBedroomLightData);
         },
 
         async toggleMasterBedroomLight() {
@@ -1213,100 +1161,22 @@ const app = createApp({
 
         // 空调送风
         async setAirConditionerFanOnly() {
-            try {
-                // 如果当前已经是送风模式，则关闭空调
-                if (this.airConditionerCurrentMode === 'fan_only') {
-                    await this.callService('climate', 'turn_off', {
-                        entity_id: AIR_CONDITIONER_ENTITY
-                    });
-                    vant.showToast({ message: '空调已关闭', type: 'success' });
-                } else {
-                    await this.callService('climate', 'set_hvac_mode', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        hvac_mode: 'fan_only'
-                    });
-                    vant.showToast({ message: '空调已设置为送风模式', type: 'success' });
-                }
-                this.silentUpdateAirConditionerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.setAirConditionerMode('fan_only', '送风模式');
         },
 
         // 空调制冷
         async setAirConditionerCool() {
-            try {
-                // 如果当前已经是制冷模式，则关闭空调
-                if (this.airConditionerCurrentMode === 'cool') {
-                    await this.callService('climate', 'turn_off', {
-                        entity_id: AIR_CONDITIONER_ENTITY
-                    });
-                    vant.showToast({ message: '空调已关闭', type: 'success' });
-                } else {
-                    // 先设置模式为制冷，再设置温度
-                    await this.callService('climate', 'set_hvac_mode', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        hvac_mode: 'cool'
-                    });
-                    await this.callService('climate', 'set_temperature', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        temperature: 24
-                    });
-                    vant.showToast({ message: '空调已设置为制冷模式', type: 'success' });
-                }
-                this.silentUpdateAirConditionerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.setAirConditionerMode('cool', '制冷模式', 24);
         },
 
         // 空调制热
         async setAirConditionerHeat() {
-            try {
-                // 如果当前已经是制热模式，则关闭空调
-                if (this.airConditionerCurrentMode === 'heat') {
-                    await this.callService('climate', 'turn_off', {
-                        entity_id: AIR_CONDITIONER_ENTITY
-                    });
-                    vant.showToast({ message: '空调已关闭', type: 'success' });
-                } else {
-                    // 先设置模式为制热，再设置温度
-                    await this.callService('climate', 'set_hvac_mode', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        hvac_mode: 'heat'
-                    });
-                    await this.callService('climate', 'set_temperature', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        temperature: 26
-                    });
-                    vant.showToast({ message: '空调已设置为制热模式', type: 'success' });
-                }
-                this.silentUpdateAirConditionerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.setAirConditionerMode('heat', '制热模式', 26);
         },
 
         // 空调除湿
         async setAirConditionerDry() {
-            try {
-                // 如果当前已经是除湿模式，则关闭空调
-                if (this.airConditionerCurrentMode === 'dry') {
-                    await this.callService('climate', 'turn_off', {
-                        entity_id: AIR_CONDITIONER_ENTITY
-                    });
-                    vant.showToast({ message: '空调已关闭', type: 'success' });
-                } else {
-                    await this.callService('climate', 'set_hvac_mode', {
-                        entity_id: AIR_CONDITIONER_ENTITY,
-                        hvac_mode: 'dry'
-                    });
-                    vant.showToast({ message: '空调已设置为除湿模式', type: 'success' });
-                }
-                this.silentUpdateAirConditionerData();
-            } catch (error) {
-                vant.showToast({ message: '操作失败', type: 'fail' });
-            }
+            await this.setAirConditionerMode('dry', '除湿模式');
         },
 
         // 调整空调温度
@@ -2734,10 +2604,16 @@ const app = createApp({
 
         // 定期检查打印机状态
         startPrinterStatusCheck() {
-            const checkInterval = setInterval(async () => {
+            // 先清理已有的定时器
+            if (this.printerStatusCheckInterval) {
+                clearInterval(this.printerStatusCheckInterval);
+            }
+
+            this.printerStatusCheckInterval = setInterval(async () => {
                 // 如果电源已关闭，停止检查
                 if (!this.printerPowerOn) {
-                    clearInterval(checkInterval);
+                    clearInterval(this.printerStatusCheckInterval);
+                    this.printerStatusCheckInterval = null;
                     this.printerBlinking = false;
                     return;
                 }
@@ -2748,7 +2624,8 @@ const app = createApp({
                 // 如果打印机已在线，停止闪烁
                 if (this.printerOnline) {
                     this.printerBlinking = false;
-                    clearInterval(checkInterval);
+                    clearInterval(this.printerStatusCheckInterval);
+                    this.printerStatusCheckInterval = null;
                 }
             }, 3000);
         },

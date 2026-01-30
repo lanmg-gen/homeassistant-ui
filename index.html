@@ -597,20 +597,176 @@
             }
         }
 
+        /* 空调卡片窄屏响应式 */
+        @media (max-width: 420px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 40px - 20px) / 3) !important;
+            }
+
+            .climate-card {
+                padding: 4px 8px;
+            }
+
+            .climate-info {
+                gap: 12px;
+                padding: 0 6px;
+            }
+
+            .climate-label {
+                font-size: 11px;
+            }
+
+            .climate-value {
+                font-size: 18px;
+            }
+
+            .climate-buttons {
+                gap: 8px;
+            }
+
+            .climate-btn {
+                font-size: 11px;
+                padding: 4px 5px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 36px - 20px) / 3) !important;
+            }
+
+            .climate-card {
+                padding: 3px 6px;
+            }
+
+            .climate-info {
+                gap: 10px;
+                margin-bottom: 2px;
+                padding: 0 4px;
+            }
+
+            .climate-settings-btn {
+                font-size: 20px;
+                padding: 2px 4px;
+            }
+
+            .climate-label {
+                font-size: 10px;
+            }
+
+            .climate-value {
+                font-size: 16px;
+            }
+
+            .climate-buttons {
+                gap: 6px;
+            }
+
+            .climate-btn {
+                font-size: 10px;
+                padding: 3px 4px;
+            }
+        }
+
+        @media (max-width: 370px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 36px - 20px) / 3) !important;
+            }
+
+            .climate-card {
+                padding: 2px 4px;
+            }
+
+            .climate-info {
+                gap: 8px;
+                margin-bottom: 1px;
+                padding: 0 2px;
+            }
+
+            .climate-settings-btn {
+                font-size: 18px;
+                padding: 2px 3px;
+            }
+
+            .climate-label {
+                font-size: 9px;
+            }
+
+            .climate-value {
+                font-size: 14px;
+            }
+
+            .climate-buttons {
+                gap: 4px;
+            }
+
+            .climate-btn {
+                font-size: 9px;
+                padding: 2px 3px;
+            }
+        }
+
+        @media (max-width: 340px) {
+            .device-grid-card.span-2 {
+                height: calc((100vw - 32px - 20px) / 3) !important;
+            }
+
+            .climate-card {
+                padding: 2px 3px;
+            }
+
+            .climate-info {
+                gap: 6px;
+                margin-bottom: 1px;
+                padding: 0 1px;
+            }
+
+            .climate-settings-btn {
+                font-size: 16px;
+                padding: 1px 2px;
+            }
+
+            .climate-label {
+                font-size: 8px;
+            }
+
+            .climate-value {
+                font-size: 13px;
+            }
+
+            .climate-buttons {
+                gap: 3px;
+            }
+
+            .climate-btn {
+                font-size: 8px;
+                padding: 2px 2px;
+                /* 极窄屏时才允许换行 */
+                white-space: normal;
+                text-overflow: clip;
+                overflow: visible;
+            }
+        }
+
         .climate-card {
             flex-direction: column;
             justify-content: center;
             align-items: center;
             padding: 6px 12px;
             height: 100%;
+            overflow: hidden;
         }
 
         .climate-info {
             display: flex;
-            justify-content: space-around;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
             width: 100%;
             margin-bottom: 4px;
+            flex-shrink: 0;
+            padding: 0 4px;
+            box-sizing: border-box;
         }
 
         .climate-temp-info {
@@ -618,6 +774,24 @@
             flex-direction: column;
             align-items: center;
             gap: 6px;
+            flex: 1;
+            min-width: 0;
+            text-align: center;
+        }
+
+        .climate-label {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .climate-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            white-space: nowrap;
         }
 
         .climate-settings-btn {
@@ -629,6 +803,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             padding: 4px 8px;
+            flex-shrink: 0;
         }
 
         .climate-settings-btn:hover {
@@ -639,12 +814,14 @@
         .climate-label {
             font-size: 13px;
             color: rgba(255, 255, 255, 0.7);
+            white-space: nowrap;
         }
 
         .climate-value {
             font-size: 22px;
             font-weight: 700;
             color: white;
+            white-space: nowrap;
         }
 
         .climate-buttons {
@@ -652,6 +829,7 @@
             justify-content: space-around;
             gap: 10px;
             width: 100%;
+            flex-shrink: 0;
         }
 
         .climate-btn {
@@ -668,6 +846,12 @@
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
         }
 
         .climate-btn:active {
@@ -1414,17 +1598,17 @@
 
         .generic-container {
             position: fixed;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 2px solid rgba(255, 255, 255, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 16px;
             width: 90%;
             height: 90vh;
             max-height: 90vh;
             overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
-                        0 8px 32px rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+                        0 8px 32px rgba(255, 255, 255, 0.15);
             opacity: 0;
             transition: top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
                         left 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
@@ -2923,7 +3107,7 @@
                     </div>
                     <div class="settings-item">
                         <span class="settings-label">配置方式</span>
-                        <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">请在 ha-device-config.js 文件中修改</span>
+                        <span style="color: rgba(255, 255, 255, 0.7); font-size: 13px;">请在 config/ha-device-config.js 文件中修改</span>
                     </div>
                     <div class="settings-item">
                         <span class="settings-label">连接状态</span>
@@ -3407,8 +3591,8 @@
     <script src="vue.global.js" defer></script>
     <script src="vant.min.js" defer></script>
 
-    <script charset="UTF-8" src="ha-config.js" defer></script>
-    <script charset="UTF-8" src="ha-device-config.js" defer></script>
+    <script charset="UTF-8" src="config/ha-config.js" defer></script>
+    <script charset="UTF-8" src="config/ha-device-config.js" defer></script>
     <script charset="UTF-8" src="ha-logic.js" defer></script>
 
     <!-- Three.js只在需要时加载 -->

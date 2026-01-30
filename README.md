@@ -26,10 +26,11 @@
 
 ```
 .
+├── config/                   # 配置文件目录
+│   ├── ha-config.js          # Home Assistant配置
+│   └── ha-device-config.js   # 设备配置
 ├── ha-panel.html           # 主页面文件(包含HTML、CSS)
 ├── ha-logic.js             # Vue应用逻辑
-├── ha-config.js            # Home Assistant配置
-├── ha-device-config.js     # 设备配置
 ├── ha-custom-settings.html # 自定义设置页面
 ├── ha-3d-model-card.html   # 3D模型卡片
 ├── index.css               # 额外样式
@@ -45,7 +46,7 @@
 
 ### Home Assistant 配置
 
-在 `ha-config.js` 中配置你的 Home Assistant 连接信息:
+在 `config/ha-config.js` 中配置你的 Home Assistant 连接信息:
 
 ```javascript
 const HA_CONFIG = {
@@ -56,7 +57,7 @@ const HA_CONFIG = {
 
 ### 设备配置
 
-在 `ha-device-config.js` 中配置各设备的实体ID和名称。
+在 `config/ha-device-config.js` 中配置各设备的实体ID和名称。
 
 ## 安装教程
 

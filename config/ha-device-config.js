@@ -1,7 +1,7 @@
 /**
  * 智慧家庭控制中心 - 设备卡片配置文件
  *
- * 用途说明：此文件用于集中管理所有设备的配置信息，包括HA连接参数、状态栏卡片和设备控制卡片
+ * 用途说明：此文件用于集中管理所有设备的配置信息，包括状态栏卡片和设备控制卡片
  *
  * 配置说明：
  * 1. 修改配置后刷新页面即可生效，无需修改代码
@@ -10,29 +10,6 @@
  */
 
 // ========================================
-// Home Assistant 连接配置
-// ========================================
-
-/**
- * Home Assistant 服务器连接配置
- * 
- * 参数说明：
- * - url: Home Assistant 服务器地址（本地网络地址或公网地址），格式：http://IP:端口
- * - token: Home Assistant 长期访问令牌
- * 
- * 获取令牌方式：
- * 1. 登录 Home Assistant 网页界面
- * 2. 点击左下角用户名 -> 向下滚动找到"长期访问令牌" -> 点击"创建令牌"
- * 3. 填写令牌名称（如：智慧家庭控制中心），复制生成的令牌
- * 
- * 注意事项：
- * - token 建议留空，通过页面设置界面配置更安全
- * - 如在此处配置，token 将作为默认值使用
- */
-const HA_CONFIG = {
-    url: 'http://192.168.4.5:8123',  // Home Assistant 服务器地址
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhYTZlOTM3MWFjZDg0NTlkYTJkM2ZlMWQ5MDg1N2IwMCIsImlhdCI6MTc2ODcwODc1MiwiZXhwIjoyMDg0MDY4NzUyfQ.o911fMvo6C4DoIG3vwbRH_7IiL55SWigB3RgDX-ZPgE'  // 访问令牌（建议留空，通过页面设置界面配置）
-};
 
 // ========================================
 // 状态栏设备配置
@@ -63,7 +40,7 @@ const STATUS_VACUUM = {
 const STATUS_AMBIENT_LIGHT = {
     name: '氛围灯',             // 卡片显示名称
     icon: '💡',                // 卡片图标
-    stateEntity: 'light.zhu_wo_deng_zhu_wo_deng', // 状态实体ID
+    stateEntity: 'light.fen_wei_deng_zhu_wo_ding_deng', // 状态实体ID
     timerEntity: 'timer.fen_wei_deng_dao_ji_shi', // 计时器实体ID
     description: '氛围灯状态和倒计时显示'
 };
@@ -123,8 +100,8 @@ const DEVICE_VACUUM = {
 const DEVICE_AMBIENT_LIGHT = {
     name: '氛围灯',
     icon: '💡',
-    stateEntity: 'light.zhu_wo_deng_zhu_wo_deng',
-    controlEntity: 'light.zhu_wo_deng_zhu_wo_deng',
+    stateEntity: 'light.fen_wei_deng_zhu_wo_ding_deng',
+    controlEntity: 'light.fen_wei_deng_zhu_wo_ding_deng',
     deviceType: 'light',
     description: '主卧氛围灯开关控制'
 };
