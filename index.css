@@ -1,0 +1,360 @@
+/**
+ * 智能家居控制面板 - 底部导航栏样式
+ * 
+ * 特性:
+ * - 固定在底部的导航栏
+ * - 响应式设计，适配各种屏幕
+ * - 触摸屏优化
+ * - 现代化设计风格
+ */
+
+/* ==================== 基础样式 ==================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: transparent;
+    min-height: 100vh;
+    /* 允许触摸滑动，不设置 overflow-x: hidden */
+    position: relative;
+}
+
+/* 背景容器 */
+#background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+    /* 默认背景渐变 */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+#background-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* ==================== 主内容区域 ==================== */
+
+.main-content {
+    min-height: calc(100vh - 70px);
+    padding: 20px;
+    padding-bottom: 90px;
+    position: relative;
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 移动端页眉容器 */
+.mobile-headerbar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 112px;
+    z-index: 999;
+}
+
+/* 桌面端隐藏页眉 */
+@media (min-width: 768px) {
+    .mobile-headerbar-container {
+        display: none;
+    }
+}
+
+/* 移动端调整主内容区域的上边距 */
+@media (max-width: 767px) {
+    .main-content {
+        padding-top: 120px !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+        transition: opacity 0.3s ease;
+    }
+
+    /* 移动端优化：简化卡片模糊效果以提升性能 */
+    .card-1x1,
+    .card-1x2 {
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
+    }
+}
+
+/* ==================== 页面通用样式 ==================== */
+
+.page {
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 页面头部 */
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 8px 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ==================== 错误页面 ==================== */
+
+.error-page {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 60px 30px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+    font-size: 64px;
+    margin-bottom: 20px;
+}
+
+.error-page h2 {
+    font-size: 24px;
+    color: white;
+    margin: 0 0 10px 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.error-page p {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0 0 20px 0;
+}
+
+.error-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.error-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.error-button:active {
+    transform: translateY(0);
+}
+
+/* ==================== 底部导航栏 ==================== */
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    /* 毛玻璃效果 - 更高的透明度 */
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    margin: 0;
+    border-radius: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+/* 导航项 */
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    min-width: 60px;
+}
+
+/* 导航图标 */
+.nav-icon {
+    font-size: 24px;
+    margin-bottom: 4px;
+    transition: all 0.3s ease;
+    /* 未激活状态 - 灰色半透明 */
+    filter: grayscale(100%) brightness(0.7);
+    opacity: 0.5;
+}
+
+/* 导航文字 */
+.nav-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+/* 激活状态 - 图标亮起，无背景 */
+.nav-item.active .nav-icon {
+    filter: grayscale(0%) brightness(1.1);
+    opacity: 1;
+    transform: scale(1.15);
+    /* 添加发光效果 */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+.nav-item.active .nav-text {
+    color: rgba(255, 255, 255, 1);
+    font-weight: 600;
+}
+
+/* 悬停效果（桌面端） */
+@media (hover: hover) {
+    .nav-item:hover:not(.active) .nav-icon {
+        filter: grayscale(50%) brightness(0.9);
+        opacity: 0.7;
+    }
+
+    .nav-item:hover:not(.active) .nav-text {
+        color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+/* 点击效果 */
+.nav-item:active {
+    transform: scale(0.95);
+}
+
+/* ==================== 响应式设计 ==================== */
+
+/* 小屏幕（默认） - 导航栏占满宽度 */
+@media (max-width: 767px) {
+    .bottom-nav {
+        background: rgba(255, 255, 255, 0.03);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin: 0;
+        border-radius: 0;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .main-content {
+        padding: 20px;
+        padding-bottom: 90px;
+    }
+}
+
+/* 平板设备及以上 - 悬浮效果 */
+@media (min-width: 768px) {
+    .bottom-nav {
+        height: 80px;
+        padding: 0 30px;
+        /* 悬浮胶囊效果 */
+        max-width: 500px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0 0 20px 0;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15),
+                    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+    }
+
+    .nav-item {
+        min-width: 80px;
+        padding: 10px 20px;
+    }
+
+    .nav-icon {
+        font-size: 28px;
+        margin-bottom: 6px;
+    }
+
+    .nav-text {
+        font-size: 14px;
+    }
+
+    .main-content {
+        padding: 30px;
+        padding-bottom: 120px;
+    }
+}
+
+/* ==================== 动画效果 ==================== */
+
+/* 页面切换动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.main-content > * {
+    animation: fadeIn 0.3s ease;
+}
+
+/* 激活指示器动画 */
+.nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 4px;
+    height: 4px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.nav-item.active::after {
+    transform: translateX(-50%) scaleX(1);
+    opacity: 1;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}

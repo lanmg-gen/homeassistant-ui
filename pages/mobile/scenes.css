@@ -1,0 +1,108 @@
+/**
+ * 场景 - 移动端样式
+ */
+
+/* 场景卡片容器 */
+.scenes-cards-container {
+    width: 100%;
+}
+
+/* 场景卡片网格 - 三列布局 */
+.scenes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+/* 移动端: 场景网格上边距 */
+@media (max-width: 767px) {
+    .scenes-grid {
+        margin-top: 12px;
+    }
+}
+
+/* 响应式布局 */
+@media (max-width: 480px) {
+    .scenes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+}
+
+/* 大屏幕 */
+@media (min-width: 768px) {
+    .scenes-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+        margin-top: 0;
+    }
+}
+
+/* 弹出卡片样式 */
+.scenes-popup {
+    padding: 24px;
+    text-align: center;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* 隐藏场景弹出卡的滚动条 */
+.scenes-popup::-webkit-scrollbar {
+    display: none;
+}
+
+.scenes-popup {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scenes-popup h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    margin: 0 0 12px 0;
+}
+
+.scenes-popup p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 24px 0;
+}
+
+.scenes-popup .popup-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.scenes-popup .popup-button {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    color: #fff;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.scenes-popup .popup-button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.scenes-popup .popup-button:active {
+    transform: scale(0.95);
+}
+
+.scenes-popup .popup-button-activate {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.scenes-popup .popup-button-activate:hover {
+    background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}

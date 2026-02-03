@@ -1,0 +1,67 @@
+/**
+ * 移动端顶部导航栏样式
+ */
+
+.mobile-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+}
+
+.navbar-left,
+.navbar-right {
+    display: flex;
+    align-items: center;
+    min-width: 40px;
+}
+
+.navbar-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navbar-icon {
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+}
+
+.navbar-icon:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.navbar-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 桌面端隐藏 */
+@media (min-width: 768px) {
+    .mobile-navbar {
+        display: none !important;
+    }
+}

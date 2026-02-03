@@ -1,0 +1,13 @@
+<div class="card-1x2 card-1x2--default">
+    <div class="card-1x2__icon">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x2__icon-svg">
+            <text x="50" y="50" font-size="70" text-anchor="middle" dominant-baseline="middle">{{ icon }}</text>
+        </svg>
+    </div>
+    <div class="card-1x2__content">
+        <div class="card-1x2__name">{{ name }}</div>
+        <div class="card-1x2__status" :class="statusClass">
+            {{ statusText }}
+        </div>
+    </div>
+</div>

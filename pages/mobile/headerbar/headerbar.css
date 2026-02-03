@@ -1,0 +1,151 @@
+/**
+ * 移动端顶部页眉样式
+ */
+
+.mobile-headerbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 112px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+}
+
+.headerbar-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(4, 1fr);  /* 改为4行，新增设备状态概览行 */
+    gap: 0 !important;
+    column-gap: 0 !important;
+    row-gap: 0 !important;
+    height: 100%;
+    padding: 12px;
+    box-sizing: border-box;
+}
+
+.headerbar-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 1);
+    font-weight: 500;
+    padding: 0;
+}
+
+/* 天气容器 - 占据三个格子宽 */
+.weather-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    grid-column: span 3;
+    justify-content: flex-end;
+    color: rgba(255, 255, 255, 1);
+}
+
+.weather-icon {
+    font-size: 28px;
+    line-height: 1;
+    opacity: 1;
+}
+
+.weather-temp {
+    font-size: 22px;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+}
+
+.weather-city {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+}
+
+/* 主容器 - 占据整个页眉下半部分 */
+.main-container {
+    grid-column: span 6;
+    grid-row: span 2;
+    grid-column-start: 1;
+    grid-row-start: 2;
+    width: 100%;
+    height: 100%;
+}
+
+/* 标题单元格 - 占据第1-2-3个格子（合并） */
+.headerbar-title-cell {
+    grid-column: span 3;  /* 占据3列 */
+    grid-row: span 1;      /* 占据1行 */
+    font-size: 20px;      /* 放大字体 */
+    font-weight: 700;
+    color: #ffffff;        /* 纯白色 */
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 10px;         /* 向左移动半格 */
+}
+
+/* 设备状态概览单元格 - 占据整行（第4行） */
+.status-overview-cell {
+    grid-column: span 6;  /* 占据6列，整行宽度 */
+    grid-row: 4 / span 1;  /* 占据第4行 */
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 4px 12px 8px;
+}
+
+/* 状态项 */
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.2s ease;
+}
+
+.status-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* 状态图标 */
+.status-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+/* 状态标签 */
+.status-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 1);
+    font-weight: 500;
+}
+
+/* 状态值 */
+.status-value {
+    font-size: 11px;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 桌面端隐藏 */
+@media (min-width: 768px) {
+    .mobile-headerbar {
+        display: none !important;
+    }
+}
+
+
+

@@ -1,0 +1,10 @@
+<!-- 1x1尺寸设备卡片HTML模板 -->
+<div class="card-1x1 card-1x1--{{ layoutType }}">
+    <div class="card-1x1__icon">{{ icon }}</div>
+    <div class="card-1x1__content">
+        <div class="card-1x1__name">{{ name }}</div>
+        <div class="card-1x1__status" :class="statusClass">
+            {{ statusText }}
+        </div>
+    </div>
+</div>

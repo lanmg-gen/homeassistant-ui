@@ -1,108 +1,224 @@
-# 智慧家庭控制中心
+# 智能家居控制面板
 
-基于 Vue 3 和 Home Assistant 的智能家居控制面板,提供直观的设备控制和状态监控功能。
+基于 Home Assistant 的智能家居控制面板，支持灯光、开关、空调、扫地机器人、宠物投喂器等多种设备控制。
 
-## 功能特性
+## 部署方法
 
-- **设备控制**: 支持多种智能设备的开关控制和状态查询
-  - 灯光控制(主卧、餐厅、厨房、次卧等)
-  - 空调控制
-  - 扫地机器人控制
-  - 宠物喂食器控制
-  - 热水器控制
+### 方式一：Home Assistant 部署（推荐）
 
-- **状态监控**: 实时显示设备状态和环境数据
-  - 天气信息
-  - 设备运行状态
-  - 定时器状态
+1. **复制文件到 HA 的 www 目录**
 
-- **3D模型展示**: 集成 Three.js 实现设备 3D 模型展示
+   将项目所有文件复制到 Home Assistant 的 `/config/www/webui/` 目录下：
+   ```
+   /config/www/webui/
+   ├── index.html
+   ├── index.css
+   ├── index.js
+   ├── manifest.json
+   ├── sw.js
+   ├── app/
+   ├── cards/
+   ├── config/
+   ├── pages/
+   ├── libs/
+   └── backgrounds/
+   ```
 
-- **响应式设计**: 专为移动端优化
+2. **访问控制面板**
 
-- **流畅动画**: 使用优化的缓动函数实现平滑过渡效果
+   打开浏览器访问：
+   ```
+   http://HA地址:8123/local/webui/index.html
+   ```
 
-## 项目结构
+### 方式二：独立服务器部署
 
+1. **安装任意 Web 服务器**（如 Nginx、Apache）
+
+2. **将项目文件复制到网站根目录**
+
+3. **访问服务器地址即可**
+
+### 方式三：本地测试
+
+使用 Python 临时服务器：
+```bash
+cd 项目目录
+python -m http.server 8000
 ```
-.
-├── app/                      # 应用代码目录
-│   └── ha-logic.js          # Vue应用逻辑
-├── config/                   # 配置文件目录
-│   ├── ha-config.js          # Home Assistant配置
-│   └── ha-device-config.js   # 设备配置
-├── libs/                     # 外部库文件目录
-│   ├── vue.global.js         # Vue 3框架
-│   ├── vant.min.js           # Vant UI组件库
-│   └── vant.min.css          # Vant样式库
-├── ha-panel.html           # 主页面文件(包含HTML、CSS)
-├── ha-custom-settings.html # 自定义设置页面
-├── ha-3d-model-card.html   # 3D模型卡片
-└── backgrounds/            # 背景文件目录
-```
+然后访问 `http://localhost:8000`
 
-## 配置说明
+---
+可以在ha里创建一个网页仪表盘把地址填进去，这样就可以完美的嵌入到ha仪表盘里了，
 
-在首次使用前,请先完成以下配置:
+## 使用方法
 
-### Home Assistant 配置
+### 一、配置 Home Assistant 连接
 
-在 `config/ha-config.js` 中配置你的 Home Assistant 连接信息:
+编辑 `config/config.js` 文件，修改 HA 配置：
 
 ```javascript
-const HA_CONFIG = {
-    url: 'http://your-homeassistant-ip:8123',
-    token: 'your-long-lived-access-token'
+homeAssistant: {
+    // HA 服务器地址
+    url: 'http://192.168.4.5:8123',
+    
+    // HA 访问令牌（在HA用户资料中创建）
+    token: '你的长访问令牌',
+    
+    // 是否启用 HA 连接
+    enabled: true
+}
+```
+
+**获取访问令牌步骤：**
+1. 登录 Home Assistant
+2. 点击左下角用户头像
+3. 滚动到底部，点击"创建令牌"
+4. 复制生成的长字符串
+
+---
+
+### 二、配置设备
+
+所有设备配置在 `config/device_config.js` 文件中。
+
+#### 1. 添加新设备
+
+在 `DEVICE_CARDS` 数组中添加设备配置对象：
+
+```javascript
+// 示例：添加一个新的灯
+const DEVICE_NEW_LIGHT = {
+    name: '新灯名称',           // 显示名称
+    icon: '💡',                // 图标（emoji）
+    stateEntity: 'light.new_light_entity',  // 状态实体ID
+    controlEntity: 'light.new_light_entity', // 控制实体ID
+    deviceType: 'light',        // 设备类型
+    description: '新灯描述'     // 描述
+};
+
+// 添加到设备列表
+const DEVICE_CARDS = [
+    // ... 其他设备
+    DEVICE_NEW_LIGHT  // 添加在这里
+];
+```
+
+#### 2. 设备类型说明
+
+| 设备类型 | 说明 | 示例实体 |
+|---------|------|---------|
+| `light` | 灯光设备 | `light.living_room` |
+| `switch` | 开关设备 | `switch.water_heater` |
+| `climate` | 空调/温控 | `climate.bedroom_ac` |
+| `vacuum` | 扫地机器人 | `vacuum.robot` |
+| `feeder` | 宠物投喂器 | `number.pet_feeder` |
+| `url` | URL链接（如3D打印机） | - |
+| `display` | 仅显示（如温度传感器） | `sensor.temperature` |
+
+#### 3. 获取实体ID
+
+在 Home Assistant 中：
+1. 进入"开发者工具" → "状态"
+2. 找到要控制的设备
+3. 复制实体ID（如 `light.living_room`）
+
+#### 4. 删除设备
+
+从 `DEVICE_CARDS` 数组中删除对应的设备配置对象即可。
+
+#### 5. 调整设备顺序
+
+`DEVICE_CARDS` 数组中的顺序就是页面显示的顺序，直接调整数组中的位置即可。
+
+---
+
+### 三、配置状态栏设备
+
+页面顶部的状态栏显示在 `STATUS_CONFIGS` 中配置：
+
+```javascript
+const STATUS_CONFIGS = {
+    vacuum: STATUS_VACUUM,
+    ambientLight: STATUS_AMBIENT_LIGHT,
+    petFeeding: STATUS_PET_FEEDING
+    // 添加新的状态栏设备
 };
 ```
 
-### 设备配置
+---
 
-在 `config/ha-device-config.js` 中配置各设备的实体ID和名称。
+### 四、自定义界面
 
-## 安装教程
+#### 修改页眉标题
 
-### 方法一: 直接访问
-
-1. 将本目录所有文件复制到任意可访问的目录
-2. 在浏览器中打开 `ha-panel.html` 即可使用
-
-### 方法二: 集成到 Home Assistant(推荐)
-
-1. 将本目录所有文件复制到 Home Assistant 的 `www` 文件夹内,或新建一个子文件夹(如 `www/smart-home-panel/`)
-2. 登录 Home Assistant
-3. 在仪表盘中添加"网页"卡片
-4. 地址填入访问路径,如 `/local/smart-home-panel/ha-panel.html`
-5. 保存并使用
-
-## 故障排除
-
-### 解决 CORS 跨域问题
-
-如果连接失败,可能是 CORS 跨域限制。请在 Home Assistant 的 `configuration.yaml` 中添加:
-
-```yaml
-http:
-  cors_allowed_origins:
-    - "http://localhost:*"
-    - "http://127.0.0.1:*"
-    - "http://192.168.*:*"
+编辑 `config/config.js`：
+```javascript
+headerbar: {
+    title: '我的智能家居',  // 修改这里
+    showTitle: true
+}
 ```
 
-**操作步骤:**
+#### 修改天气城市
 
-1. 在 Home Assistant 服务器上找到 `configuration.yaml` 文件
-2. 添加上述配置(如果没有 http 部分则新增)
-3. 重启 Home Assistant 服务
-4. 重新打开此页面测试连接
+```javascript
+weather: {
+    enabled: true,
+    city: '北京'  // 修改城市
+}
+```
 
-> **注意**: 本项目专为移动端优化,未适配桌面端显示,建议在移动设备或手机浏览器中使用。
+#### 修改背景主题
 
-## 依赖库
+```javascript
+backgroundThemes: {
+    current: 'aurora-borealis'  // 可选：default, aurora-borealis, blue-gradient-waves, particle-network, starfield
+}
+```
 
-- Vue 3 (libs/vue.global.js)
-- Vant (libs/vant.min.js)
+---
 
-## 浏览器兼容性
+### 五、使用技巧
 
-支持现代浏览器(Chrome、Firefox、Safari、Edge等)
+1. **拖拽排序**：在桌面端可以拖拽设备卡片调整顺序（移动端已禁用）
+2. **详细控制**：带金色切角的卡片点击切角可打开详细控制面板
+3. **离线查看**：Service Worker 缓存支持离线查看最后状态
+4. **添加到主屏幕**：在浏览器菜单中选择"添加到主屏幕"可像 APP 一样使用
+
+---
+
+## 常见问题
+
+### Q: 设备状态显示"不可用"
+A: 检查实体ID是否正确，HA连接是否正常
+
+### Q: 控制设备没反应
+A: 检查访问令牌是否有权限控制该设备
+
+### Q: 页面加载慢
+A: 已优化批量请求和缓存，首次加载后速度会提升
+
+### Q: 如何更新设备列表
+A: 修改 `device_config.js` 后刷新页面即可生效
+
+---
+
+## 文件结构
+
+```
+├── index.html          # 入口页面
+├── index.css           # 全局样式
+├── index.js            # 主逻辑
+├── config/
+│   ├── config.js       # 应用配置
+│   └── device_config.js # 设备配置
+├── app/
+│   ├── ha-connection.js    # HA连接
+│   ├── state-manager.js    # 状态管理
+│   ├── websocket-manager.js # WebSocket
+│   └── device-controller.js # 设备控制
+├── cards/              # 卡片组件
+├── pages/              # 页面
+└── libs/               # 第三方库
+```

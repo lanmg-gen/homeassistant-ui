@@ -10,14 +10,12 @@
  */
 
 // ========================================
-
-// ========================================
 // 状态栏设备配置
 // ========================================
 
 /**
  * 状态栏卡片配置说明
- * 
+ *
  * 状态栏显示在页面顶部，用于快速查看重要设备的状态
  * 每个状态卡片包含以下属性：
  * - name: 卡片显示名称
@@ -110,8 +108,8 @@ const DEVICE_AMBIENT_LIGHT = {
 const DEVICE_PET_FEEDING = {
     name: '宠物投喂',
     icon: '🐾',
-    stateEntity: 'counter.chong_wu_tou_wei_lei_ji',
-    controlEntity: 'number.chong_wu_wei_shi_qi_feed', // 控制实体是number类型，用于设置投喂份数
+    stateEntity: 'counter.chong_wu_tou_wei_lei_ji',//这个是用来显示投喂次数的
+    controlEntity: 'number.chong_wu_wei_shi_qi_feed', // 这个是用来投喂的(正确的number实体)
     deviceType: 'feeder',
     description: '宠物投喂器控制，点击投喂一份'
 };
@@ -221,6 +219,7 @@ const DEVICE_AIR_CONDITIONER = {
 const DEVICE_PRINTER_3D = {
     name: 'voron2.4',
     icon: '🖨️',
+    stateEntity: 'switch.3dda_yin_ji',  // 状态实体使用电源实体
     controlUrl: 'http://192.168.4.6/?printer=98cf22853c45c005073ff07237fed9d9#/',
     powerEntity: 'switch.3dda_yin_ji',
     deviceType: 'url',
@@ -241,11 +240,17 @@ const DEVICE_WATER_HEATER = {
 const DEVICE_FRIDGE = {
     name: '冰箱温度',
     icon: '🧊',
+    stateEntity: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',  // 需要一个实体ID（使用冷藏传感器）
     deviceType: 'display',
     description: '冷藏/冷冻温度显示',
     sensors: {
         fridge: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',  // 冷藏温度
         freezer: 'sensor.midjd6_cn_590940698_610_temperature_p_4_1'  // 冷冻温度
+    },
+    // 传递给1x1组件的自定义属性
+    customProps: {
+        fridgeSensor: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',
+        freezerSensor: 'sensor.midjd6_cn_590940698_610_temperature_p_4_1'
     }
 };
 
@@ -275,17 +280,18 @@ const DEVICE_WASHING_MACHINE = {
     powerSwitch: 'switch.mibx2_cn_476777181_v6_on_p_2_1',  // 洗衣机开关
     childLock: 'switch.mibx2_cn_476777181_v6_physical_controls_locked_p_4_1'  // 童锁
 };
+
 // ========================================
 // 设备卡片列表（按显示顺序排列）
 // ========================================
 
 /**
  * 设备控制卡片配置列表
- * 
+ *
  * 说明：
  * - 此列表决定了设备卡片在页面上的显示顺序
  * - 数组中设备的顺序即页面显示的顺序（从左到右，从上到下）
- * 
+ *
  * 管理方法：
  * - 添加新设备：在此列表中添加新配置对象
  * - 删除设备：从此列表中移除相应配置对象
@@ -317,11 +323,11 @@ const DEVICE_CARDS = [
 
 /**
  * 设备配置导出对象
- * 
+ *
  * 说明：
  * - DEVICE_CONFIGS: 将所有设备配置导出为对象，支持按名称查找
  * - STATUS_CONFIGS: 将状态栏配置导出为对象
- * 
+ *
  * 使用方式：
  * - 在其他文件中引入此配置文件即可使用
  * - 例如：DEVICE_CARDS[0].name 获取第一个设备的名称
@@ -330,8 +336,8 @@ const DEVICE_CARDS = [
 // 将所有设备配置导出为对象，方便按名称查找
 const DEVICE_CONFIGS = {
     vacuum: DEVICE_VACUUM,
-    ambientLight: STATUS_AMBIENT_LIGHT,
-    petFeeding: STATUS_PET_FEEDING,
+    ambientLight: DEVICE_AMBIENT_LIGHT,
+    petFeeding: DEVICE_PET_FEEDING,
     diningLight: DEVICE_DINING_LIGHT,
     kitchenLight: DEVICE_KITCHEN_LIGHT,
     livingRoomLight: DEVICE_LIVING_ROOM_LIGHT,
@@ -354,3 +360,14 @@ const STATUS_CONFIGS = {
     ambientLight: STATUS_AMBIENT_LIGHT,
     petFeeding: STATUS_PET_FEEDING
 };
+
+// 导出到全局对象
+window.DEVICE_CARDS = DEVICE_CARDS;
+
+// 确保 window.DEVICE_CARDS 存在
+if (!window.DEVICE_CARDS) {
+    window.DEVICE_CARDS = DEVICE_CARDS;
+}
+window.DEVICE_CONFIGS = DEVICE_CONFIGS;
+window.STATUS_CONFIGS = STATUS_CONFIGS;
+

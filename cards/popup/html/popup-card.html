@@ -1,0 +1,23 @@
+<!--
+  弹出卡片 HTML 结构参考
+  文件：cards/popup/html/popup-card.html
+
+  说明：本文件仅作结构参考，实际渲染由 Vue 组件 popup-component.js 的 template 完成。
+  样式见：cards/popup/css/popup-card.css
+-->
+
+<!-- 遮罩层：全屏半透明蒙层，点击可关闭（由组件逻辑控制） -->
+<div class="popup-card-mask">
+  <!-- 弹出面板：玻璃态卡片，与 1x1/1x2 风格一致 -->
+  <div class="popup-card">
+    <!-- 标题栏：左侧标题 + 右侧关闭按钮 -->
+    <div class="popup-card__header">
+      <h2 class="popup-card__title">{{ title }}</h2>
+      <button class="popup-card__close" type="button" aria-label="关闭">×</button>
+    </div>
+    <!-- 内容区：由 Vue 默认插槽 <slot></slot> 渲染，此处仅作占位说明 -->
+    <div class="popup-card__body">
+      <!-- 插槽内容 -->
+    </div>
+  </div>
+</div>

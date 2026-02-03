@@ -1,0 +1,238 @@
+/**
+ * 弹出卡片样式
+ * 文件：cards/popup/css/popup-card.css
+ *
+ * 用途：智能家居控制面板的弹层/对话框样式，与 1x1、1x2 设备卡片视觉风格统一。
+ *
+ * 设计说明：
+ * - 玻璃态（毛玻璃）：与现有卡片相同的半透明背景 + 背景模糊
+ * - 遮罩层：全屏半透明蒙层，点击可关闭（由组件控制）
+ * - 弹出面板：居中、圆角、最大宽度限制，内容区可滚动
+ * - 动画：遮罩淡入、卡片缩放+上移淡入，与页面 fadeIn 风格一致
+ * - 响应式：小屏下内边距与字号适当缩小
+ */
+
+/* ==================== 遮罩层 ==================== */
+/* 全屏固定定位，盖住页面内容；用于突出弹层并拦截点击 */
+
+.popup-card-mask {
+    /* 铺满视口 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* 半透明黑色，与页面紫蓝渐变协调 */
+    background: rgba(0, 0, 0, 0.45);
+    /* 轻微模糊，与卡片毛玻璃统一 */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    /* 高于底部导航(1000)、页眉(999)，确保在最上层 */
+    z-index: 2000;
+    /* 弹性布局，使内部卡片居中 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 四周留白，避免小屏贴边 */
+    padding: 20px;
+    box-sizing: border-box;
+    /* 遮罩出现时的淡入动画 */
+    animation: popup-mask-in 0.25s ease;
+}
+
+/* 遮罩层打开时，禁止背景页面滚动 */
+body.has-popup {
+    overflow: hidden;
+    overflow-x: hidden;
+    height: 100vh;
+}
+
+/* 遮罩淡入关键帧 */
+@keyframes popup-mask-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* ==================== 弹出卡片面板 ==================== */
+/* 实际显示内容的白色玻璃卡片，与 1x1/1x2 卡片视觉一致 */
+
+.popup-card {
+    /* 与 1x1、1x2 一致的玻璃态：半透明白 + 强模糊 */
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    /* 圆角略大于小卡片，更符合弹层气质 */
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* 外阴影 + 内高光，增强玻璃感 */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+
+    /* 更宽的弹出卡，两侧留白更少 */
+    width: 100%;
+    max-width: 400px;
+    /* 高度不超过视口 80%，避免遮挡全屏 */
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* 卡片出现动画：缩小+下移 → 正常大小+原位 */
+    animation: popup-card-in 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 大尺寸弹出卡片 - 用于URL显示，几乎占满整个屏幕 */
+.popup-card--large {
+    max-width: 95vw;
+    max-height: 95vh;
+    width: 95vw;
+    height: 95vh;
+    border-radius: 12px;
+}
+
+/* 大尺寸弹出卡片的内容区无padding，充满整个卡片 */
+.popup-card--large .popup-card__body {
+    padding: 0;
+    overflow: hidden;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 隐藏大尺寸卡片的滚动条 */
+.popup-card--large .popup-card__body::-webkit-scrollbar {
+    display: none;
+}
+
+/* 卡片弹出关键帧 */
+@keyframes popup-card-in {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ==================== 标题栏 ==================== */
+/* 顶部固定区域：左侧标题 + 右侧关闭按钮 */
+
+.popup-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    /* 与内容区分隔 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+}
+
+.popup-card__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 关闭按钮：圆角矩形，半透明白底 */
+.popup-card__close {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.popup-card__close:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.popup-card__close:active {
+    transform: scale(0.95);
+}
+
+/* ==================== 内容区 ==================== */
+/* 插槽内容渲染区域，可滚动 */
+
+.popup-card__body {
+    padding: 12px 16px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* 隐藏弹出卡片内容区的滚动条 */
+.popup-card__body::-webkit-scrollbar {
+    display: none;
+}
+
+.popup-card__body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* 可选底部操作区（当前组件未使用，预留样式） */
+.popup-card__footer {
+    padding: 12px 20px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+/* ==================== 响应式 ==================== */
+/* 移动端：减小内边距与标题字号，卡片占满可用宽度 */
+
+@media (max-width: 767px) {
+    .popup-card-mask {
+        padding: 12px;
+    }
+
+    .popup-card {
+        max-width: 100%;
+        border-radius: 14px;
+    }
+
+    /* 移动端大尺寸卡片几乎全屏 */
+    .popup-card--large {
+        max-width: 98vw;
+        max-height: 98vh;
+        width: 98vw;
+        height: 98vh;
+        border-radius: 10px;
+    }
+
+    .popup-card__header {
+        padding: 14px 16px;
+    }
+
+    .popup-card__title {
+        font-size: 16px;
+    }
+
+    .popup-card__body {
+        padding: 16px;
+    }
+
+    /* 大尺寸卡片内容区无padding */
+    .popup-card--large .popup-card__body {
+        padding: 0;
+    }
+}

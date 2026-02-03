@@ -1,0 +1,69 @@
+/**
+ * 设置 - 桌面端样式
+ */
+
+/* 设置列表 - 红色调试网格线 - 三行六列 */
+.settings-list {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-image: 
+        linear-gradient(to right, rgba(255, 0, 0, 0.2) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 0, 0, 0.2) 1px, transparent 1px);
+    background-size: 24px 24px;
+}
+
+.settings-item {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.settings-item:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-item:active {
+    transform: scale(0.98);
+}
+
+.settings-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+.settings-info {
+    flex: 1;
+}
+
+.settings-info h3 {
+    font-size: 14px;
+    color: white;
+    margin: 0 0 4px 0;
+    font-weight: 600;
+}
+
+.settings-info p {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0;
+}
+
+.settings-arrow {
+    display: none;  /* 网格布局时隐藏箭头 */
+}
