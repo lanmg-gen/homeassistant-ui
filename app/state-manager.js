@@ -34,42 +34,57 @@ const DeviceStateManager = {
     init() {
         // 从本地存储恢复缓存
         this.loadFromStorage();
-        
+
         // 监听HA状态更新
         window.addEventListener('device-state-update', (event) => {
             if (event.detail) {
                 this.updateCache(event.detail.entityId, event.detail.state, true);
             }
         });
-        
+
         // 监听HA就绪
         window.addEventListener('ha-ready', () => {
             this.refreshAll();
         });
-        
+
         // 监听WebSocket状态
         window.addEventListener('ha-websocket-connected', () => {
             this.isWebSocketConnected = true;
             this.stopPolling();
         });
-        
+
         window.addEventListener('ha-websocket-disconnected', () => {
             this.isWebSocketConnected = false;
             this.startPolling();
         });
-        
+
         // 页面可见性变化时调整策略
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.stopPolling();
             } else {
-                this.refreshAll();
+                // 页面重新可见时，先尝试使用缓存，后台刷新
+                const entityIds = Array.from(this.subscribers.keys());
+                const needsRefresh = entityIds.filter(id => {
+                    const cached = this.cache.get(id);
+                    return !cached || Date.now() - cached.timestamp > this.config.cacheTTL * 0.5;
+                });
+
+                // 如果大部分缓存过期，立即刷新
+                if (needsRefresh.length > entityIds.length * 0.5) {
+                    this.refreshAll();
+                } else {
+                    // 否则后台刷新，不阻塞UI
+                    setTimeout(() => this.refreshAll(), 100);
+                }
+
+                // 如果WebSocket未连接，启动轮询
                 if (!this.isWebSocketConnected) {
                     this.startPolling();
                 }
             }
         });
-        
+
         // 定期清理过期缓存
         setInterval(() => this.cleanExpiredCache(), 60000);
     },
@@ -83,34 +98,45 @@ const DeviceStateManager = {
         if (cached !== null) {
             return cached;
         }
-        
+
         // 2. 检查本地存储
         if (this.config.enableStorage) {
             const stored = this.getStoredState(entityId);
             if (stored !== null) {
                 this.cache.set(entityId, { state: stored, timestamp: Date.now() });
+                // 同时发起后台更新，确保数据最新
+                this.pendingRequests.add(entityId);
+                this.scheduleBatchRequest();
                 return stored;
             }
         }
-        
+
         // 3. 加入批量请求队列
         this.pendingRequests.add(entityId);
         this.scheduleBatchRequest();
-        
-        // 4. 等待请求完成
+
+        // 4. 等待请求完成（增加重试机制）
+        const startTime = Date.now();
+        const maxWaitTime = 5000; // 增加到5秒
+
         return new Promise((resolve) => {
+            let checkCount = 0;
+            const maxChecks = maxWaitTime / 10; // 500次检查
+
             const checkInterval = setInterval(() => {
+                checkCount++;
                 const state = this.getCachedState(entityId);
+
                 if (state !== null) {
                     clearInterval(checkInterval);
                     resolve(state);
+                } else if (checkCount >= maxChecks || Date.now() - startTime > maxWaitTime) {
+                    clearInterval(checkInterval);
+                    // 超时后返回 stored 的值或 unavailable
+                    const stored = this.getStoredState(entityId);
+                    resolve(stored !== null ? stored : 'unavailable');
                 }
             }, 10);
-            
-            setTimeout(() => {
-                clearInterval(checkInterval);
-                resolve('unavailable');
-            }, 3000);
         });
     },
 
@@ -155,23 +181,23 @@ const DeviceStateManager = {
      */
     updateCache(entityId, state, fromWebSocket = false) {
         const oldState = this.cache.get(entityId)?.state;
-        
+
         this.cache.set(entityId, {
             state: state,
             timestamp: Date.now(),
             fromWebSocket: fromWebSocket
         });
-        
+
         // 只有状态变化才通知
         if (oldState !== state) {
             this.notifySubscribers(entityId, state);
-            
-            // 保存到本地存储
-            if (this.config.enableStorage) {
+
+            // 保存到本地存储（但不是 unavailable 状态）
+            if (this.config.enableStorage && state !== 'unavailable') {
                 this.saveToStorage(entityId, state);
             }
         }
-        
+
         // 限制缓存大小
         if (this.cache.size > this.config.maxCacheSize) {
             const firstKey = this.cache.keys().next().value;
@@ -293,42 +319,44 @@ const DeviceStateManager = {
      */
     async fetchStatesIncremental(entityIds) {
         const results = new Map();
-        
+
         if (!window.haConnection) {
             entityIds.forEach(id => results.set(id, 'unavailable'));
             return results;
         }
-        
+
         try {
             const haUrl = window.haConnection.url || 'http://192.168.4.5:8123';
             const accessToken = window.haConnection.token;
-            
+
             // 方法1：使用过滤参数（如果HA支持）
             const filterParam = entityIds.map(id => `filter_entity_id=${encodeURIComponent(id)}`).join('&');
-            
+
             let response = await fetch(`${haUrl}/api/states?${filterParam}`, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: AbortSignal.timeout(10000) // 10秒超时
             });
-            
+
             // 如果过滤参数不支持，回退到获取全部
             if (!response.ok && response.status === 400) {
                 response = await fetch(`${haUrl}/api/states`, {
                     headers: {
                         'Authorization': `Bearer ${accessToken}`,
                         'Content-Type': 'application/json'
-                    }
+                    },
+                    signal: AbortSignal.timeout(10000)
                 });
             }
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
-            
+
             const allStates = await response.json();
-            
+
             // 只提取需要的实体
             entityIds.forEach(entityId => {
                 const stateObj = allStates.find(s => s.entity_id === entityId);
@@ -336,9 +364,13 @@ const DeviceStateManager = {
             });
         } catch (error) {
             console.error('[StateManager] 获取状态失败:', error);
-            entityIds.forEach(id => results.set(id, 'unavailable'));
+            // 失败时尝试从本地存储恢复
+            entityIds.forEach(id => {
+                const stored = this.getStoredState(id);
+                results.set(id, stored !== null ? stored : 'unavailable');
+            });
         }
-        
+
         return results;
     },
 
@@ -403,17 +435,20 @@ const DeviceStateManager = {
      * 启动智能轮询
      */
     startPolling() {
-        if (this.pollingTimer || this.isWebSocketConnected) return;
-        
+        if (this.pollingTimer) return;
+
         // 根据订阅数量动态调整轮询间隔
         const subscriberCount = this.subscribers.size;
-        const interval = subscriberCount > 20 ? 10000 : 
+        const interval = subscriberCount > 20 ? 10000 :
                         subscriberCount > 10 ? 7000 : 5000;
-        
+
+        // 立即执行一次刷新
+        this.refreshAll();
+
         this.pollingTimer = setInterval(() => {
             this.refreshAll();
         }, interval);
-        
+
         console.log(`[StateManager] 启动轮询，间隔 ${interval}ms`);
     },
 
@@ -429,24 +464,35 @@ const DeviceStateManager = {
     },
 
     /**
-     * 刷新所有状态
+     * 刷新所有状态（带降级保护）
      */
     async refreshAll() {
         const entityIds = Array.from(this.subscribers.keys());
         if (entityIds.length === 0) return;
-        
+
         // 智能刷新：只刷新即将过期的缓存
         const staleIds = entityIds.filter(id => {
             const cached = this.cache.get(id);
             return !cached || Date.now() - cached.timestamp > this.config.cacheTTL * 0.8;
         });
-        
+
         if (staleIds.length === 0) return;
-        
-        const states = await this.fetchStatesIncremental(staleIds);
-        states.forEach((state, entityId) => {
-            this.updateCache(entityId, state);
-        });
+
+        try {
+            const states = await this.fetchStatesIncremental(staleIds);
+            states.forEach((state, entityId) => {
+                this.updateCache(entityId, state);
+            });
+        } catch (error) {
+            console.error('[StateManager] 刷新状态失败:', error);
+            // 降级：使用本地存储的数据
+            staleIds.forEach(id => {
+                const stored = this.getStoredState(id);
+                if (stored !== null) {
+                    this.updateCache(id, stored);
+                }
+            });
+        }
     },
 
     /**

@@ -65,14 +65,25 @@
                     console.log('[SW] 本地文件协议不支持 Service Worker，跳过注册');
                     return;
                 }
-                
-                navigator.serviceWorker.register('sw.js')
-                    .then(registration => {
-                        console.log('[SW] 注册成功:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.log('[SW] 注册失败:', error);
-                    });
+
+                // 检测是否在 HA App 内
+                const isHAApp = /HomeAssistant/i.test(navigator.userAgent) ||
+                               /com.homeassistant.companion.android/i.test(navigator.userAgent) ||
+                               /com.homeassistant.companion.ios/i.test(navigator.userAgent) ||
+                               window.location.hostname.includes('192.168');
+
+                // 只在非 HA App 环境下注册 Service Worker
+                if (!isHAApp) {
+                    navigator.serviceWorker.register('sw.js')
+                        .then(registration => {
+                            console.log('[SW] 注册成功:', registration.scope);
+                        })
+                        .catch(error => {
+                            console.log('[SW] 注册失败:', error);
+                        });
+                } else {
+                    console.log('[SW] 检测到 HA App 环境，跳过 Service Worker 注册');
+                }
             });
         }
     </script>

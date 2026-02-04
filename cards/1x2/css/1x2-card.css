@@ -32,6 +32,9 @@
     aspect-ratio: 2 / 1;
     width: 100%;
 
+    /* 在CSS Grid中占据2列 */
+    grid-column: span 2;
+
     /* 容器查询支持 */
     container-type: size;
     container-name: card;

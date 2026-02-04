@@ -348,8 +348,8 @@ class HAConnection {
      * @returns {Promise<string>}
      */
     async getDeviceState(entityId) {
-        // 防御性检查：确保 entityId 有效
-        if (!entityId || typeof entityId !== 'string') {
+        // 防御性检查：确保 entityId 有效且不是 "Error" 字符串
+        if (!entityId || typeof entityId !== 'string' || entityId === 'Error' || !entityId.includes('.')) {
             console.warn(`[ha-connection] 无效的实体ID: ${entityId}`, new Error().stack);
             return 'unavailable';
         }

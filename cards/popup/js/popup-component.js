@@ -146,7 +146,7 @@ const CardPopupComponent = {
                             class="popup-card__close"
                             aria-label="关闭"
                             @click="close"
-                        >×</button>
+                        ></button>
                     </div>
                     <div class="popup-card__body" v-bind="$attrs">
                         <slot></slot>

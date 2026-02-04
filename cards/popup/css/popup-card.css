@@ -140,31 +140,46 @@ body.has-popup {
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 关闭按钮：圆角矩形，半透明白底 */
+/* 关闭按钮：Mac风格红色圆球 */
 .popup-card__close {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     border: none;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%; /* 圆形 */
+    background: linear-gradient(135deg, #ff5f57 0%, #ff3b30 100%); /* Mac红色渐变 */
     color: rgba(255, 255, 255, 0.9);
-    font-size: 20px;
+    font-size: 14px;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease, transform 0.2s ease;
+    transition: all 0.2s ease;
     -webkit-user-select: none;
     user-select: none;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .popup-card__close:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, #ff6b63 0%, #ff453a 100%);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .popup-card__close:active {
-    transform: scale(0.95);
+    transform: scale(0.9);
+    box-shadow: 0 2px 6px rgba(255, 59, 48, 0.3),
+                inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 添加×符号 */
+.popup-card__close::before {
+    content: '×';
+    font-weight: 300;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* ==================== 内容区 ==================== */

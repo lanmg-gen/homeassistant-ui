@@ -45,7 +45,9 @@ if (!window.SettingsPage) {
                         popupIcon: '',
                         currentPopupType: '',
                         // 主题选择
-                        selectedTheme: 'default'
+                        selectedTheme: 'default',
+                        // 主题下拉框状态
+                        showThemeDropdown: false
                     };
                 },
                 computed: {
@@ -67,6 +69,13 @@ if (!window.SettingsPage) {
                 mounted() {
                     // 初始化选中主题为当前主题
                     this.selectedTheme = this.currentTheme.id;
+                    
+                    // 添加外部点击监听
+                    document.addEventListener('click', this.handleClickOutside);
+                },
+                beforeUnmount() {
+                    // 移除外部点击监听
+                    document.removeEventListener('click', this.handleClickOutside);
                 },
                 methods: {
                     // 处理设置卡片点击
@@ -91,33 +100,90 @@ if (!window.SettingsPage) {
 
                     // 处理弹出卡片按钮点击
                     handlePopupAction(action) {
+                        if (action === 'cancel') {
+                            // 取消操作，直接关闭
+                            this.closePopup();
+                            return;
+                        }
+                        
+                        // 应用主题设置
                         if (action === 'apply') {
-                            // 根据当前弹出类型执行不同的应用操作
-                            switch (this.currentPopupType) {
-                                case 'general':
-                                    // 应用主题设置
-                                    if (window.setBackgroundTheme) {
-                                        window.setBackgroundTheme(this.selectedTheme);
-                                        // 重新加载背景
-                                        if (window.loadBackgroundTheme) {
-                                            window.loadBackgroundTheme();
-                                        }
-                                    }
-                                    break;
-                                case 'notification':
-                                case 'privacy':
-                                case 'sync':
-                                    // 其他设置类型可以在这里添加具体逻辑
-                                    break;
-                                // 'about' 和 'network' 类型没有应用操作
+                            this.applyTheme(this.selectedTheme);
+                        }
+                        
+                        this.closePopup();
+                    },
+                    
+                    // 应用主题
+                    applyTheme(themeId) {
+                        if (window.setBackgroundTheme) {
+                            window.setBackgroundTheme(themeId);
+                            // 立即加载并应用背景主题
+                            if (window.loadBackgroundTheme) {
+                                window.loadBackgroundTheme();
                             }
+                            // 保存主题设置
+                            localStorage.setItem('selectedTheme', themeId);
                             
-                            // 显示提示
-                            if (window.showToast) {
-                                window.showToast(`已应用: ${this.popupTitle}`);
+                            // 显示成功提示
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success('主题已应用');
                             }
                         }
-                        this.closePopup();
+                    },
+                    
+                    // 获取当前主题名称
+                    getCurrentThemeName() {
+                        const theme = this.themeOptions.find(t => t.id === this.selectedTheme);
+                        return theme ? theme.name : '默认渐变';
+                    },
+                    
+                    // 选择主题
+                    selectTheme(themeId) {
+                        this.selectedTheme = themeId;
+                        this.showThemeDropdown = false;
+                        this.applyTheme(themeId);
+                    },
+                    
+                    // 检查下拉框是否需要向上展开
+                    checkDropdownPosition(element) {
+                        if (!element) return false;
+                        const rect = element.getBoundingClientRect();
+                        const dropdownHeight = 200; // 预估下拉框高度
+                        const viewportHeight = window.innerHeight;
+                        const spaceBelow = viewportHeight - rect.bottom;
+                        const spaceAbove = rect.top;
+                        
+                        return spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
+                    },
+                    
+                    // 获取下拉框样式
+                    getDropdownStyle(element) {
+                        if (!this.checkDropdownPosition(element)) {
+                            return {};
+                        }
+                        
+                        // 如果需要向上展开
+                        const rect = element.getBoundingClientRect();
+                        const dropdownHeight = 200; // 预估下拉框高度
+                        return {
+                            top: 'auto',
+                            bottom: '100%',
+                            marginTop: '0',
+                            marginBottom: '8px'
+                        };
+                    },
+                    
+                    // 处理下拉框外部点击
+                    handleClickOutside(event) {
+                        if (this.showThemeDropdown && !event.target.closest('.custom-theme-selector')) {
+                            this.showThemeDropdown = false;
+                        }
+                    },
+                    
+                    // 切换主题下拉框
+                    toggleThemeDropdown() {
+                        this.showThemeDropdown = !this.showThemeDropdown;
                     },
                     
                     // 获取HA配置信息
@@ -158,11 +224,12 @@ if (!window.SettingsPage) {
                             :key="index"
                             :name="card.name"
                             :icon="card.icon"
-                            stateentity="settings.dummy"
-                            devicetype="switch"
+                            stateentity=""
+                            devicetype="settings"
                             layouttype="default"
                             :hasdetailpage="false"
-                            @click="handleSettingsClick(card)"
+                            @settings-click="(payload) => handleSettingsClick(card)"
+                            @click.native.stop
                         ></card-1x1>
                     </div>
                     <!-- 弹出卡片 -->
@@ -180,15 +247,22 @@ if (!window.SettingsPage) {
                             <div v-if="currentPopupType === 'general'" class="popup-content">
                                 <div class="setting-item">
                                     <label>背景主题</label>
-                                    <select v-model="selectedTheme" class="theme-select">
-                                        <option v-for="theme in themeOptions" :key="theme.id" :value="theme.id">
-                                            {{ theme.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="popup-buttons">
-                                    <button class="popup-button" @click="handlePopupAction('apply')">应用</button>
-                                    <button class="popup-button" @click="handlePopupAction('cancel')">取消</button>
+                                    <div ref="themeSelector" class="custom-theme-selector" @click="toggleThemeDropdown">
+                                        <span class="selected-theme">{{ getCurrentThemeName() }}</span>
+                                        <span class="dropdown-arrow" :style="{ transform: showThemeDropdown ? 'rotate(180deg)' : 'none' }">▼</span>
+                                        <div v-if="showThemeDropdown" 
+                                             class="theme-dropdown" 
+                                             @click.stop
+                                             :style="getDropdownStyle($refs.themeSelector)">
+                                            <div v-for="theme in themeOptions" 
+                                                 :key="theme.id" 
+                                                 class="theme-option" 
+                                                 :class="{ active: selectedTheme === theme.id }"
+                                                 @click="selectTheme(theme.id)">
+                                                {{ theme.name }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -215,9 +289,6 @@ if (!window.SettingsPage) {
                                         <span class="info-value">{{ getHAConfigInfo()?.reconnectInterval }}ms</span>
                                     </div>
                                 </div>
-                                <div class="popup-buttons">
-                                    <button class="popup-button" @click="closePopup">关闭</button>
-                                </div>
                             </div>
                             
                             <div v-else-if="currentPopupType === 'about'" class="popup-content">
@@ -243,23 +314,108 @@ if (!window.SettingsPage) {
                                         <a href="javascript:void(0)" @click="showPrivacy" class="info-link">查看隐私政策</a>
                                     </div>
                                 </div>
-                                <div class="popup-buttons">
-                                    <button class="popup-button" @click="closePopup">关闭</button>
-                                </div>
                             </div>
                             
                             <div v-else class="popup-content">
                                 <!-- 其他设置类型的默认内容 -->
-                                <div class="popup-buttons">
-                                    <button class="popup-button" @click="handlePopupAction('apply')">应用</button>
-                                    <button class="popup-button" @click="handlePopupAction('cancel')">取消</button>
-                                </div>
+                                <p style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">{{ popupDescription }}</p>
                             </div>
                         </div>
                     </card-popup>
                 `
             });
 
+            // 添加自定义主题选择器样式
+            const style = document.createElement('style');
+            style.textContent = `
+                .custom-theme-selector {
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    width: 100%;
+                    padding: 12px 16px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    backdrop-filter: blur(10px);
+                }
+                
+                .custom-theme-selector:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    border-color: rgba(255, 255, 255, 0.3);
+                }
+                
+                .selected-theme {
+                    flex: 1;
+                }
+                
+                .dropdown-arrow {
+                    margin-left: 12px;
+                    font-size: 12px;
+                    color: rgba(255, 255, 255, 0.7);
+                    transition: transform 0.3s ease;
+                }
+                
+                .theme-dropdown {
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    z-index: 1000;
+                    margin-top: 8px;
+                    background: rgba(255, 255, 255, 0.15);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    border-radius: 12px;
+                    backdrop-filter: blur(15px);
+                    overflow: hidden;
+                    animation: dropdownFadeIn 0.2s ease;
+                }
+                
+                @keyframes dropdownFadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
+                .theme-option {
+                    padding: 12px 16px;
+                    color: white;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                }
+                
+                .theme-option:last-child {
+                    border-bottom: none;
+                }
+                
+                .theme-option:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                }
+                
+                .theme-option.active {
+                    background: rgba(255, 255, 255, 0.2);
+                    color: #fff;
+                }
+                
+                .setting-item {
+                    margin-bottom: 20px;
+                }
+                
+                .setting-item label {
+                    display: block;
+                    color: white;
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                    font-size: 14px;
+                }
+            `;
+            document.head.appendChild(style);
+            
             // 根据 config.js 的 cards 配置自动注册卡片组件
             const cardConfig = window.AppConfig && window.AppConfig.cards;
             if (Array.isArray(cardConfig)) {

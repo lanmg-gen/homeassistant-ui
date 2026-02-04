@@ -53,7 +53,7 @@ const Card1x2Component = {
             type: String,
             default: ''
         },
-        // 卡片跨列数（固定为2，确保在CSS Grid中占据2列宽度）
+        // 卡片跨列数（当前未使用，保留用于未来扩展）
         span: {
             type: Number,
             default: 2
@@ -62,16 +62,6 @@ const Card1x2Component = {
         hasdetailpage: {
             type: [Boolean, String],
             default: false
-        },
-        // 电源实体ID（用于3D打印机等设备的电源控制）
-        powerentity: {
-            type: String,
-            default: ''
-        },
-        // 控制URL（用于3D打印机等设备的控制面板）
-        controlurl: {
-            type: String,
-            default: ''
         }
     },
 
@@ -146,39 +136,64 @@ const Card1x2Component = {
                 result += ' has-detail-page';
             }
             return result;
-        },
-
-        // 卡片样式：在CSS Grid中占据2列宽度
-        cardStyle() {
-            return {
-                gridColumn: 'span 2'
-            };
         }
     },
 
-        // ==================== 生命周期钩子 ====================
+    // ==================== 生命周期钩子 ====================
     mounted() {
-        // 监听全局设备状态更新事件
-        window.addEventListener('device-state-update', this.handleStateUpdate);
-        // 监听HA就绪后的刷新事件
-        window.addEventListener('refresh-all-cards', this.handleRefreshAll);
-
-        // 对于设置卡片，不需要加载状态，直接设置为 off 并跳过
+        // 对于设置卡片，不需要加载状态
         if (this.isSettingsCard) {
             this.state = 'off';
+            this.loading = false;
             return;
         }
 
-        // 延迟加载设备状态,确保HA连接已完成初始化
-        setTimeout(() => {
-            this.loadDeviceState();
-        }, 500);
+        if (!this.stateentity) return;
+
+        // 1. 直接加载设备状态（确保立即有数据显示）
+        this.loadDeviceState();
+
+        // 2. 订阅HA连接的实时更新（如果可用）
+        if (window.haConnection && window.haConnection.addListener) {
+            this.handleHAStateUpdate = (data) => {
+                if (data.entityId === this.stateentity) {
+                    const newState = data.state;
+                    if (typeof newState === 'object' && newState !== null) {
+                        this.state = newState.state || 'unavailable';
+                    } else {
+                        this.state = newState || 'unavailable';
+                    }
+                    this.loading = false;
+                }
+            };
+            window.haConnection.addListener('stateUpdate', this.handleHAStateUpdate);
+        }
+
+        // 3. 订阅全局事件（作为备份，兼容其他方式派发的事件）
+        this.handleStateUpdate = (event) => {
+            if (event.detail && event.detail.entityId === this.stateentity) {
+                const newState = event.detail.state;
+                if (typeof newState === 'object' && newState !== null) {
+                    this.state = newState.state || 'unavailable';
+                } else {
+                    this.state = newState || 'unavailable';
+                }
+                this.loading = false;
+            }
+        };
+        window.addEventListener('device-state-update', this.handleStateUpdate);
     },
 
     beforeUnmount() {
-        // 组件卸载前移除事件监听
-        window.removeEventListener('device-state-update', this.handleStateUpdate);
-        window.removeEventListener('refresh-all-cards', this.handleRefreshAll);
+        // 取消HA连接监听
+        if (this.handleHAStateUpdate && window.haConnection) {
+            window.haConnection.removeListener('stateUpdate', this.handleHAStateUpdate);
+        }
+
+        // 取消全局事件监听
+        if (this.handleStateUpdate) {
+            window.removeEventListener('device-state-update', this.handleStateUpdate);
+        }
     },
 
     // ==================== 方法定义 ====================
@@ -186,11 +201,10 @@ const Card1x2Component = {
         // 加载设备状态
         async loadDeviceState() {
             try {
-                this.loading = true;
-
                 // 对于设置卡片，不需要加载状态
                 if (this.isSettingsCard) {
                     this.state = 'off';
+                    this.loading = false;
                     return;
                 }
 
@@ -201,9 +215,17 @@ const Card1x2Component = {
                     return;
                 }
 
-                // 调用全局方法获取设备状态
+                this.loading = true;
+
+                // 调用全局方法获取设备状态（和页眉一样的方式）
                 if (window.app && window.app.getDeviceState) {
-                    this.state = await window.app.getDeviceState(this.stateentity);
+                    const state = await window.app.getDeviceState(this.stateentity);
+                    // 处理返回的状态（可能是字符串或对象）
+                    if (typeof state === 'object' && state !== null) {
+                        this.state = state.state || 'unavailable';
+                    } else {
+                        this.state = state || 'unavailable';
+                    }
                 }
             } catch (error) {
                 console.error('加载设备状态失败:', error);
@@ -211,11 +233,6 @@ const Card1x2Component = {
             } finally {
                 this.loading = false;
             }
-        },
-
-        // 处理刷新所有卡片事件
-        handleRefreshAll() {
-            this.loadDeviceState();
         },
 
         // 处理卡片点击：切换设备开关状态
@@ -252,7 +269,13 @@ const Card1x2Component = {
         // 处理全局状态更新事件
         handleStateUpdate(event) {
             if (event.detail && event.detail.entityId === this.stateentity) {
-                this.state = event.detail.state;
+                const newState = event.detail.state;
+                // 处理返回的状态（可能是字符串或对象）
+                if (typeof newState === 'object' && newState !== null) {
+                    this.state = newState.state || 'unavailable';
+                } else {
+                    this.state = newState || 'unavailable';
+                }
             }
         },
 
@@ -275,25 +298,33 @@ const Card1x2Component = {
             // 阻止事件冒泡，避免触发卡片点击
             event.stopPropagation();
 
-            // 显示提示
-            if (window.vant && window.vant.Toast) {
-                window.vant.Toast.success(`打开 ${this.name} 的详细页面`);
+            // 对于URL类型设备（如3D打印机），点击切角弹出电源控制
+            if (this.devicetype === 'url') {
+                const emitData = {
+                    name: this.name,
+                    icon: this.icon,
+                    stateEntity: this.stateentity,
+                    deviceType: this.devicetype,
+                    action: 'control_power',
+                    powerEntity: this.powerentity
+                };
+                this.$emit('open-detail', emitData);
+            } else {
+                // 对于其他设备（如空调），弹出详细控制
+                this.$emit('open-detail', {
+                    name: this.name,
+                    icon: this.icon,
+                    stateEntity: this.stateentity,
+                    deviceType: this.devicetype,
+                    action: 'detail'
+                });
             }
-
-            // 触发自定义事件，通知父组件打开详情页
-            this.$emit('open-detail', {
-                name: this.name,
-                icon: this.icon,
-                stateEntity: this.stateentity,
-                deviceType: this.devicetype,
-                powerEntity: this.powerentity
-            });
         }
     },
 
     // ==================== 模板 ====================
     template: `
-        <div :class="[cardClass, { 'on': state === 'on' }]" :style="cardStyle" @click="handleClick">
+        <div :class="[cardClass, { 'on': state === 'on' }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
             <!-- 设备图标 -->
             <div class="card-1x2__icon">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x2__icon-svg">

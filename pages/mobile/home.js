@@ -104,6 +104,12 @@ if (!window.HomePage) {
 
                     // 处理设备点击
                     handleDeviceClick(device) {
+                        // 防护：检查是否是有效的设备卡片（必须有stateEntity）
+                        if (!device || !device.stateEntity || typeof device.stateEntity !== 'string' || device.stateEntity === 'Error') {
+                            console.log('[Home] 非设备项被点击:', device);
+                            return;
+                        }
+                        
                         const newState = this.getCachedDeviceState(device.stateEntity) === 'on' ? 'off' : 'on';
                         this.deviceStates[device.stateEntity] = newState;
                         // 更新卡片显示状态

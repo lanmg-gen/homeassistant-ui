@@ -92,8 +92,7 @@ const Card1x1Component = {
             acTemperature: '--',  // 空调温度
             acHumidity: '--',     // 空调湿度
             fridgeTemp: '--',     // 冰箱冷藏温度
-            freezerTemp: '--',    // 冰箱冷冻温度
-            unsubscribe: null     // 状态订阅取消函数
+            freezerTemp: '--'     // 冰箱冷冻温度
         };
     },
 
@@ -109,9 +108,14 @@ const Card1x1Component = {
             return this.devicetype === 'display' && this.name.includes('冰箱');
         },
 
+        // 是否为设置类型（不走设备控制流程）
+        isSettingsType() {
+            return this.devicetype === 'settings';
+        },
+
         // 是否为设置卡片（没有真实实体，不需要显示状态）
         isSettingsCard() {
-            return this.stateentity && this.stateentity.startsWith('settings.');
+            return this.devicetype === 'settings' || (this.stateentity && this.stateentity.startsWith('settings.'));
         },
 
         // 状态类名：根据设备状态和加载状态返回对应的CSS类
@@ -202,45 +206,97 @@ const Card1x1Component = {
         }
     },
 
-        // ==================== 生命周期钩子 ====================
+    // ==================== 生命周期钩子 ====================
     mounted() {
         // 对于设置卡片，不需要加载状态
         if (this.isSettingsCard) {
             this.state = 'off';
+            this.loading = false;
             return;
         }
 
         if (!this.stateentity) return;
 
-        // 使用状态管理器订阅状态更新
-        if (window.DeviceStateManager) {
-            this.loading = true;
-            this.unsubscribe = window.DeviceStateManager.subscribe(
-                this.stateentity,
-                (state) => {
-                    this.state = state;
+        // 1. 直接加载设备状态（确保立即有数据显示）
+        this.loadDeviceState();
+
+        // 2. 订阅HA连接的实时更新（如果可用）
+        if (window.haConnection && window.haConnection.addListener) {
+            this.handleHAStateUpdate = (data) => {
+                if (data.entityId === this.stateentity) {
+                    const newState = data.state;
+                    if (typeof newState === 'object' && newState !== null) {
+                        this.state = newState.state || 'unavailable';
+                    } else {
+                        this.state = newState || 'unavailable';
+                    }
                     this.loading = false;
-                },
-                { priority: 'normal' }
-            );
+                }
+            };
+            window.haConnection.addListener('stateUpdate', this.handleHAStateUpdate);
         }
 
-        // 订阅 WebSocket 实时推送
-        if (window.WebSocketManager && window.WebSocketManager.isConnected) {
-            window.WebSocketManager.subscribeEntities([this.stateentity]);
-        }
+        // 3. 订阅全局事件（作为备份，兼容其他方式派发的事件）
+        this.handleStateUpdate = (event) => {
+            if (event.detail && event.detail.entityId === this.stateentity) {
+                const newState = event.detail.state;
+                if (typeof newState === 'object' && newState !== null) {
+                    this.state = newState.state || 'unavailable';
+                } else {
+                    this.state = newState || 'unavailable';
+                }
+                this.loading = false;
+            }
+        };
+        window.addEventListener('device-state-update', this.handleStateUpdate);
     },
 
     beforeUnmount() {
-        // 取消状态订阅
-        if (this.unsubscribe) {
-            this.unsubscribe();
+        // 取消HA连接监听
+        if (this.handleHAStateUpdate && window.haConnection) {
+            window.haConnection.removeListener('stateUpdate', this.handleHAStateUpdate);
+        }
+
+        // 取消全局事件监听
+        if (this.handleStateUpdate) {
+            window.removeEventListener('device-state-update', this.handleStateUpdate);
         }
     },
 
     // ==================== 方法定义 ====================
     methods: {
+    // 加载设备状态
+    async loadDeviceState() {
+        // 对于设置卡片或空实体ID，直接设置为off状态，不发起API请求
+        if (this.isSettingsCard || !this.stateentity) {
+            this.state = 'off';
+            this.loading = false;
+            return;
+        }
 
+        try {
+            this.loading = true;
+
+            if (!window.haConnection) {
+                this.state = 'unavailable';
+                return;
+            }
+
+            // 直接使用 haConnection.getDeviceState（和页眉一样的方式）
+            const state = await window.haConnection.getDeviceState(this.stateentity);
+
+            // 处理返回的状态（可能是字符串或对象）
+            if (typeof state === 'object' && state !== null) {
+                this.state = state.state || 'unavailable';
+            } else {
+                this.state = state || 'unavailable';
+            }
+        } catch (error) {
+            this.state = 'unavailable';
+        } finally {
+            this.loading = false;
+        }
+    },
 
         // 处理卡片点击：切换设备开关状态
         async handleClick() {
@@ -281,6 +337,17 @@ const Card1x1Component = {
                 return;
             }
 
+            // 对于设置类型卡片，不执行设备控制，只触发点击事件
+            if (this.isSettingsType) {
+                // 触发自定义设置卡片点击事件
+                this.$emit('settings-click', {
+                    name: this.name,
+                    icon: this.icon,
+                    devicetype: this.devicetype
+                });
+                return;
+            }
+
             // 对于其他设备，执行正常控制
             try {
                 this.loading = true;
@@ -292,10 +359,8 @@ const Card1x1Component = {
                         icon: this.icon,
                         stateEntity: this.stateentity,
                         controlEntity: this.controlEntity || this.stateentity,
-                        deviceType: this.devicetype,
-
+                        deviceType: this.devicetype
                     };
-
                     await window.app.handleDeviceClick(device);
                 }
             } catch (error) {
@@ -308,20 +373,6 @@ const Card1x1Component = {
                 this.loading = false;
                 // 延迟重新加载状态，等待设备响应
                 setTimeout(() => this.loadDeviceState(), 300);
-            }
-        },
-
-        // 切换设备状态（当前未使用，保留用于未来扩展）
-        async toggleState() {
-            if (this.devicetype === 'light' || this.devicetype === 'switch') {
-                const newState = this.state === 'on' ? 'off' : 'on';
-                if (window.app && window.app.callService) {
-                    await window.app.callService(
-                        this.devicetype,
-                        newState === 'on' ? 'turn_on' : 'turn_off',
-                        { entity_id: this.controlEntity || this.stateentity }
-                    );
-                }
             }
         },
 
@@ -351,23 +402,12 @@ const Card1x1Component = {
                     action: 'detail'
                 });
             }
-        },
-
-        // 查找设备配置
-        findDeviceConfig() {
-            if (!window.DEVICE_CARDS) return null;
-            
-            // 根据卡片名称查找对应的设备配置
-            return window.DEVICE_CARDS.find(device => {
-                // 这里简化处理，实际应用中可能需要更复杂的匹配逻辑
-                return device.name === this.name;
-            }) || null;
         }
     },
 
     // ==================== 模板 ====================
     template: `
-        <div :class="[cardClass, { 'on': state === 'on' }]" @click="handleClick">
+        <div :class="[cardClass, { 'on': state === 'on' }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
             <!-- 设备图标 -->
             <div class="card-1x1__icon">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x1__icon-svg">
