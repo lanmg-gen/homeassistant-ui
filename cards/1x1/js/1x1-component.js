@@ -81,6 +81,11 @@ const Card1x1Component = {
         freezersensor: {
             type: String,
             default: ''
+        },
+        // 自定义属性对象，用于传递额外的设备特定配置
+        customProps: {
+            type: Object,
+            default: () => ({})
         }
     },
 
@@ -92,7 +97,11 @@ const Card1x1Component = {
             acTemperature: '--',  // 空调温度
             acHumidity: '--',     // 空调湿度
             fridgeTemp: '--',     // 冰箱冷藏温度
-            freezerTemp: '--'     // 冰箱冷冻温度
+            freezerTemp: '--',    // 冰箱冷冻温度
+            timerAttributes: null, // 计时器实体属性（仅计时器实体使用）
+            timerInterval: null,  // 计时器定时器ID（仅计时器实体使用）
+            currentTime: Date.now(), // 当前时间戳（用于计时器倒计时响应式更新）
+            controlEntityState: 'off' // 控制实体状态（用于计时器实体关联的灯状态）
         };
     },
 
@@ -105,7 +114,7 @@ const Card1x1Component = {
 
         // 是否为冰箱设备（需要显示两个温度）
         isFridgeDevice() {
-            return this.devicetype === 'display' && this.name.includes('冰箱');
+            return this.devicetype === 'fridge';
         },
 
         // 是否为设置类型（不走设备控制流程）
@@ -118,11 +127,62 @@ const Card1x1Component = {
             return this.devicetype === 'settings' || (this.stateentity && this.stateentity.startsWith('settings.'));
         },
 
+        // 是否为计时器实体
+        isTimerEntity() {
+            return this.stateentity && this.stateentity.startsWith('timer.');
+        },
+
+        // 计时器剩余时间（响应式计算，依赖currentTime）
+        timerRemainingTime() {
+            if (!this.isTimerEntity || this.state !== 'active' || !this.timerAttributes) {
+                return null;
+            }
+
+            // 方法1: 如果有finishes_at时间戳，计算实时剩余时间
+            if (this.timerAttributes.finishes_at) {
+                try {
+                    const finishesAt = new Date(this.timerAttributes.finishes_at);
+                    const now = new Date(this.currentTime);
+                    const diffMs = finishesAt.getTime() - now.getTime();
+
+                    if (diffMs > 0) {
+                        const totalSeconds = Math.floor(diffMs / 1000);
+                        const minutes = Math.floor(totalSeconds / 60);
+                        const seconds = totalSeconds % 60;
+                        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    } else {
+                        return '00:00';
+                    }
+                } catch (error) {
+                    console.log('[1x1卡片] finishes_at解析错误:', error);
+                }
+            }
+
+            // 方法2: 如果finishes_at无效，尝试remaining字段
+            if (this.timerAttributes.remaining) {
+                const remaining = this.timerAttributes.remaining;
+                if (typeof remaining === 'string' && remaining.includes(':')) {
+                    const parts = remaining.split(':');
+                    if (parts.length === 3) {
+                        const hours = parseInt(parts[0]) || 0;
+                        const minutes = parseInt(parts[1]) || 0;
+                        const seconds = parseInt(parts[2]) || 0;
+                        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+                        const dispMinutes = Math.floor(totalSeconds / 60);
+                        const dispSeconds = totalSeconds % 60;
+                        return `${dispMinutes.toString().padStart(2, '0')}:${dispSeconds.toString().padStart(2, '0')}`;
+                    }
+                }
+            }
+
+            return null;
+        },
+
         // 状态类名：根据设备状态和加载状态返回对应的CSS类
         statusClass() {
             return {
-                'on': this.state === 'on' || (this.devicetype === 'vacuum' && ['cleaning', 'returning'].includes(this.state)),
-                'off': this.state === 'off' || (this.devicetype === 'vacuum' && ['docked', 'idle', 'paused'].includes(this.state)) || this.devicetype === 'feeder',
+                'on': this.state === 'on' || (this.devicetype === 'vacuum' && ['cleaning', 'returning'].includes(this.state)) || (this.isTimerEntity && this.controlEntityState === 'on'),
+                'off': this.state === 'off' || (this.devicetype === 'vacuum' && ['docked', 'idle', 'paused'].includes(this.state)) || (this.isTimerEntity && this.controlEntityState === 'off'),
                 'unavailable': this.state === 'unavailable' || this.state === 'error',
                 'loading': this.loading
             };
@@ -134,6 +194,23 @@ const Card1x1Component = {
             if (this.isSettingsCard) return '';
 
             if (this.loading) return '加载中...';
+
+            // 计时器实体特殊处理：根据控制实体（灯）状态显示
+            if (this.isTimerEntity) {
+                // 如果控制实体（灯）关闭，显示"已关闭"
+                if (this.controlEntityState === 'off') {
+                    return '已关闭';
+                }
+                // 如果控制实体（灯）开启，显示计时器倒计时
+                if (this.controlEntityState === 'on' && this.timerAttributes) {
+                    const remainingTime = this.timerRemainingTime;
+                    if (remainingTime) {
+                        return remainingTime;
+                    }
+                    return '运行中';
+                }
+                return '已关闭';
+            }
 
             // 冰箱设备特殊处理：显示冷藏和冷冻温度
             if (this.isFridgeDevice) {
@@ -166,7 +243,23 @@ const Card1x1Component = {
 
             // 宠物投喂器特殊状态处理
             if (this.devicetype === 'feeder') {
-                return `${this.state}次`;
+                // 投喂器状态是计数器的值，直接显示数字+次
+                console.log('[1x1卡片] 投喂器状态:', this.name, 'state:', this.state, 'stateentity:', this.stateentity);
+                // 现在 state 应该是正确的计数值，但如果还是异常值则显示--
+                const count = this.state === 'unavailable' || this.state === 'unknown' || this.state === 'idle' || this.state === 'None' ? '--' : this.state;
+                return `${count}次`;
+            }
+
+            // 洗衣机特殊状态处理
+            if (this.devicetype === 'washingmachine') {
+                const washingMachineStates = {
+                    '关机': '关机',
+                    '待机中': '待机',
+                    '暂停中': '暂停',
+                    '工作中': '运行中',
+                    '预约中': '预约'
+                };
+                return washingMachineStates[this.state] || this.state || '未知';
             }
 
             // 扫地机器人特殊状态处理
@@ -220,9 +313,49 @@ const Card1x1Component = {
         // 1. 直接加载设备状态（确保立即有数据显示）
         this.loadDeviceState();
 
-        // 2. 订阅HA连接的实时更新（如果可用）
+        // 2. 对于冰箱设备，加载冷藏和冷冻温度
+        if (this.isFridgeDevice) {
+            // 调试：检查全局配置
+            console.log('[1x1卡片] 全局DEVICE_CONFIGS:', window.DEVICE_CONFIGS);
+            const globalFridgeConfig = window.DEVICE_CONFIGS ? window.DEVICE_CONFIGS.fridge : null;
+            console.log('[1x1卡片] 全局冰箱配置:', globalFridgeConfig);
+            
+            console.log('[1x1卡片] 冰箱设备初始化:', this.name, 'customprops:', this.customprops, 'fridgesensor:', this.fridgesensor, 'freezersensor:', this.freezersensor);
+            
+            // 多重备选方案获取传感器ID
+            let fridgeSensorId = this.customprops?.fridgeSensor || this.fridgesensor;
+            let freezerSensorId = this.customprops?.freezerSensor || this.freezersensor;
+            
+            // 如果 customprops 为空，尝试从全局配置获取
+            if ((!fridgeSensorId || !freezerSensorId) && globalFridgeConfig) {
+                fridgeSensorId = globalFridgeConfig.customprops?.fridgeSensor || globalFridgeConfig.fridgesensor;
+                freezerSensorId = globalFridgeConfig.customprops?.freezerSensor || globalFridgeConfig.freezersensor;
+                console.log('[1x1卡片] 从全局配置获取传感器ID:', fridgeSensorId, freezerSensorId);
+            }
+            
+            // 如果还是没有，使用硬编码的默认值（临时方案）
+            if (!fridgeSensorId) {
+                fridgeSensorId = 'sensor.midjd6_cn_590940698_610_temperature_p_3_1';
+                console.log('[1x1卡片] 使用默认冷藏传感器ID');
+            }
+            if (!freezerSensorId) {
+                freezerSensorId = 'sensor.midjd6_cn_590940698_610_temperature_p_4_1';
+                console.log('[1x1卡片] 使用默认冷冻传感器ID');
+            }
+            
+            console.log('[1x1卡片] 冰箱设备初始化，加载温度:', this.name, 'fridgeSensor:', fridgeSensorId, 'freezerSensor:', freezerSensorId);
+            this.loadFridgeTemperatures();
+        }
+
+        // 3. 启动计时器实时更新（仅计时器实体需要）
+        if (this.isTimerEntity) {
+            this.startTimerUpdate();
+        }
+
+        // 4. 订阅HA连接的实时更新（如果可用）
         if (window.haConnection && window.haConnection.addListener) {
             this.handleHAStateUpdate = (data) => {
+                // 更新状态实体
                 if (data.entityId === this.stateentity) {
                     const newState = data.state;
                     if (typeof newState === 'object' && newState !== null) {
@@ -231,21 +364,107 @@ const Card1x1Component = {
                         this.state = newState || 'unavailable';
                     }
                     this.loading = false;
+
+                    // 如果是计时器实体，更新属性
+                    if (this.isTimerEntity && data.attributes) {
+                        this.timerAttributes = data.attributes;
+                    }
                 }
+
+                // 如果是计时器实体，同时监听控制实体（灯）的状态
+                if (this.isTimerEntity && this.controlEntity) {
+                    const controlEntityId = this.controlEntity;
+                    if (data.entityId === controlEntityId) {
+                        const newState = data.state;
+                        if (typeof newState === 'object' && newState !== null) {
+                            this.controlEntityState = newState.state || 'off';
+                        } else {
+                            this.controlEntityState = newState || 'off';
+                        }
+                        console.log('[1x1卡片] 计时器控制实体状态更新:', controlEntityId, 'newState:', newState, 'controlEntityState:', this.controlEntityState);
+                    }
+                }
+
+                    // 更新冰箱温度
+                    if (this.isFridgeDevice) {
+                        // 优先从 customProps 获取传感器ID，兼容旧的 fridgesensor/freezersensor props
+                        const fridgeSensorId = this.customProps?.fridgeSensor || this.fridgesensor;
+                        const freezerSensorId = this.customProps?.freezerSensor || this.freezersensor;
+                        console.log('[1x1卡片] HA状态更新-冰箱:', data.entityId, 'fridgeSensorId:', fridgeSensorId, 'freezerSensorId:', freezerSensorId);
+                        if (data.entityId === fridgeSensorId) {
+                            const tempValue = data.state;
+                            if (tempValue && tempValue !== 'unavailable' && tempValue !== 'unknown') {
+                                this.fridgeTemp = tempValue;
+                            } else {
+                                this.fridgeTemp = '--';
+                            }
+                        }
+                        if (data.entityId === freezerSensorId) {
+                            const tempValue = data.state;
+                            if (tempValue && tempValue !== 'unavailable' && tempValue !== 'unknown') {
+                                this.freezerTemp = tempValue;
+                            } else {
+                                this.freezerTemp = '--';
+                            }
+                        }
+                    }
             };
             window.haConnection.addListener('stateUpdate', this.handleHAStateUpdate);
         }
 
-        // 3. 订阅全局事件（作为备份，兼容其他方式派发的事件）
+        // 4. 订阅全局事件（作为备份，兼容其他方式派发的事件）
         this.handleStateUpdate = (event) => {
-            if (event.detail && event.detail.entityId === this.stateentity) {
-                const newState = event.detail.state;
-                if (typeof newState === 'object' && newState !== null) {
-                    this.state = newState.state || 'unavailable';
-                } else {
-                    this.state = newState || 'unavailable';
+            if (event.detail) {
+                // 更新状态实体（计时器）
+                if (event.detail.entityId === this.stateentity) {
+                    const newState = event.detail.state;
+                    if (typeof newState === 'object' && newState !== null) {
+                        this.state = newState.state || 'unavailable';
+                    } else {
+                        this.state = newState || 'unavailable';
+                    }
+                    this.loading = false;
+
+                    // 如果是计时器实体，更新属性
+                    if (this.isTimerEntity && event.detail.attributes) {
+                        this.timerAttributes = event.detail.attributes;
+                    }
                 }
-                this.loading = false;
+
+                // 如果是计时器实体，同时监听控制实体（灯）的状态
+                if (this.isTimerEntity && this.controlEntity) {
+                    const controlEntityId = this.controlEntity;
+                    if (event.detail.entityId === controlEntityId) {
+                        const newState = event.detail.state;
+                        if (typeof newState === 'object' && newState !== null) {
+                            this.controlEntityState = newState.state || 'off';
+                        } else {
+                            this.controlEntityState = newState || 'off';
+                        }
+                    }
+                }
+
+                // 更新冰箱温度
+                if (this.isFridgeDevice) {
+                    const fridgeSensorId = this.customprops?.fridgeSensor || this.fridgesensor;
+                    const freezerSensorId = this.customprops?.freezerSensor || this.freezersensor;
+                    if (event.detail.entityId === fridgeSensorId) {
+                        const tempValue = event.detail.state;
+                        if (tempValue && tempValue !== 'unavailable' && tempValue !== 'unknown') {
+                            this.fridgeTemp = tempValue;
+                        } else {
+                            this.fridgeTemp = '--';
+                        }
+                    }
+                    if (event.detail.entityId === freezerSensorId) {
+                        const tempValue = event.detail.state;
+                        if (tempValue && tempValue !== 'unavailable' && tempValue !== 'unknown') {
+                            this.freezerTemp = tempValue;
+                        } else {
+                            this.freezerTemp = '--';
+                        }
+                    }
+                }
             }
         };
         window.addEventListener('device-state-update', this.handleStateUpdate);
@@ -261,10 +480,35 @@ const Card1x1Component = {
         if (this.handleStateUpdate) {
             window.removeEventListener('device-state-update', this.handleStateUpdate);
         }
+
+        // 停止计时器更新
+        this.stopTimerUpdate();
     },
 
     // ==================== 方法定义 ====================
     methods: {
+
+    // 启动计时器实时更新（仅计时器实体调用）
+    startTimerUpdate() {
+        if (!this.isTimerEntity) return;
+
+        // 先停止现有的定时器
+        this.stopTimerUpdate();
+
+        // 启动新的定时器，每秒更新一次 currentTime 触发响应式更新
+        this.timerInterval = setInterval(() => {
+            this.currentTime = Date.now();
+        }, 1000);
+    },
+
+    // 停止计时器更新
+    stopTimerUpdate() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    },
+
     // 加载设备状态
     async loadDeviceState() {
         // 对于设置卡片或空实体ID，直接设置为off状态，不发起API请求
@@ -282,19 +526,122 @@ const Card1x1Component = {
                 return;
             }
 
-            // 直接使用 haConnection.getDeviceState（和页眉一样的方式）
-            const state = await window.haConnection.getDeviceState(this.stateentity);
+            // 对于计时器实体，需要获取完整状态包括属性，同时获取控制实体（灯）状态
+            if (this.isTimerEntity) {
+                const haUrl = window.haConnection.url || window.HA_URL;
+                const accessToken = window.haConnection.token || window.ACCESS_TOKEN;
 
-            // 处理返回的状态（可能是字符串或对象）
-            if (typeof state === 'object' && state !== null) {
-                this.state = state.state || 'unavailable';
+                if (haUrl && accessToken) {
+                    // 获取计时器实体状态
+                    const timerResponse = await fetch(`${haUrl}/api/states/${this.stateentity}`, {
+                        headers: {
+                            'Authorization': `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (timerResponse.ok) {
+                        const timerData = await timerResponse.json();
+                        this.state = timerData.state || 'unavailable';
+                        this.timerAttributes = timerData.attributes || null;
+                    } else {
+                        this.state = 'unavailable';
+                        this.timerAttributes = null;
+                    }
+
+                    // 获取控制实体（灯）状态
+                    if (this.controlEntity) {
+                        const controlResponse = await fetch(`${haUrl}/api/states/${this.controlEntity}`, {
+                            headers: {
+                                'Authorization': `Bearer ${accessToken}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+
+                        if (controlResponse.ok) {
+                            const controlData = await controlResponse.json();
+                            this.controlEntityState = controlData.state || 'off';
+                        } else {
+                            this.controlEntityState = 'off';
+                        }
+                    }
+                }
             } else {
-                this.state = state || 'unavailable';
+                // 对于非计时器实体，使用原来的方式
+                const state = await window.haConnection.getDeviceState(this.stateentity);
+
+                // 处理返回的状态（可能是字符串或对象）
+                if (typeof state === 'object' && state !== null) {
+                    this.state = state.state || 'unavailable';
+                } else {
+                    this.state = state || 'unavailable';
+                }
+
+                // 调试：输出投喂器状态
+                if (this.devicetype === 'feeder') {
+                    console.log('[1x1卡片] 加载投喂器状态:', this.name, 'entity:', this.stateentity, 'rawState:', state, 'processedState:', this.state);
+                }
             }
         } catch (error) {
             this.state = 'unavailable';
+            this.timerAttributes = null;
         } finally {
             this.loading = false;
+        }
+    },
+
+        // 加载冰箱温度
+        async loadFridgeTemperatures() {
+        if (!window.haConnection) {
+            this.fridgeTemp = 'unavailable';
+            this.freezerTemp = 'unavailable';
+            return;
+        }
+
+        // 多重备选方案获取传感器ID
+        let fridgeSensorId = this.customProps?.fridgeSensor || this.fridgesensor;
+        let freezerSensorId = this.customProps?.freezerSensor || this.freezersensor;
+        
+        // 如果 customProps 为空，尝试从全局配置获取
+        if ((!fridgeSensorId || !freezerSensorId) && window.DEVICE_CONFIGS && window.DEVICE_CONFIGS.fridge) {
+            const globalFridgeConfig = window.DEVICE_CONFIGS.fridge;
+            fridgeSensorId = globalFridgeConfig.customProps?.fridgeSensor || globalFridgeConfig.fridgesensor;
+            freezerSensorId = globalFridgeConfig.customProps?.freezerSensor || globalFridgeConfig.freezersensor;
+            console.log('[1x1卡片] 从全局配置获取传感器ID:', fridgeSensorId, freezerSensorId);
+        }
+        
+        console.log('[1x1卡片] loadFridgeTemperatures:', this.name, 'fridgeSensorId:', fridgeSensorId, 'freezerSensorId:', freezerSensorId);
+
+        try {
+            // 加载冷藏温度
+            if (fridgeSensorId) {
+                const fridgeState = await window.haConnection.getDeviceState(fridgeSensorId);
+                console.log('[1x1卡片] 冷藏温度:', fridgeSensorId, 'state:', fridgeState);
+                if (fridgeState && fridgeState !== 'unavailable' && fridgeState !== 'unknown') {
+                    this.fridgeTemp = fridgeState;
+                } else {
+                    this.fridgeTemp = '--';
+                }
+            } else {
+                console.log('[1x1卡片] 没有配置冷藏传感器');
+            }
+
+            // 加载冷冻温度
+            if (freezerSensorId) {
+                const freezerState = await window.haConnection.getDeviceState(freezerSensorId);
+                console.log('[1x1卡片] 冷冻温度:', freezerSensorId, 'state:', freezerState);
+                if (freezerState && freezerState !== 'unavailable' && freezerState !== 'unknown') {
+                    this.freezerTemp = freezerState;
+                } else {
+                    this.freezerTemp = '--';
+                }
+            } else {
+                console.log('[1x1卡片] 没有配置冷冻传感器');
+            }
+        } catch (error) {
+            console.error('[1x1卡片] 加载冰箱温度失败:', error);
+            this.fridgeTemp = '--';
+            this.freezerTemp = '--';
         }
     },
 
@@ -407,7 +754,7 @@ const Card1x1Component = {
 
     // ==================== 模板 ====================
     template: `
-        <div :class="[cardClass, { 'on': state === 'on' }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
+        <div :class="[cardClass, statusClass]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
             <!-- 设备图标 -->
             <div class="card-1x1__icon">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x1__icon-svg">

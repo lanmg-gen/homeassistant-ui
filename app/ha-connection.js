@@ -230,8 +230,8 @@ class HAConnection {
                 // 更新本地状态缓存
                 this.states[entity_id] = new_state ? new_state.state : null;
 
-                // 调试：输出所有state_changed事件
-                console.log('[HA连接] state_changed事件:', entity_id, 'state:', new_state ? new_state.state : null);
+            // 调试：输出所有state_changed事件（已关闭以减少日志干扰）
+            // console.log('[HA连接] state_changed事件:', entity_id, 'state:', new_state ? new_state.state : null);
 
                 // 通知监听器
                 this.notifyListeners('stateUpdate', {
@@ -378,11 +378,19 @@ class HAConnection {
             fetch(apiUrl, { headers })
                 .then(response => response.json())
                 .then(data => {
-                    const stateToReturn = data.state;
+                    let stateToReturn = data.state;
+                    
+                    // 特殊处理：如果是 Counter 实体，获取 current 属性作为计数值
+                    if (entityId.startsWith('counter.') && data.attributes && data.attributes.current !== undefined) {
+                        stateToReturn = data.attributes.current.toString();
+                        console.log('[HA连接] Counter实体:', entityId, 'state:', data.state, 'current:', data.attributes.current, '返回:', stateToReturn);
+                    }
+                    
                     // 添加调试日志，特别是对于冰箱温度传感器
                     if (entityId.includes('temperature')) {
                         console.log('[HA连接] 温度传感器状态:', entityId, '数据:', data);
                     }
+                    
                     this.states[entityId] = stateToReturn;
                     resolve(stateToReturn);
                 })
