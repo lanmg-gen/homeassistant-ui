@@ -29,8 +29,26 @@ if (!window.HomePage) {
 
             const homeApp = Vue.createApp({
                 data() {
+                    const cards = window.DEVICE_CARDS ? [...window.DEVICE_CARDS] : [];
+                    // 调试：检查冰箱卡片的 customProps
+                    const fridgeDevice = cards.find(d => d.deviceType === 'fridge');
+                    if (fridgeDevice) {
+                        console.log('[Home] 冰箱设备:', fridgeDevice.name, 'customProps:', fridgeDevice.customProps);
+                    }
+
+                    // 从本地存储加载投喂数量
+                    let savedFeederAmount = 1;
+                    try {
+                        const saved = localStorage.getItem('feederAmount');
+                        if (saved) {
+                            savedFeederAmount = parseInt(saved, 10) || 1;
+                        }
+                    } catch (error) {
+                        // 加载失败使用默认值
+                    }
+
                     return {
-                        deviceCards: window.DEVICE_CARDS ? [...window.DEVICE_CARDS] : [],
+                        deviceCards: cards,
                         draggedItem: null,
                         draggedIndex: null,
                         // 弹出卡片状态
@@ -53,7 +71,39 @@ if (!window.HomePage) {
                         acHvacMode: 'off',  // 当前模式
                         acTargetTemp: 26,  // 目标温度
                         acFanMode: '四档',  // 风速档位
-                        acFanIndex: 3  // 风速索引（0-6 对应 自动、一档、二档、三档、四档、五档、六档、七档、Max档）
+                        acFanIndex: 3,  // 风速索引（0-6 对应 自动、一档、二档、三档、四档、五档、六档、七档、Max档）
+                        // 投喂器设置
+                        feederAmount: savedFeederAmount,  // 投喂数量（从本地存储加载）
+                        currentFeederDevice: null,  // 当前操作的投喂器设备
+                        // 洗衣机状态
+                        washingMachineState: '关机',  // 洗衣机状态
+                        washingMachineStage: '',  // 当前阶段
+                        washingMachineTime: '--',  // 剩余时间
+                        washingMachineMode: 'daily',  // 洗涤模式（默认日常洗）
+                        washingMachineRinse: 2,  // 漂洗次数
+                        washingMachineWater: 50,  // 目标水量
+                        washingMachinePower: 'off',  // 电源状态
+                        washingMachineChildLock: false,  // 童锁状态
+                        currentWashingMachine: null,  // 当前操作的洗衣机设备
+                        // 洗衣机模式列表
+                        washingMachineModes: [
+                            { name: '日常洗', value: 'daily', icon: '👕' },
+                            { name: '快速洗', value: 'quick', icon: '⚡' },
+                            { name: '大件洗', value: 'heavy', icon: '🛏️' },
+                            { name: '强力洗', value: 'strong', icon: '💪' },
+                            { name: '单脱水', value: 'spin', icon: '🌀' },
+                            { name: '桶自洁', value: 'self_clean', icon: '🧼' },
+                            { name: '自定义', value: 'custom', icon: '⚙️' },
+                            { name: '轻柔洗', value: 'gentle', icon: '🌸' },
+                            { name: '羊毛洗', value: 'wool', icon: '🐑' },
+                            { name: '婴童洗', value: 'baby', icon: '👶' },
+                            { name: '内衣洗', value: 'underwear', icon: '🩲' },
+                            { name: '棉麻洗', value: 'cotton', icon: '🧵' },
+                            { name: '漂+脱', value: 'rinse_spin', icon: '💧' },
+                            { name: '桶风干', value: 'dry', icon: '🌬️' },
+                            { name: '除螨洗', value: 'mites', icon: '🦠' },
+                            { name: '浸泡洗', value: 'soak', icon: '🛁' }
+                        ]
                     };
                 },
                 computed: {
@@ -64,6 +114,30 @@ if (!window.HomePage) {
                     // 1x2 卡片设备列表（span 为 2 的设备）
                     deviceCards1x2() {
                         return this.deviceCards.filter(device => device.span === 2);
+                    },
+                    // 洗衣机状态样式类
+                    washingMachineStateClass() {
+                        const stateClasses = {
+                            '关机': 'off',
+                            '待机中': 'standby',
+                            '工作中': 'running',
+                            '暂停中': 'paused',
+                            '预约中': 'scheduled'
+                        };
+                        return stateClasses[this.washingMachineState] || 'off';
+                    },
+                    // 洗衣机阶段中文显示
+                    washingMachineStageText() {
+                        const stageMap = {
+                            'None': '准备中',
+                            'Weighing': '称重中',
+                            'Washing': '洗涤中',
+                            'Rinsing': '漂洗中',
+                            'Spin': '脱水中',
+                            'Drying': '烘干中',
+                            'Complete': '已完成'
+                        };
+                        return stageMap[this.washingMachineStage] || this.washingMachineStage || '--';
                     }
                 },
                 watch: {
@@ -72,6 +146,10 @@ if (!window.HomePage) {
                         if (newVal && this.popupContent === 'air-conditioner') {
                             this.loadACState();
                         }
+                    },
+                    // 监控洗衣机模式变化
+                    washingMachineMode(newVal, oldVal) {
+                        console.log('[Home] 洗衣机模式变化:', oldVal, '->', newVal);
                     }
                 },
                 methods: {
@@ -89,14 +167,16 @@ if (!window.HomePage) {
 
                     // 获取设备状态文本
                     getDeviceStatusText(device) {
-                        const state = this.getCachedDeviceState(device.stateEntity);
+                        // 优先使用 controlEntity，否则使用 stateEntity
+                        const entityId = device.controlEntity || device.stateEntity;
+                        const state = this.getCachedDeviceState(entityId);
                         switch (state) {
                             case 'on':
                                 return '已开启';
                             case 'off':
                                 return '已关闭';
                             case 'unavailable':
-                                return '不可用';
+                                return '不可使用';
                             default:
                                 return '未知';
                         }
@@ -104,14 +184,16 @@ if (!window.HomePage) {
 
                     // 处理设备点击
                     handleDeviceClick(device) {
-                        // 防护：检查是否是有效的设备卡片（必须有stateEntity）
-                        if (!device || !device.stateEntity || typeof device.stateEntity !== 'string' || device.stateEntity === 'Error') {
+                        // 优先使用 controlEntity，否则使用 stateEntity
+                        const entityId = device.controlEntity || device.stateEntity;
+                        // 防护：检查是否是有效的设备卡片（必须有实体）
+                        if (!device || !entityId || typeof entityId !== 'string' || entityId === 'Error') {
                             console.log('[Home] 非设备项被点击:', device);
                             return;
                         }
                         
-                        const newState = this.getCachedDeviceState(device.stateEntity) === 'on' ? 'off' : 'on';
-                        this.deviceStates[device.stateEntity] = newState;
+                        const newState = this.getCachedDeviceState(entityId) === 'on' ? 'off' : 'on';
+                        this.deviceStates[entityId] = newState;
                         // 更新卡片显示状态
                         this.$forceUpdate();
                     },
@@ -188,6 +270,352 @@ if (!window.HomePage) {
                                 // 点击卡片主体：显示URL iframe
                                 this.showPrinterUrlPopup(detail);
                             }
+                        } else if (deviceType === 'feeder') {
+                            // 投喂器设置弹窗
+                            this.showFeederSettingsPopup(detail);
+                        } else if (deviceType === 'washingmachine') {
+                            // 洗衣机控制弹窗
+                            this.showWashingMachinePopup(detail);
+                        }
+                    },
+
+                    /**
+                     * 处理投喂器点击
+                     * @param {Object} detail - 投喂器详情
+                     */
+                    async handleFeederClick(detail) {
+                        if (!window.haConnection) return;
+
+                        try {
+                            // 获取投喂数量（优先使用传入的，否则使用当前设置）
+                            const amount = detail.amount || this.feederAmount;
+
+                            // 调用服务投喂指定数量
+                            await window.haConnection.callService('number', 'set_value', {
+                                entity_id: detail.controlEntity,
+                                value: amount
+                            });
+
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success(`投喂 ${amount} 份成功`);
+                            }
+                        } catch (error) {
+                            console.error('投喂失败:', error);
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.fail('投喂失败');
+                            }
+                        }
+                    },
+
+                    /**
+                     * 处理投喂器设置
+                     * @param {Object} detail - 投喂器详情
+                     */
+                    handleFeederSettings(detail) {
+                        this.currentFeederDevice = detail;
+                        this.feederAmount = detail.currentAmount || 1;
+                        this.showFeederSettingsPopup(detail);
+                    },
+
+
+
+                    /**
+                     * 设置洗衣机模式
+                     * @param {string} mode - 模式值
+                     */
+                    async setWashingMachineMode(mode) {
+                        if (!window.haConnection) return;
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device || !device.modeEntity) return;
+
+                        try {
+                            // 将内部值转换为中文名（Home Assistant 期望中文选项）
+                            const modeObj = this.washingMachineModes.find(m => m.value === mode);
+                            if (!modeObj) {
+                                console.error('未找到对应模式:', mode);
+                                return;
+                            }
+                            const chineseName = modeObj.name;
+                            
+                            await window.haConnection.callService('select', 'select_option', {
+                                entity_id: device.modeEntity,
+                                option: chineseName
+                            });
+                            this.washingMachineMode = mode;
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success('模式已切换');
+                            }
+                        } catch (error) {
+                            console.error('设置模式失败:', error);
+                        }
+                    },
+
+                    /**
+                     * 调节漂洗次数
+                     * @param {number} delta - 变化量
+                     */
+                    async adjustRinse(delta) {
+                        const newValue = Math.max(1, Math.min(5, this.washingMachineRinse + delta));
+                        this.washingMachineRinse = newValue;
+
+                        if (!window.haConnection) return;
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device || !device.rinseEntity) return;
+
+                        try {
+                            await window.haConnection.callService('number', 'set_value', {
+                                entity_id: device.rinseEntity,
+                                value: newValue
+                            });
+                        } catch (error) {
+                            console.error('设置漂洗次数失败:', error);
+                        }
+                    },
+
+                    /**
+                     * 调节水位
+                     * @param {number} delta - 变化量
+                     */
+                    async adjustWater(delta) {
+                        const newValue = Math.max(20, Math.min(100, this.washingMachineWater + delta));
+                        this.washingMachineWater = newValue;
+
+                        if (!window.haConnection) return;
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device || !device.waterLevelEntity) return;
+
+                        try {
+                            await window.haConnection.callService('number', 'set_value', {
+                                entity_id: device.waterLevelEntity,
+                                value: newValue
+                            });
+                        } catch (error) {
+                            console.error('设置水位失败:', error);
+                        }
+                    },
+
+                    /**
+                     * 切换童锁
+                     */
+                    async toggleChildLock() {
+                        if (!window.haConnection) return;
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device || !device.childLock) return;
+
+                        try {
+                            const newState = this.washingMachineChildLock ? 'off' : 'on';
+                            await window.haConnection.callService('switch', 'turn_' + newState, {
+                                entity_id: device.childLock
+                            });
+                            this.washingMachineChildLock = !this.washingMachineChildLock;
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success(this.washingMachineChildLock ? '童锁已开启' : '童锁已关闭');
+                            }
+                        } catch (error) {
+                            console.error('切换童锁失败:', error);
+                        }
+                    },
+
+                    /**
+                     * 显示投喂器设置弹窗
+                     * @param {Object} detail - 设备详情对象
+                     */
+                    showFeederSettingsPopup(detail) {
+                        this.popupTitle = detail.name + ' - 投喂设置';
+                        this.popupContent = 'feeder-settings';
+                        this.isLargePopup = false;
+                        this.showPopup = true;
+                    },
+
+                    /**
+                     * 显示洗衣机控制弹窗
+                     * @param {Object} detail - 设备详情对象
+                     */
+                    async showWashingMachinePopup(detail) {
+                        this.currentWashingMachine = detail;
+                        // 先显示弹窗
+                        this.popupTitle = detail.name + ' - 控制面板';
+                        this.popupContent = 'washing-machine';
+                        this.isLargePopup = false;
+                        this.showPopup = true;
+                        // 重置状态
+                        this.washingMachineState = '加载中...';
+                        this.washingMachineStage = '';
+                        this.washingMachineTime = '--';
+                        this.washingMachineMode = 'daily';
+                        console.log('[Home] 洗衣机弹窗显示, 默认模式:', this.washingMachineMode, '模式列表:', this.washingMachineModes);
+                        // 异步加载洗衣机状态
+                        this.$nextTick(async () => {
+                            await this.loadWashingMachineState();
+                        });
+                    },
+
+                    /**
+                     * 加载洗衣机状态
+                     */
+                    async loadWashingMachineState() {
+                        if (!window.haConnection || !this.currentWashingMachine) return;
+
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device) {
+                            console.log('[Home] 未找到洗衣机设备配置');
+                            return;
+                        }
+
+                        try {
+                            console.log('[Home] 加载洗衣机状态, 设备:', device);
+
+                            // 获取状态
+                            if (device.stateEntity) {
+                                const state = await window.haConnection.getDeviceState(device.stateEntity);
+                                console.log('[Home] 洗衣机状态:', device.stateEntity, '=', state);
+                                this.washingMachineState = state || '关机';
+                            }
+
+                            // 获取阶段
+                            if (device.stageEntity) {
+                                const stage = await window.haConnection.getDeviceState(device.stageEntity);
+                                console.log('[Home] 洗衣机阶段:', device.stageEntity, '=', stage);
+                                this.washingMachineStage = stage || '';
+                            }
+
+                            // 获取剩余时间
+                            if (device.timeRemainingEntity) {
+                                const time = await window.haConnection.getDeviceState(device.timeRemainingEntity);
+                                console.log('[Home] 洗衣机剩余时间:', device.timeRemainingEntity, '=', time);
+                                this.washingMachineTime = time || '--';
+                            }
+
+                            // 获取模式
+                            if (device.modeEntity) {
+                                const mode = await window.haConnection.getDeviceState(device.modeEntity);
+                                console.log('[Home] 洗衣机模式:', device.modeEntity, '=', mode);
+                                
+                                // 创建中文名到value的映射
+                                const modeNameToValue = {};
+                                // 创建value集合
+                                const validValues = new Set();
+                                this.washingMachineModes.forEach(m => {
+                                    modeNameToValue[m.name] = m.value;
+                                    validValues.add(m.value);
+                                });
+                                
+                                // 处理模式值
+                                let mappedMode = 'daily'; // 默认值
+                                if (mode) {
+                                    const modeStr = String(mode);
+                                    const lowerMode = modeStr.toLowerCase();
+                                    
+                                    if (lowerMode === 'unknown') {
+                                        console.log('[Home] 洗衣机模式为 unknown，使用默认值 daily');
+                                    } else if (modeNameToValue[modeStr]) {
+                                        // 是中文名，映射到value
+                                        mappedMode = modeNameToValue[modeStr];
+                                    } else if (validValues.has(modeStr)) {
+                                        // 已经是有效的value
+                                        mappedMode = modeStr;
+                                    } else {
+                                        // 未知值，使用默认
+                                        console.warn('[Home] 未知的洗衣机模式:', modeStr, '，使用默认值 daily');
+                                    }
+                                } else {
+                                    console.log('[Home] 洗衣机模式为空，使用默认值 daily');
+                                }
+                                
+                                console.log('[Home] 映射后模式:', mode, '->', mappedMode);
+                                this.washingMachineMode = mappedMode;
+                            }
+
+                            // 获取电源状态
+                            if (device.powerSwitch) {
+                                const power = await window.haConnection.getDeviceState(device.powerSwitch);
+                                console.log('[Home] 洗衣机电源:', device.powerSwitch, '=', power);
+                                this.washingMachinePower = power || 'off';
+                            }
+
+                            // 获取童锁状态
+                            if (device.childLock) {
+                                const childLock = await window.haConnection.getDeviceState(device.childLock);
+                                console.log('[Home] 洗衣机童锁:', device.childLock, '=', childLock);
+                                this.washingMachineChildLock = childLock === 'on';
+                            }
+
+                            // 获取漂洗次数
+                            if (device.rinseEntity) {
+                                const rinse = await window.haConnection.getDeviceState(device.rinseEntity);
+                                console.log('[Home] 洗衣机漂洗次数:', device.rinseEntity, '=', rinse);
+                                this.washingMachineRinse = parseInt(rinse) || 2;
+                            }
+
+                            // 获取水位
+                            if (device.waterLevelEntity) {
+                                const water = await window.haConnection.getDeviceState(device.waterLevelEntity);
+                                console.log('[Home] 洗衣机水位:', device.waterLevelEntity, '=', water);
+                                this.washingMachineWater = parseInt(water) || 50;
+                            }
+                        } catch (error) {
+                            console.error('[Home] 加载洗衣机状态失败:', error);
+                        }
+                    },
+
+                    /**
+                     * 控制洗衣机
+                     * @param {string} action - 操作类型
+                     */
+                    async controlWashingMachine(action) {
+                        if (!window.haConnection || !this.currentWashingMachine) return;
+
+                        const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
+                        if (!device) return;
+
+                        try {
+                            if (action === 'start' && device.startButton) {
+                                await window.haConnection.callService('button', 'press', {
+                                    entity_id: device.startButton
+                                });
+                                if (window.vant && window.vant.Toast) {
+                                    window.vant.Toast.success('开始洗涤');
+                                }
+                            } else if (action === 'pause' && device.pauseButton) {
+                                await window.haConnection.callService('button', 'press', {
+                                    entity_id: device.pauseButton
+                                });
+                                if (window.vant && window.vant.Toast) {
+                                    window.vant.Toast.success('已暂停');
+                                }
+                            } else if (action === 'power' && device.powerSwitch) {
+                                const currentState = await window.haConnection.getDeviceState(device.powerSwitch);
+                                const newState = currentState === 'on' ? 'off' : 'on';
+                                await window.haConnection.callService('switch', 'turn_' + newState, {
+                                    entity_id: device.powerSwitch
+                                });
+                                if (window.vant && window.vant.Toast) {
+                                    window.vant.Toast.success(newState === 'on' ? '已开机' : '已关机');
+                                }
+                            }
+                            // 刷新状态
+                            setTimeout(() => this.loadWashingMachineState(), 500);
+                        } catch (error) {
+                            console.error('控制洗衣机失败:', error);
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.fail('操作失败');
+                            }
+                        }
+                    },
+
+                    /**
+                     * 确认投喂器设置
+                     */
+                    confirmFeederSettings() {
+                        // 保存设置到本地存储
+                        try {
+                            localStorage.setItem('feederAmount', this.feederAmount.toString());
+                        } catch (error) {
+                            // 保存失败静默处理
+                        }
+                        this.closePopup();
+                        if (window.vant && window.vant.Toast) {
+                            window.vant.Toast.success(`已设置投喂 ${this.feederAmount} 份`);
                         }
                     },
 
@@ -516,7 +944,7 @@ if (!window.HomePage) {
                                             newCards.push(remainingCards.splice(index, 1)[0]);
                                         }
                                     });
-                                    
+
                                     // 添加剩余的卡片(新增的卡片)
                                     newCards.push(...remainingCards);
                                     this.deviceCards = newCards;
@@ -525,7 +953,12 @@ if (!window.HomePage) {
                         } catch (error) {
                             // 加载失败静默处理
                         }
-                    }
+                    },
+
+
+                },
+                components: {
+                    'card-1x1': window.Card1x1Component
                 },
                         template: `
                     <div class="device-grid">
@@ -538,13 +971,15 @@ if (!window.HomePage) {
                             :control-entity="device.controlEntity"
                             :devicetype="device.deviceType || 'switch'"
                             :layouttype="'default'"
-                            :hasdetailpage="device.deviceType === 'climate' || device.deviceType === 'url'"
+                            :hasdetailpage="device.deviceType === 'climate' || device.deviceType === 'url' || device.deviceType === 'feeder' || device.deviceType === 'washingmachine'"
                             :powerentity="device.powerEntity"
                             :controlurl="device.controlUrl"
                             :data-index="index"
-                            :fridge-sensor="device.customProps?.fridgeSensor"
-                            :freezer-sensor="device.customProps?.freezerSensor"
+                            :customprops="device.customProps"
+                            :feederamount="device.deviceType === 'feeder' ? feederAmount : 1"
                             @open-detail="handleOpenDetail"
+                            @feeder-click="handleFeederClick"
+                            @feeder-settings="handleFeederSettings"
                         ></card-1x1>
                         <card-1x2
                             v-for="(device, index) in deviceCards1x2"
@@ -558,6 +993,7 @@ if (!window.HomePage) {
                             :hasdetailpage="device.deviceType === 'climate' || device.deviceType === 'url'"
                             :powerentity="device.powerEntity"
                             :controlurl="device.controlUrl"
+                            :customprops="device.customProps"
                             :data-index="index"
                             @open-detail="handleOpenDetail"
                         ></card-1x2>
@@ -702,6 +1138,125 @@ if (!window.HomePage) {
                                     关机
                                 </button>
                             </div>
+                        </div>
+                        <!-- 投喂器设置内容 -->
+                        <div v-if="popupContent === 'feeder-settings'" class="feeder-settings-popup">
+                            <!-- 投喂器图标 -->
+                            <div class="feeder-icon-wrapper">
+                                <span class="feeder-icon">🐾</span>
+                            </div>
+                            <!-- 投喂数量设置 -->
+                            <div class="feeder-amount-section">
+                                <h3 class="feeder-section-title">投喂数量</h3>
+                                <div class="feeder-amount-control">
+                                    <button class="feeder-amount-btn" @click="feederAmount = Math.max(1, feederAmount - 1)">-</button>
+                                    <span class="feeder-amount-display">{{ feederAmount }} 份</span>
+                                    <button class="feeder-amount-btn" @click="feederAmount = Math.min(10, feederAmount + 1)">+</button>
+                                </div>
+                                <input type="range"
+                                       class="feeder-amount-slider"
+                                       min="1"
+                                       max="10"
+                                       step="1"
+                                       v-model.number="feederAmount">
+                            </div>
+                            <!-- 提示文本 -->
+                            <p class="feeder-hint">点击卡片将按照设置数量投喂</p>
+                            <!-- 按钮组 -->
+                            <div class="feeder-buttons">
+                                <button class="feeder-btn feeder-btn-cancel" @click.stop="closePopup()">
+                                    取消
+                                </button>
+                                <button class="feeder-btn feeder-btn-confirm" @click.stop="confirmFeederSettings()">
+                                    确定
+                                </button>
+                            </div>
+                        </div>
+                        <!-- 洗衣机控制内容 -->
+                        <div v-if="popupContent === 'washing-machine'" class="washing-machine-popup">
+                            <!-- 洗衣机图标和主状态 -->
+                            <div class="washing-machine-header">
+                                <div class="washing-machine-icon-wrapper">
+                                    <span class="washing-machine-icon">👕</span>
+                                    <div class="washing-machine-status-badge" :class="washingMachineStateClass">{{ washingMachineState }}</div>
+                                </div>
+                                <div class="washing-machine-info">
+                                    <div class="washing-machine-stage" v-if="washingMachineStage">
+                                        <span class="stage-label">当前阶段</span>
+                                        <span class="stage-value">{{ washingMachineStageText }}</span>
+                                    </div>
+                                    <div class="washing-machine-time">
+                                        <span class="time-icon">⏱</span>
+                                        <span class="time-value">{{ washingMachineTime }} 分钟</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 洗涤模式选择 -->
+                            <div class="washing-machine-section">
+                                <h3 class="washing-machine-section-title">洗涤模式</h3>
+                                <select class="washing-machine-mode-select" v-model="washingMachineMode" @change="setWashingMachineMode($event.target.value)">
+                                    <option value="" disabled>-- 选择洗涤模式 --</option>
+                                    <option v-for="mode in washingMachineModes" :key="mode.value" :value="mode.value">
+                                        {{ mode.icon }} {{ mode.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- 参数调节 -->
+                            <div class="washing-machine-params">
+                                <div class="washing-machine-param">
+                                    <span class="param-label">漂洗次数</span>
+                                    <div class="param-control">
+                                        <button class="param-btn" @click="adjustRinse(-1)">-</button>
+                                        <span class="param-value">{{ washingMachineRinse }} 次</span>
+                                        <button class="param-btn" @click="adjustRinse(1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="washing-machine-param">
+                                    <span class="param-label">水位</span>
+                                    <div class="param-control">
+                                        <button class="param-btn" @click="adjustWater(-10)">-</button>
+                                        <span class="param-value">{{ washingMachineWater }}%</span>
+                                        <button class="param-btn" @click="adjustWater(10)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 控制按钮 -->
+                            <div class="washing-machine-controls">
+                                <button class="washing-machine-btn washing-machine-btn-power"
+                                        :class="{ 'active': washingMachinePower === 'on' }"
+                                        @click="controlWashingMachine('power')">
+                                    <span class="washing-machine-btn-icon">⚡</span>
+                                    <span class="washing-machine-btn-label">{{ washingMachinePower === 'on' ? '关闭' : '开启' }}</span>
+                                </button>
+                                <button class="washing-machine-btn washing-machine-btn-start"
+                                        :disabled="washingMachineState === '工作中'"
+                                        @click="controlWashingMachine('start')">
+                                    <span class="washing-machine-btn-icon">▶</span>
+                                    <span class="washing-machine-btn-label">开始</span>
+                                </button>
+                                <button class="washing-machine-btn washing-machine-btn-pause"
+                                        :disabled="washingMachineState !== '工作中'"
+                                        @click="controlWashingMachine('pause')">
+                                    <span class="washing-machine-btn-icon">⏸</span>
+                                    <span class="washing-machine-btn-label">暂停</span>
+                                </button>
+                            </div>
+
+                            <!-- 童锁开关 -->
+                            <div class="washing-machine-childlock">
+                                <span class="childlock-label">🔒 童锁</span>
+                                <button class="childlock-toggle" :class="{ 'active': washingMachineChildLock }" @click="toggleChildLock()">
+                                    {{ washingMachineChildLock ? '已开启' : '已关闭' }}
+                                </button>
+                            </div>
+
+                            <!-- 关闭按钮 -->
+                            <button class="washing-machine-close-btn" @click.stop="closePopup()">
+                                关闭
+                            </button>
                         </div>
                     </card-popup>
                 `,

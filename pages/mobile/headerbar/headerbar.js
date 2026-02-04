@@ -289,6 +289,32 @@ if (!window.MobileHeaderbar) {
 
             // 更新空调状态
             this.updateACStatus();
+
+            // 更新冰箱温度传感器状态
+            this.updateFridgeStatus();
+        },
+
+        /**
+         * 更新冰箱温度状态
+         */
+        async updateFridgeStatus() {
+            const fridgeDevice = window.DEVICE_CARDS.find(d => d.deviceType === 'fridge');
+            if (!fridgeDevice || !window.haConnection) return;
+
+            try {
+                // 获取冷藏温度
+                if (fridgeDevice.stateEntity) {
+                    const fridgeState = await window.haConnection.getDeviceState(fridgeDevice.stateEntity);
+                    console.log('[HeaderBar] 冰箱冷藏温度:', fridgeState);
+                }
+                // 获取冷冻温度
+                if (fridgeDevice.customProps?.freezerSensor) {
+                    const freezerState = await window.haConnection.getDeviceState(fridgeDevice.customProps.freezerSensor);
+                    console.log('[HeaderBar] 冰箱冷冻温度:', freezerState);
+                }
+            } catch (error) {
+                // 静默处理错误
+            }
         },
 
         /**

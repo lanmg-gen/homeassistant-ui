@@ -49,19 +49,21 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlLight(device) {
+        // 优先使用 controlEntity，否则使用 stateEntity
+        const entityId = device.controlEntity || device.stateEntity;
         // 防护：检查实体ID是否有效
-        if (!device.stateEntity || device.stateEntity === 'Error' || typeof device.stateEntity !== 'string' || !device.stateEntity.includes('.')) {
-            console.error(`[DeviceController] 灯光设备实体ID无效: ${device.stateEntity}`, device);
+        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
+            console.error(`[DeviceController] 灯光设备实体ID无效: ${entityId}`, device);
             this.showError('设备配置错误，无法控制');
             return;
         }
         
-        const currentState = await window.haConnection.getDeviceState(device.stateEntity);
+        const currentState = await window.haConnection.getDeviceState(entityId);
         const newState = currentState === 'on' ? 'off' : 'on';
         const service = newState === 'on' ? 'turn_on' : 'turn_off';
 
         await window.haConnection.callService('light', service, {
-            entity_id: device.stateEntity
+            entity_id: entityId
         });
     },
 
@@ -70,19 +72,21 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlSwitch(device) {
+        // 优先使用 controlEntity，否则使用 stateEntity
+        const entityId = device.controlEntity || device.stateEntity;
         // 防护：检查实体ID是否有效
-        if (!device.stateEntity || device.stateEntity === 'Error' || typeof device.stateEntity !== 'string' || !device.stateEntity.includes('.')) {
-            console.error(`[DeviceController] 开关设备实体ID无效: ${device.stateEntity}`, device);
+        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
+            console.error(`[DeviceController] 开关设备实体ID无效: ${entityId}`, device);
             this.showError('设备配置错误，无法控制');
             return;
         }
         
-        const currentState = await window.haConnection.getDeviceState(device.stateEntity);
+        const currentState = await window.haConnection.getDeviceState(entityId);
         const newState = currentState === 'on' ? 'off' : 'on';
         const service = newState === 'on' ? 'turn_on' : 'turn_off';
 
         await window.haConnection.callService('switch', service, {
-            entity_id: device.stateEntity
+            entity_id: entityId
         });
     },
 
@@ -91,29 +95,31 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlVacuum(device) {
+        // 优先使用 controlEntity，否则使用 stateEntity
+        const entityId = device.controlEntity || device.stateEntity;
         // 防护：检查实体ID是否有效
-        if (!device.stateEntity || device.stateEntity === 'Error' || typeof device.stateEntity !== 'string' || !device.stateEntity.includes('.')) {
-            console.error(`[DeviceController] 扫地机设备实体ID无效: ${device.stateEntity}`, device);
+        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
+            console.error(`[DeviceController] 扫地机设备实体ID无效: ${entityId}`, device);
             this.showError('设备配置错误，无法控制');
             return;
         }
         
-        const currentState = await window.haConnection.getDeviceState(device.stateEntity);
+        const currentState = await window.haConnection.getDeviceState(entityId);
 
         if (currentState === 'cleaning' || currentState === 'returning') {
             // 如果正在清扫或返回,则暂停
             await window.haConnection.callService('vacuum', 'pause', {
-                entity_id: device.stateEntity
+                entity_id: entityId
             });
         } else if (currentState === 'docked' || currentState === 'idle') {
             // 如果在底座或空闲,则开始清扫
             await window.haConnection.callService('vacuum', 'start', {
-                entity_id: device.stateEntity
+                entity_id: entityId
             });
         } else {
             // 返回底座
             await window.haConnection.callService('vacuum', 'return_to_base', {
-                entity_id: device.stateEntity
+                entity_id: entityId
             });
         }
     },
@@ -142,23 +148,25 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlClimate(device) {
+        // 优先使用 controlEntity，否则使用 stateEntity
+        const entityId = device.controlEntity || device.stateEntity;
         // 防护：检查实体ID是否有效
-        if (!device.stateEntity || device.stateEntity === 'Error' || typeof device.stateEntity !== 'string' || !device.stateEntity.includes('.')) {
-            console.error(`[DeviceController] 空调设备实体ID无效: ${device.stateEntity}`, device);
+        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
+            console.error(`[DeviceController] 空调设备实体ID无效: ${entityId}`, device);
             this.showError('设备配置错误，无法控制');
             return;
         }
         
-        const currentState = await window.haConnection.getDeviceState(device.stateEntity);
+        const currentState = await window.haConnection.getDeviceState(entityId);
 
         // 简单切换开关状态
         if (currentState === 'off' || currentState === 'idle') {
             await window.haConnection.callService('climate', 'turn_on', {
-                entity_id: device.stateEntity
+                entity_id: entityId
             });
         } else {
             await window.haConnection.callService('climate', 'turn_off', {
-                entity_id: device.stateEntity
+                entity_id: entityId
             });
         }
     },

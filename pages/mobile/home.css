@@ -12,9 +12,11 @@
 /* 设备卡片容器 */
 .device-cards-container {
     width: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow-x: visible;
+    overflow-y: visible;
     -webkit-overflow-scrolling: touch;
+    /* 为卡片发光效果留出空间 */
+    padding: 8px;
 }
 
 /* ==================== 拖拽卡片样式 ==================== */
@@ -755,6 +757,609 @@
     transform: scale(0.98);
 }
 
+/**
+ * 投喂器设置弹出卡片样式
+ * 设计参考：居中布局，包含图标、数量调节和确认按钮
+ */
+.feeder-settings-popup {
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* 投喂器图标区域 */
+.feeder-icon-wrapper {
+    margin-bottom: 24px;
+}
+
+.feeder-icon {
+    font-size: 72px;
+    display: block;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+/* 投喂数量设置区域 */
+.feeder-amount-section {
+    width: 100%;
+    max-width: 280px;
+    margin-bottom: 20px;
+}
+
+.feeder-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 数量控制按钮组 */
+.feeder-amount-control {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.feeder-amount-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feeder-amount-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.1);
+}
+
+.feeder-amount-btn:active {
+    transform: scale(0.95);
+}
+
+/* 数量显示 */
+.feeder-amount-display {
+    font-size: 32px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+    min-width: 100px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 滑块样式 */
+.feeder-amount-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    -webkit-appearance: none;
+    margin: 16px 0;
+}
+
+.feeder-amount-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+    transition: all 0.2s ease;
+}
+
+.feeder-amount-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
+}
+
+.feeder-amount-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+}
+
+/* 提示文本 */
+.feeder-hint {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 28px;
+    font-style: italic;
+}
+
+/* 按钮组容器 */
+.feeder-buttons {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    max-width: 280px;
+}
+
+/* 按钮基础样式 */
+.feeder-btn {
+    flex: 1;
+    padding: 16px 24px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+/* 取消按钮 - 灰色 */
+.feeder-btn-cancel {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.feeder-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+/* 确定按钮 - 橙色 */
+.feeder-btn-confirm {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.feeder-btn-confirm:hover {
+    background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+}
+
+.feeder-btn:active {
+    transform: scale(0.98);
+}
+
+/**
+ * 洗衣机控制弹出卡片样式
+ * 设计参考：居中布局，包含状态显示、模式信息和控制按钮
+ */
+.washing-machine-popup {
+    padding: 28px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* 洗衣机头部区域 */
+.washing-machine-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.washing-machine-icon {
+    font-size: 64px;
+    margin-bottom: 12px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+}
+
+.washing-machine-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.washing-machine-state {
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.washing-machine-stage {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.washing-machine-time {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 4px;
+}
+
+/* 洗衣机信息区块 */
+.washing-machine-section {
+    width: 100%;
+    max-width: 280px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.washing-machine-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.washing-machine-mode {
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+/* 控制按钮组 */
+.washing-machine-controls {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.washing-machine-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+}
+
+.washing-machine-btn-icon {
+    font-size: 28px;
+}
+
+.washing-machine-btn-label {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* 开关按钮 - 灰色 */
+.washing-machine-btn-power {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.washing-machine-btn-power:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+/* 开始按钮 - 绿色 */
+.washing-machine-btn-start {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.washing-machine-btn-start:hover {
+    background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+/* 暂停按钮 - 橙色 */
+.washing-machine-btn-pause {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.washing-machine-btn-pause:hover {
+    background: linear-gradient(135deg, #FFA726 0%, #FF9800 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+}
+
+.washing-machine-btn:active {
+    transform: scale(0.95);
+}
+
+/* 关闭按钮 */
+.washing-machine-close-btn {
+    width: 100%;
+    max-width: 280px;
+    padding: 14px 24px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.washing-machine-close-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+}
+
+.washing-machine-close-btn:active {
+    transform: scale(0.98);
+}
+
+/* ==================== 洗衣机控制面板增强样式 ==================== */
+
+/* 洗衣机头部区域 - 新布局 */
+.washing-machine-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.washing-machine-icon-wrapper {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.washing-machine-icon {
+    font-size: 72px;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    display: block;
+}
+
+/* 状态徽章 */
+.washing-machine-status-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -8px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.washing-machine-status-badge.off {
+    background: linear-gradient(135deg, #9e9e9e 0%, #616161 100%);
+    color: #fff;
+}
+
+.washing-machine-status-badge.standby {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    color: #fff;
+}
+
+.washing-machine-status-badge.running {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+    color: #fff;
+    animation: pulse 2s infinite;
+}
+
+.washing-machine-status-badge.paused {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    color: #fff;
+}
+
+.washing-machine-status-badge.scheduled {
+    background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+    color: #fff;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* 洗衣机信息区域 */
+.washing-machine-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.washing-machine-stage {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stage-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stage-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+
+.washing-machine-time {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.time-icon {
+    font-size: 16px;
+}
+
+/* 模式选择区域 - 下拉选择框 */
+.washing-machine-mode-select {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255, 255, 255, 0.8)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 20px;
+    padding-right: 40px;
+}
+
+.washing-machine-mode-select:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.washing-machine-mode-select:focus {
+    border-color: rgba(33, 150, 243, 0.8);
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+.washing-machine-mode-select option {
+    background: #2c2c2c;
+    color: rgba(255, 255, 255, 0.95);
+    padding: 12px 16px;
+}
+
+/* 参数调节区域 */
+.washing-machine-params {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.washing-machine-param {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.param-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.param-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.param-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.param-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: scale(1.1);
+}
+
+.param-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+    min-width: 60px;
+    text-align: center;
+}
+
+/* 控制按钮增强 */
+.washing-machine-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.washing-machine-btn-power.active {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+/* 童锁区域 */
+.washing-machine-childlock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 280px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 20px;
+}
+
+.childlock-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.childlock-toggle {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.childlock-toggle.active {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
 
 
 .device-grid > *:nth-child(16) { animation-delay: 0.8s; }

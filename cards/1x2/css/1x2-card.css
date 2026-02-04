@@ -258,6 +258,8 @@
     box-shadow: 0 4px 16px rgba(255, 255, 255, 0.5),
                 0 0 12px rgba(255, 255, 255, 0.4),
                 inset 0 0 20px rgba(255, 255, 255, 0.25);
+    /* 使用 filter 添加外发光，避免边界割裂 */
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
 }
 
 /* 关闭状态文本 */

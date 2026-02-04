@@ -62,6 +62,11 @@ const Card1x2Component = {
         hasdetailpage: {
             type: [Boolean, String],
             default: false
+        },
+        // 自定义属性对象，用于传递额外的设备特定配置
+        customprops: {
+            type: Object,
+            default: () => ({})
         }
     },
 
@@ -69,7 +74,9 @@ const Card1x2Component = {
     data() {
         return {
             state: 'off',        // 设备状态：on/off/unavailable
-            loading: false        // 加载状态
+            loading: false,       // 加载状态
+            acTemperature: '--',  // 空调温度
+            acHumidity: '--'      // 空调湿度
         };
     },
 
@@ -80,10 +87,15 @@ const Card1x2Component = {
             return this.stateentity && this.stateentity.startsWith('settings.');
         },
 
+        // 是否为空调设备
+        isACDevice() {
+            return this.devicetype === 'climate';
+        },
+
         // 状态类名：根据设备状态和加载状态返回对应的CSS类
         statusClass() {
             return {
-                'on': this.state === 'on' || (this.devicetype === 'vacuum' && ['cleaning', 'returning'].includes(this.state)),
+                'on': this.state === 'on' || (this.devicetype === 'vacuum' && ['cleaning', 'returning'].includes(this.state)) || (this.isACDevice && this.state !== 'off' && this.state !== 'unavailable'),
                 'off': this.state === 'off' || (this.devicetype === 'vacuum' && ['docked', 'idle', 'paused'].includes(this.state)) || this.devicetype === 'feeder',
                 'unavailable': this.state === 'unavailable' || this.state === 'error',
                 'loading': this.loading
@@ -96,6 +108,27 @@ const Card1x2Component = {
             if (this.isSettingsCard) return '';
 
             if (this.loading) return '加载中...';
+
+            // 空调设备特殊处理：显示温度和湿度
+            if (this.isACDevice) {
+                const tempDisplay = this.acTemperature !== '--' ? `${this.acTemperature}℃` : '--';
+                const humidityDisplay = this.acHumidity !== '--' ? `${this.acHumidity}%` : '';
+
+                if (this.state === 'off') {
+                    return '已关闭';
+                } else if (this.state === 'cooling') {
+                    return `${tempDisplay} ${humidityDisplay}`.trim();
+                } else if (this.state === 'heating') {
+                    return `${tempDisplay} ${humidityDisplay}`.trim();
+                } else if (this.state === 'fan_only') {
+                    return `${tempDisplay} 送风`;
+                } else if (this.state === 'dry') {
+                    return `${tempDisplay} 干燥`;
+                } else if (this.state === 'idle') {
+                    return `${tempDisplay} 待机`;
+                }
+                return tempDisplay;
+            }
 
             // 宠物投喂器特殊状态处理
             if (this.devicetype === 'feeder') {
@@ -153,7 +186,12 @@ const Card1x2Component = {
         // 1. 直接加载设备状态（确保立即有数据显示）
         this.loadDeviceState();
 
-        // 2. 订阅HA连接的实时更新（如果可用）
+        // 2. 对于空调设备，加载温湿度
+        if (this.isACDevice) {
+            this.loadACState();
+        }
+
+        // 3. 订阅HA连接的实时更新（如果可用）
         if (window.haConnection && window.haConnection.addListener) {
             this.handleHAStateUpdate = (data) => {
                 if (data.entityId === this.stateentity) {
@@ -165,11 +203,20 @@ const Card1x2Component = {
                     }
                     this.loading = false;
                 }
+                // 更新空调温湿度
+                if (this.isACDevice && data.attributes) {
+                    if (data.attributes.temperature !== undefined) {
+                        this.acTemperature = data.attributes.temperature;
+                    }
+                    if (data.attributes.humidity !== undefined) {
+                        this.acHumidity = data.attributes.humidity;
+                    }
+                }
             };
             window.haConnection.addListener('stateUpdate', this.handleHAStateUpdate);
         }
 
-        // 3. 订阅全局事件（作为备份，兼容其他方式派发的事件）
+        // 4. 订阅全局事件（作为备份，兼容其他方式派发的事件）
         this.handleStateUpdate = (event) => {
             if (event.detail && event.detail.entityId === this.stateentity) {
                 const newState = event.detail.state;
@@ -208,9 +255,11 @@ const Card1x2Component = {
                     return;
                 }
 
+                // 优先使用 controlEntity，否则使用 stateentity
+                const entityId = this.controlEntity || this.stateentity;
                 // 检查是否有有效的实体ID
-                if (!this.stateentity || typeof this.stateentity !== 'string') {
-                    console.warn(`[1x2卡片] 无效的实体ID: ${this.stateentity}`, new Error().stack);
+                if (!entityId || typeof entityId !== 'string') {
+                    console.warn(`[1x2卡片] 无效的实体ID: ${entityId}`, new Error().stack);
                     this.state = 'unavailable';
                     return;
                 }
@@ -219,7 +268,7 @@ const Card1x2Component = {
 
                 // 调用全局方法获取设备状态（和页眉一样的方式）
                 if (window.app && window.app.getDeviceState) {
-                    const state = await window.app.getDeviceState(this.stateentity);
+                    const state = await window.app.getDeviceState(entityId);
                     // 处理返回的状态（可能是字符串或对象）
                     if (typeof state === 'object' && state !== null) {
                         this.state = state.state || 'unavailable';
@@ -279,6 +328,48 @@ const Card1x2Component = {
             }
         },
 
+        // 加载空调温湿度状态
+        async loadACState() {
+            if (!window.haConnection || !this.stateentity) {
+                this.acTemperature = '--';
+                this.acHumidity = '--';
+                return;
+            }
+
+            try {
+                // 使用 fetch API 获取完整状态对象（包含 attributes）
+                const haUrl = window.haConnection?.url || window.HA_URL || 'http://192.168.4.5:8123';
+                const accessToken = window.haConnection?.token || window.ACCESS_TOKEN;
+
+                const response = await fetch(`${haUrl}/api/states/${this.stateentity}`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const stateData = await response.json();
+
+                if (stateData && stateData.attributes) {
+                    // 尝试不同的属性名获取温度
+                    this.acTemperature = stateData.attributes.current_temperature ||
+                                       stateData.attributes.temperature ||
+                                       '--';
+                    // 尝试不同的属性名获取湿度
+                    this.acHumidity = stateData.attributes.current_humidity ||
+                                    stateData.attributes.humidity ||
+                                    '--';
+                }
+            } catch (error) {
+                this.acTemperature = '--';
+                this.acHumidity = '--';
+            }
+        },
+
         // 切换设备状态（当前未使用，保留用于未来扩展）
         async toggleState() {
             if (this.devicetype === 'light' || this.devicetype === 'switch') {
@@ -324,7 +415,7 @@ const Card1x2Component = {
 
     // ==================== 模板 ====================
     template: `
-        <div :class="[cardClass, { 'on': state === 'on' }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
+        <div :class="[cardClass, { 'on': state === 'on' || (isACDevice && state !== 'off' && state !== 'unavailable') }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
             <!-- 设备图标 -->
             <div class="card-1x2__icon">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x2__icon-svg">

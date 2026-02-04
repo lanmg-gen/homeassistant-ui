@@ -220,23 +220,26 @@ class HAConnection {
             return;
         }
 
-        if (event.event_type === 'state_changed') {
-            const { entity_id, new_state } = event.data || {};
+            if (event.event_type === 'state_changed') {
+                const { entity_id, new_state } = event.data || {};
 
-            if (!entity_id) {
-                return;
+                if (!entity_id) {
+                    return;
+                }
+
+                // 更新本地状态缓存
+                this.states[entity_id] = new_state ? new_state.state : null;
+
+                // 调试：输出所有state_changed事件
+                console.log('[HA连接] state_changed事件:', entity_id, 'state:', new_state ? new_state.state : null);
+
+                // 通知监听器
+                this.notifyListeners('stateUpdate', {
+                    entityId: entity_id,
+                    state: new_state ? new_state.state : null,
+                    attributes: new_state ? new_state.attributes : {}
+                });
             }
-
-            // 更新本地状态缓存
-            this.states[entity_id] = new_state ? new_state.state : null;
-
-            // 通知监听器
-            this.notifyListeners('stateUpdate', {
-                entityId: entity_id,
-                state: new_state ? new_state.state : null,
-                attributes: new_state ? new_state.attributes : {}
-            });
-        }
     }
 
     /**
@@ -376,6 +379,10 @@ class HAConnection {
                 .then(response => response.json())
                 .then(data => {
                     const stateToReturn = data.state;
+                    // 添加调试日志，特别是对于冰箱温度传感器
+                    if (entityId.includes('temperature')) {
+                        console.log('[HA连接] 温度传感器状态:', entityId, '数据:', data);
+                    }
                     this.states[entityId] = stateToReturn;
                     resolve(stateToReturn);
                 })

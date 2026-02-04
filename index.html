@@ -24,7 +24,8 @@
 
     <!-- 主内容区域 -->
     <div class="main-content" id="main-content">
-        <!-- 页面内容将动态加载 -->
+        <!-- 设备卡片容器 -->
+        <div id="deviceCardsContainer"></div>
     </div>
 
     <!-- 底部导航栏 -->
@@ -90,5 +91,13 @@
 
     <!-- 卡片组件由 config.js 的 cards 配置统一加载，无需在此逐个引入；加载完成后再加载 index.js -->
     <script src="app/cards-loader.js"></script>
+    <script>
+        // 确保首页 Vue 应用挂载
+        window.addEventListener('load', function () {
+            if (window.HomePage) {
+                window.HomePage.createVueApp();
+            }
+        });
+    </script>
 </body>
 </html>

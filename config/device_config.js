@@ -38,8 +38,8 @@ const STATUS_VACUUM = {
 const STATUS_AMBIENT_LIGHT = {
     name: '氛围灯',             // 卡片显示名称
     icon: '💡',                // 卡片图标
-    stateEntity: 'light.fen_wei_deng_zhu_wo_ding_deng', // 状态实体ID
-    timerEntity: 'timer.fen_wei_deng_dao_ji_shi', // 计时器实体ID
+    stateEntity: 'timer.fen_wei_deng_dao_ji_shi', // 状态实体ID
+    timerEntity: 'light.fen_wei_deng_zhu_wo_ding_deng', // 计时器实体ID
     description: '氛围灯状态和倒计时显示'
 };
 
@@ -98,7 +98,7 @@ const DEVICE_VACUUM = {
 const DEVICE_AMBIENT_LIGHT = {
     name: '氛围灯',
     icon: '💡',
-    stateEntity: 'light.fen_wei_deng_zhu_wo_ding_deng',
+    stateEntity: 'timer.fen_wei_deng_dao_ji_shi',
     controlEntity: 'light.fen_wei_deng_zhu_wo_ding_deng',
     deviceType: 'light',
     description: '主卧氛围灯开关控制'
@@ -240,13 +240,9 @@ const DEVICE_WATER_HEATER = {
 const DEVICE_FRIDGE = {
     name: '冰箱温度',
     icon: '🧊',
-    stateEntity: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',  // 需要一个实体ID（使用冷藏传感器）
-    deviceType: 'display',
+    stateEntity: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',  // 冷藏温度作为主状态实体
+    deviceType: 'fridge',  // 专用冰箱类型
     description: '冷藏/冷冻温度显示',
-    sensors: {
-        fridge: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',  // 冷藏温度
-        freezer: 'sensor.midjd6_cn_590940698_610_temperature_p_4_1'  // 冷冻温度
-    },
     // 传递给1x1组件的自定义属性
     customProps: {
         fridgeSensor: 'sensor.midjd6_cn_590940698_610_temperature_p_3_1',
