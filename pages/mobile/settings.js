@@ -37,6 +37,7 @@ if (!window.SettingsPage) {
                             { name: '网络设置', icon: '🌐', description: '连接和服务器配置', type: 'network' },
                             { name: '数据同步', icon: '🔄', description: '云端同步设置', type: 'sync' },
                             { name: '清空缓存', icon: '🗑️', description: '清除缓存并刷新页面', type: 'clearCache' },
+                            { name: '退出全屏', icon: '⛶', description: '退出全屏模式', type: 'exitFullscreen' },
                             { name: '关于', icon: 'ℹ️', description: '版本信息和帮助', type: 'about' }
                         ],
                         // 弹出卡片状态
@@ -246,6 +247,37 @@ if (!window.SettingsPage) {
                             window.showToast('隐私政策页面正在开发中');
                         }
                         // 这里可以跳转到隐私政策页面
+                    },
+                    
+                    // 退出全屏模式
+                    exitFullscreen() {
+                        // 获取当前URL
+                        const currentUrl = window.location.href;
+                        let newUrl;
+                        
+                        // 检查是否已有查询参数
+                        if (currentUrl.includes('?')) {
+                            // 如果已有?disable_km参数，保持不变
+                            if (currentUrl.includes('?disable_km') || currentUrl.includes('&disable_km')) {
+                                newUrl = currentUrl;
+                            } else {
+                                // 添加&disable_km参数
+                                newUrl = currentUrl + '&disable_km';
+                            }
+                        } else {
+                            // 添加?disable_km参数
+                            newUrl = currentUrl + '?disable_km';
+                        }
+                        
+                        // 显示提示并重定向
+                        if (window.vant && window.vant.Toast) {
+                            window.vant.Toast.success('正在退出全屏模式...');
+                        }
+                        
+                        // 延迟后跳转
+                        setTimeout(() => {
+                            window.location.href = newUrl;
+                        }, 1000);
                     }
                 },
                 template: `
@@ -356,6 +388,19 @@ if (!window.SettingsPage) {
                                     <button class="clear-cache-btn" @click="clearCacheAndReload">
                                         <span class="btn-icon">🗑️</span>
                                         <span class="btn-text">确认清空缓存</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div v-else-if="currentPopupType === 'exitFullscreen'" class="popup-content">
+                                <div class="exit-fullscreen-content">
+                                    <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
+                                        退出全屏模式将添加 ?disable_km 参数到URL并刷新页面。<br>
+                                        此操作将禁用全屏模式。
+                                    </p>
+                                    <button class="exit-fullscreen-btn" @click="exitFullscreen">
+                                        <span class="btn-icon">⛶</span>
+                                        <span class="btn-text">确认退出全屏</span>
                                     </button>
                                 </div>
                             </div>
@@ -494,6 +539,45 @@ if (!window.SettingsPage) {
                 }
 
                 .clear-cache-btn .btn-text {
+                    font-weight: 600;
+                }
+
+                .exit-fullscreen-content {
+                    padding: 20px 0;
+                }
+
+                .exit-fullscreen-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    padding: 16px 24px;
+                    background: linear-gradient(135deg, #4a90e2 0%, #2a6bc6 100%);
+                    border: none;
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(42, 107, 198, 0.3);
+                }
+
+                .exit-fullscreen-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(42, 107, 198, 0.4);
+                }
+
+                .exit-fullscreen-btn:active {
+                    transform: translateY(0);
+                }
+
+                .exit-fullscreen-btn .btn-icon {
+                    font-size: 20px;
+                    margin-right: 8px;
+                }
+
+                .exit-fullscreen-btn .btn-text {
                     font-weight: 600;
                 }
             `;
