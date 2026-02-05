@@ -12,16 +12,15 @@ const DeviceController = {
         try {
             // 忽略设置类型的卡片，它们不走设备控制流程
             if (device.deviceType === 'settings') {
-                // 设置类型卡片，跳过设备控制
                 return;
             }
-            
+
             switch (device.deviceType) {
                 case 'light':
-                    await this.controlLight(device);
+                    await this.controlToggleDevice(device, 'light');
                     break;
                 case 'switch':
-                    await this.controlSwitch(device);
+                    await this.controlToggleDevice(device, 'switch');
                     break;
                 case 'vacuum':
                     await this.controlVacuum(device);
@@ -30,7 +29,7 @@ const DeviceController = {
                     await this.controlFeeder(device);
                     break;
                 case 'climate':
-                    await this.controlClimate(device);
+                    await this.controlToggleDevice(device, 'climate', true);
                     break;
                 case 'display':
                     break;
@@ -39,55 +38,50 @@ const DeviceController = {
                     break;
             }
         } catch (error) {
-            // 控制设备失败
             this.showError(error.message);
         }
     },
 
     /**
-     * 控制灯光设备
-     * @param {Object} device - 设备配置
+     * 验证实体ID是否有效
+     * @param {string} entityId - 实体ID
+     * @param {string} deviceType - 设备类型（用于日志）
+     * @returns {boolean}
      */
-    async controlLight(device) {
-        // 优先使用 controlEntity，否则使用 stateEntity
-        const entityId = device.controlEntity || device.stateEntity;
-        // 防护：检查实体ID是否有效
+    _isValidEntityId(entityId, deviceType) {
         if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
-            console.error(`[DeviceController] 灯光设备实体ID无效: ${entityId}`, device);
+            console.error(`[DeviceController] ${deviceType}设备实体ID无效: ${entityId}`);
             this.showError('设备配置错误，无法控制');
-            return;
+            return false;
         }
-        
-        const currentState = await window.haConnection.getDeviceState(entityId);
-        const newState = currentState === 'on' ? 'off' : 'on';
-        const service = newState === 'on' ? 'turn_on' : 'turn_off';
-
-        await window.haConnection.callService('light', service, {
-            entity_id: entityId
-        });
+        return true;
     },
 
     /**
-     * 控制开关设备
+     * 通用开关设备控制方法
      * @param {Object} device - 设备配置
+     * @param {string} domain - Home Assistant 域名（light, switch, climate等）
+     * @param {boolean} [simpleToggle=false] - 是否简单开关（不支持状态切换，只根据当前开关）
      */
-    async controlSwitch(device) {
-        // 优先使用 controlEntity，否则使用 stateEntity
+    async controlToggleDevice(device, domain, simpleToggle = false) {
         const entityId = device.controlEntity || device.stateEntity;
-        // 防护：检查实体ID是否有效
-        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
-            console.error(`[DeviceController] 开关设备实体ID无效: ${entityId}`, device);
-            this.showError('设备配置错误，无法控制');
+
+        if (!this._isValidEntityId(entityId, domain)) {
             return;
         }
-        
-        const currentState = await window.haConnection.getDeviceState(entityId);
-        const newState = currentState === 'on' ? 'off' : 'on';
-        const service = newState === 'on' ? 'turn_on' : 'turn_off';
 
-        await window.haConnection.callService('switch', service, {
-            entity_id: entityId
-        });
+        const currentState = await window.haConnection.getDeviceState(entityId);
+
+        if (simpleToggle) {
+            // 简单开关：只根据当前开关状态
+            const service = (currentState === 'off' || currentState === 'idle') ? 'turn_on' : 'turn_off';
+            await window.haConnection.callService(domain, service, { entity_id: entityId });
+        } else {
+            // 普通开关：根据当前状态切换
+            const newState = currentState === 'on' ? 'off' : 'on';
+            const service = newState === 'on' ? 'turn_on' : 'turn_off';
+            await window.haConnection.callService(domain, service, { entity_id: entityId });
+        }
     },
 
     /**
@@ -95,33 +89,24 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlVacuum(device) {
-        // 优先使用 controlEntity，否则使用 stateEntity
         const entityId = device.controlEntity || device.stateEntity;
-        // 防护：检查实体ID是否有效
-        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
-            console.error(`[DeviceController] 扫地机设备实体ID无效: ${entityId}`, device);
-            this.showError('设备配置错误，无法控制');
+
+        if (!this._isValidEntityId(entityId, 'vacuum')) {
             return;
         }
-        
+
         const currentState = await window.haConnection.getDeviceState(entityId);
 
+        let service;
         if (currentState === 'cleaning' || currentState === 'returning') {
-            // 如果正在清扫或返回,则暂停
-            await window.haConnection.callService('vacuum', 'pause', {
-                entity_id: entityId
-            });
+            service = 'pause';
         } else if (currentState === 'docked' || currentState === 'idle') {
-            // 如果在底座或空闲,则开始清扫
-            await window.haConnection.callService('vacuum', 'start', {
-                entity_id: entityId
-            });
+            service = 'start';
         } else {
-            // 返回底座
-            await window.haConnection.callService('vacuum', 'return_to_base', {
-                entity_id: entityId
-            });
+            service = 'return_to_base';
         }
+
+        await window.haConnection.callService('vacuum', service, { entity_id: entityId });
     },
 
     /**
@@ -129,11 +114,9 @@ const DeviceController = {
      * @param {Object} device - 设备配置
      */
     async controlFeeder(device) {
-        // 防护：检查实体ID是否有效
         const controlEntity = device.controlEntity || device.stateEntity;
-        if (!controlEntity || controlEntity === 'Error' || typeof controlEntity !== 'string' || !controlEntity.includes('.')) {
-            console.error(`[DeviceController] 投喂器设备实体ID无效: ${controlEntity}`, device);
-            this.showError('设备配置错误，无法控制');
+
+        if (!this._isValidEntityId(controlEntity, '投喂器')) {
             return;
         }
 
@@ -141,34 +124,6 @@ const DeviceController = {
             entity_id: controlEntity,
             value: 1
         });
-    },
-
-    /**
-     * 控制空调
-     * @param {Object} device - 设备配置
-     */
-    async controlClimate(device) {
-        // 优先使用 controlEntity，否则使用 stateEntity
-        const entityId = device.controlEntity || device.stateEntity;
-        // 防护：检查实体ID是否有效
-        if (!entityId || entityId === 'Error' || typeof entityId !== 'string' || !entityId.includes('.')) {
-            console.error(`[DeviceController] 空调设备实体ID无效: ${entityId}`, device);
-            this.showError('设备配置错误，无法控制');
-            return;
-        }
-        
-        const currentState = await window.haConnection.getDeviceState(entityId);
-
-        // 简单切换开关状态
-        if (currentState === 'off' || currentState === 'idle') {
-            await window.haConnection.callService('climate', 'turn_on', {
-                entity_id: entityId
-            });
-        } else {
-            await window.haConnection.callService('climate', 'turn_off', {
-                entity_id: entityId
-            });
-        }
     },
 
     /**
