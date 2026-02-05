@@ -37,6 +37,7 @@ if (!window.SettingsPage) {
                             { name: '网络设置', icon: '🌐', description: '连接和服务器配置', type: 'network' },
                             { name: '数据同步', icon: '🔄', description: '云端同步设置', type: 'sync' },
                             { name: '清空缓存', icon: '🗑️', description: '清除缓存并刷新页面', type: 'clearCache' },
+                            { name: '文件读取测试', icon: '📄', description: '测试本地文件读取', type: 'fileReadTest' },
                             { name: '关于', icon: 'ℹ️', description: '版本信息和帮助', type: 'about' }
                         ],
                         // 弹出卡片状态
@@ -247,6 +248,33 @@ if (!window.SettingsPage) {
                         }
                         // 这里可以跳转到隐私政策页面
                     },
+
+                    // 测试读取本地文件
+                    async testFileRead() {
+                        try {
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.loading('正在读取文件...');
+                            }
+
+                            const cfg = await fetch('/local/cfg/my.json').then(r => {
+                                if (!r.ok) {
+                                    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+                                }
+                                return r.json();
+                            });
+
+                            console.log('[文件读取测试] 读取成功:', cfg);
+
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success(`读取成功: ${JSON.stringify(cfg)}`);
+                            }
+                        } catch (error) {
+                            console.error('[文件读取测试] 失败:', error);
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.fail(`读取失败: ${error.message}`);
+                            }
+                        }
+                    },
                     
 
                 },
@@ -362,7 +390,21 @@ if (!window.SettingsPage) {
                                 </div>
                             </div>
 
-
+                            <div v-else-if="currentPopupType === 'fileReadTest'" class="popup-content">
+                                <div class="file-read-test-content">
+                                    <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
+                                        测试读取 Home Assistant 的 /local/cfg/ 目录下的文件。<br>
+                                        这用于验证页面是否能读取 HA 配置文件。
+                                    </p>
+                                    <button class="file-read-test-btn" @click="testFileRead">
+                                        <span class="btn-icon">📄</span>
+                                        <span class="btn-text">测试读取 my.json</span>
+                                    </button>
+                                    <p style="text-align: center; color: rgba(255, 255, 255, 0.6); font-size: 14px; margin-top: 16px;">
+                                        尝试读取: /local/cfg/my.json
+                                    </p>
+                                </div>
+                            </div>
 
                             <div v-else class="popup-content">
                                 <!-- 其他设置类型的默认内容 -->
@@ -498,6 +540,45 @@ if (!window.SettingsPage) {
                 }
 
                 .clear-cache-btn .btn-text {
+                    font-weight: 600;
+                }
+
+                .file-read-test-content {
+                    padding: 20px 0;
+                }
+
+                .file-read-test-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    padding: 16px 24px;
+                    background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
+                    border: none;
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(0, 91, 234, 0.3);
+                }
+
+                .file-read-test-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0, 91, 234, 0.4);
+                }
+
+                .file-read-test-btn:active {
+                    transform: translateY(0);
+                }
+
+                .file-read-test-btn .btn-icon {
+                    font-size: 20px;
+                    margin-right: 8px;
+                }
+
+                .file-read-test-btn .btn-text {
                     font-weight: 600;
                 }
 
