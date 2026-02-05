@@ -251,40 +251,88 @@ if (!window.SettingsPage) {
                     
                     // 退出全屏模式
                     exitFullscreen() {
-                        // 使用URL API处理查询参数
-                        const currentUrl = new URL(window.location.href);
-                        
-                        // 确保路径末尾有斜杠（如果路径不为空且不以斜杠结尾）
-                        if (currentUrl.pathname && !currentUrl.pathname.endsWith('/')) {
-                            currentUrl.pathname = currentUrl.pathname + '/';
-                        }
-                        
-                        // 如果已经有disable_km参数，保持不变
-                        if (currentUrl.searchParams.has('disable_km')) {
-                            // 显示提示并重定向
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.success('正在退出全屏模式...');
-                            }
-                            
-                            // 延迟后跳转（即使参数已存在也刷新页面）
-                            setTimeout(() => {
-                                window.location.href = currentUrl.href;
-                            }, 1000);
-                            return;
-                        }
-                        
-                        // 添加disable_km参数（值为空）
-                        currentUrl.searchParams.set('disable_km', '');
-                        
-                        // 显示提示并重定向
+                        // 显示提示
                         if (window.vant && window.vant.Toast) {
                             window.vant.Toast.success('正在退出全屏模式...');
                         }
                         
-                        // 延迟后跳转
-                        setTimeout(() => {
-                            window.location.href = currentUrl.href;
-                        }, 1000);
+                        // 方法1: 尝试通过postMessage向父窗口发送消息
+                        // 适用于嵌入在iframe中的场景
+                        try {
+                            if (window.parent && window.parent !== window) {
+                                // 发送消息给父窗口，通知退出全屏
+                                window.parent.postMessage({
+                                    type: 'disable_km',
+                                    source: 'smart-home-control-panel',
+                                    timestamp: Date.now()
+                                }, '*');
+                                
+                                console.log('[退出全屏] 已向父窗口发送disable_km消息');
+                                
+                                // 同时尝试修改父窗口URL（如果同源）
+                                try {
+                                    // 先检查是否同源，避免安全错误
+                                    const parentUrl = new URL(window.parent.location.href);
+                                    const currentUrl = new URL(window.location.href);
+                                    
+                                    if (parentUrl.origin === currentUrl.origin) {
+                                        // 同源，可以修改父级URL
+                                        const parentSearchParams = new URLSearchParams(window.parent.location.search);
+                                        parentSearchParams.set('disable_km', '');
+                                        window.parent.location.search = parentSearchParams.toString();
+                                        console.log('[退出全屏] 已修改父窗口URL参数');
+                                        return;
+                                    }
+                                } catch (securityError) {
+                                    // 跨域安全错误，忽略
+                                    console.log('[退出全屏] 无法访问父窗口URL（跨域限制）');
+                                }
+                            }
+                        } catch (error) {
+                            console.warn('[退出全屏] postMessage或父窗口访问失败:', error);
+                        }
+                        
+                        // 方法2: 尝试通过HA的hass对象调用服务（如果可用）
+                        try {
+                            const hass = window.hass || (window.parent && window.parent.hass);
+                            if (hass && hass.callService) {
+                                // 假设有一个服务可以退出全屏模式
+                                // 这里需要根据实际的HA服务进行调整
+                                hass.callService('frontend', 'reload', {
+                                    disable_km: true
+                                });
+                                console.log('[退出全屏] 已通过hass对象调用服务');
+                                return;
+                            }
+                        } catch (error) {
+                            console.warn('[退出全屏] 通过hass对象调用服务失败:', error);
+                        }
+                        
+                        // 方法3: 作为后备方案，修改当前URL并刷新
+                        // 注意：用户反馈这个方法无效，但保留作为最后尝试
+                        try {
+                            const currentUrl = new URL(window.location.href);
+                            
+                            // 确保路径末尾有斜杠
+                            if (currentUrl.pathname && !currentUrl.pathname.endsWith('/')) {
+                                currentUrl.pathname = currentUrl.pathname + '/';
+                            }
+                            
+                            // 添加disable_km参数
+                            currentUrl.searchParams.set('disable_km', '');
+                            
+                            // 延迟后跳转
+                            setTimeout(() => {
+                                window.location.href = currentUrl.href;
+                            }, 1000);
+                            
+                            console.log('[退出全屏] 使用后备方案：修改当前URL');
+                        } catch (error) {
+                            console.error('[退出全屏] 所有方法均失败:', error);
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.fail('退出全屏失败，请手动刷新页面');
+                            }
+                        }
                     }
                 },
                 template: `
@@ -402,8 +450,8 @@ if (!window.SettingsPage) {
                             <div v-else-if="currentPopupType === 'exitFullscreen'" class="popup-content">
                                 <div class="exit-fullscreen-content">
                                     <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
-                                        退出全屏模式将添加 ?disable_km 参数到URL并刷新页面。<br>
-                                        此操作将禁用全屏模式。
+                                        退出全屏模式将向父级Home Assistant发送消息或添加URL参数。<br>
+                                        此操作将禁用全屏模式（需要HA端支持）。
                                     </p>
                                     <button class="exit-fullscreen-btn" @click="exitFullscreen">
                                         <span class="btn-icon">⛶</span>
