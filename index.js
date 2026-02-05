@@ -218,15 +218,33 @@ const PageManager = {
     
     // 显示错误
     showError(message) {
-        const errorHtml = `
-            <div class="error-page">
-                <div class="error-icon">⚠️</div>
-                <h2>出错了</h2>
-                <p>${message}</p>
-                <button onclick="location.reload()" class="error-button">重新加载</button>
-            </div>
-        `;
-        this.contentArea.innerHTML = errorHtml;
+        // 使用 createElement 避免 XSS 风险
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-page';
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'error-icon';
+        iconDiv.textContent = '⚠️';
+
+        const titleH2 = document.createElement('h2');
+        titleH2.textContent = '出错了';
+
+        const messageP = document.createElement('p');
+        messageP.className = 'error-message';
+        messageP.textContent = message;
+
+        const reloadBtn = document.createElement('button');
+        reloadBtn.className = 'error-button';
+        reloadBtn.textContent = '重新加载';
+        reloadBtn.onclick = () => location.reload();
+
+        errorDiv.appendChild(iconDiv);
+        errorDiv.appendChild(titleH2);
+        errorDiv.appendChild(messageP);
+        errorDiv.appendChild(reloadBtn);
+
+        this.contentArea.innerHTML = '';
+        this.contentArea.appendChild(errorDiv);
         this.contentArea.style.opacity = '1';
         this.contentArea.style.transform = 'translateY(0)';
     }
