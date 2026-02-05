@@ -8,6 +8,9 @@ if (!window.MobileHeaderbar) {
         weatherData: null,
         weatherLoading: true,
         weatherConfig: null,
+        // 存储事件监听器和定时器的引用，用于清理
+        eventListeners: [],
+        intervals: [],
 
         // 初始化
         init() {
@@ -236,13 +239,25 @@ if (!window.MobileHeaderbar) {
          * 监听全局设备状态更新事件，更新页眉中的设备状态
          */
         initDeviceStatus() {
-            // 监听设备状态更新事件
-            window.addEventListener('device-state-update', this.handleDeviceStateUpdate.bind(this));
+            // 存储事件监听器引用以便清理
+            const stateUpdateHandler = this.handleDeviceStateUpdate.bind(this);
+            this.eventListeners.push({
+                target: window,
+                event: 'device-state-update',
+                handler: stateUpdateHandler
+            });
+            window.addEventListener('device-state-update', stateUpdateHandler);
 
             // 监听HA就绪事件
-            window.addEventListener('ha-ready', () => {
+            const haReadyHandler = () => {
                 setTimeout(() => this.updateAllDeviceStatus(), 1000);
+            };
+            this.eventListeners.push({
+                target: window,
+                event: 'ha-ready',
+                handler: haReadyHandler
             });
+            window.addEventListener('ha-ready', haReadyHandler);
         },
 
         /**
@@ -253,10 +268,11 @@ if (!window.MobileHeaderbar) {
             // 初始更新
             setTimeout(() => this.updateAllDeviceStatus(), 2000);
 
-            // 定时更新（30秒）
-            setInterval(() => {
+            // 定时更新（30秒）- 存储引用以便清理
+            const intervalId = setInterval(() => {
                 this.updateAllDeviceStatus();
             }, 30000);
+            this.intervals.push(intervalId);
         },
 
         /**
@@ -422,6 +438,23 @@ if (!window.MobileHeaderbar) {
             } else if (device.deviceType === 'climate') {
                 this.updateACStatus();
             }
+        },
+
+        /**
+         * 清理资源 - 防止内存泄漏
+         */
+        cleanup() {
+            // 移除所有事件监听器
+            this.eventListeners.forEach(({ target, event, handler }) => {
+                target.removeEventListener(event, handler);
+            });
+            this.eventListeners = [];
+
+            // 清除所有定时器
+            this.intervals.forEach(intervalId => {
+                clearInterval(intervalId);
+            });
+            this.intervals = [];
         }
     };
 
