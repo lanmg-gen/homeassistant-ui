@@ -99,7 +99,7 @@ const Card1x1Component = {
             fridgeTemp: '--',     // 冰箱冷藏温度
             freezerTemp: '--',    // 冰箱冷冻温度
             timerAttributes: null, // 计时器实体属性（仅计时器实体使用）
-            timerInterval: null,  // 计时器定时器ID（仅计时器实体使用）
+            timerUnregisterFn: null, // 全局定时器注销函数（仅计时器实体使用）
             currentTime: Date.now(), // 当前时间戳（用于计时器倒计时响应式更新）
             controlEntityState: 'off' // 控制实体状态（用于计时器实体关联的灯状态）
         };
@@ -485,14 +485,35 @@ const Card1x1Component = {
         // 先停止现有的定时器
         this.stopTimerUpdate();
 
-        // 启动新的定时器，每秒更新一次 currentTime 触发响应式更新
-        this.timerInterval = setInterval(() => {
-            this.currentTime = Date.now();
-        }, 1000);
+        // 使用全局定时器管理器注册回调
+        if (window.TimerManager) {
+            const updateCallback = () => {
+                this.currentTime = Date.now();
+            };
+
+            // 注册到全局管理器，并保存注销函数
+            this.timerUnregisterFn = window.TimerManager.register(updateCallback);
+            console.log('[Card1x1] 注册到全局定时器管理器');
+        } else {
+            // 降级方案：如果没有全局管理器，使用独立定时器
+            console.warn('[Card1x1] TimerManager 不可用，使用独立定时器');
+            this.timerUnregisterFn = () => {};
+            this.timerInterval = setInterval(() => {
+                this.currentTime = Date.now();
+            }, 1000);
+        }
     },
 
     // 停止计时器更新
     stopTimerUpdate() {
+        // 使用注销函数从全局管理器注销
+        if (this.timerUnregisterFn) {
+            this.timerUnregisterFn();
+            this.timerUnregisterFn = null;
+            console.log('[Card1x1] 从全局定时器管理器注销');
+        }
+
+        // 降级方案：清理独立定时器
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
