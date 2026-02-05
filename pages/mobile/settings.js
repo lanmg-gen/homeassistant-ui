@@ -251,23 +251,30 @@ if (!window.SettingsPage) {
                     
                     // 退出全屏模式
                     exitFullscreen() {
-                        // 获取当前URL
-                        const currentUrl = window.location.href;
-                        let newUrl;
+                        // 使用URL API处理查询参数
+                        const currentUrl = new URL(window.location.href);
                         
-                        // 检查是否已有查询参数
-                        if (currentUrl.includes('?')) {
-                            // 如果已有?disable_km参数，保持不变
-                            if (currentUrl.includes('?disable_km') || currentUrl.includes('&disable_km')) {
-                                newUrl = currentUrl;
-                            } else {
-                                // 添加&disable_km参数
-                                newUrl = currentUrl + '&disable_km';
-                            }
-                        } else {
-                            // 添加?disable_km参数
-                            newUrl = currentUrl + '?disable_km';
+                        // 确保路径末尾有斜杠（如果路径不为空且不以斜杠结尾）
+                        if (currentUrl.pathname && !currentUrl.pathname.endsWith('/')) {
+                            currentUrl.pathname = currentUrl.pathname + '/';
                         }
+                        
+                        // 如果已经有disable_km参数，保持不变
+                        if (currentUrl.searchParams.has('disable_km')) {
+                            // 显示提示并重定向
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success('正在退出全屏模式...');
+                            }
+                            
+                            // 延迟后跳转（即使参数已存在也刷新页面）
+                            setTimeout(() => {
+                                window.location.href = currentUrl.href;
+                            }, 1000);
+                            return;
+                        }
+                        
+                        // 添加disable_km参数（值为空）
+                        currentUrl.searchParams.set('disable_km', '');
                         
                         // 显示提示并重定向
                         if (window.vant && window.vant.Toast) {
@@ -276,7 +283,7 @@ if (!window.SettingsPage) {
                         
                         // 延迟后跳转
                         setTimeout(() => {
-                            window.location.href = newUrl;
+                            window.location.href = currentUrl.href;
                         }, 1000);
                     }
                 },
