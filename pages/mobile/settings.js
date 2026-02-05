@@ -36,6 +36,7 @@ if (!window.SettingsPage) {
                             { name: '隐私安全', icon: '🔒', description: '权限和隐私设置', type: 'privacy' },
                             { name: '网络设置', icon: '🌐', description: '连接和服务器配置', type: 'network' },
                             { name: '数据同步', icon: '🔄', description: '云端同步设置', type: 'sync' },
+                            { name: '清空缓存', icon: '🗑️', description: '清除缓存并刷新页面', type: 'clearCache' },
                             { name: '关于', icon: 'ℹ️', description: '版本信息和帮助', type: 'about' }
                         ],
                         // 弹出卡片状态
@@ -85,11 +86,41 @@ if (!window.SettingsPage) {
                         this.popupDescription = card.description;
                         this.currentPopupType = card.type;
                         this.showPopup = true;
-                        
+
                         // 根据类型初始化数据
                         if (card.type === 'general') {
                             this.selectedTheme = this.currentTheme.id;
                         }
+                    },
+
+                    // 清空缓存并刷新页面
+                    clearCacheAndReload() {
+                        // 1. 清理 localStorage
+                        localStorage.clear();
+
+                        // 2. 清理 Service Worker 缓存
+                        if ('caches' in window) {
+                            caches.keys().then(names => {
+                                names.forEach(name => caches.delete(name));
+                            });
+                        }
+
+                        // 3. 注销 Service Worker
+                        if ('serviceWorker' in navigator) {
+                            navigator.serviceWorker.getRegistrations().then(registrations => {
+                                registrations.forEach(registration => registration.unregister());
+                            });
+                        }
+
+                        // 4. 显示提示
+                        if (window.vant && window.vant.Toast) {
+                            window.vant.Toast.success('缓存已清空,即将刷新...');
+                        }
+
+                        // 5. 延迟后强制刷新页面
+                        setTimeout(() => {
+                            location.reload(true);
+                        }, 1000);
                     },
 
                     // 关闭弹出卡片
@@ -315,7 +346,20 @@ if (!window.SettingsPage) {
                                     </div>
                                 </div>
                             </div>
-                            
+
+                            <div v-else-if="currentPopupType === 'clearCache'" class="popup-content">
+                                <div class="cache-clear-content">
+                                    <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
+                                        清空缓存将清除所有本地存储的数据并刷新页面。<br>
+                                        此操作不会删除您的设备配置。
+                                    </p>
+                                    <button class="clear-cache-btn" @click="clearCacheAndReload">
+                                        <span class="btn-icon">🗑️</span>
+                                        <span class="btn-text">确认清空缓存</span>
+                                    </button>
+                                </div>
+                            </div>
+
                             <div v-else class="popup-content">
                                 <!-- 其他设置类型的默认内容 -->
                                 <p style="text-align: center; color: rgba(255, 255, 255, 0.6); padding: 20px;">{{ popupDescription }}</p>
@@ -405,13 +449,52 @@ if (!window.SettingsPage) {
                 .setting-item {
                     margin-bottom: 20px;
                 }
-                
+
                 .setting-item label {
                     display: block;
                     color: white;
                     font-weight: 500;
                     margin-bottom: 8px;
                     font-size: 14px;
+                }
+
+                .cache-clear-content {
+                    padding: 20px 0;
+                }
+
+                .clear-cache-btn {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 100%;
+                    padding: 16px 24px;
+                    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+                    border: none;
+                    border-radius: 12px;
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(238, 90, 90, 0.3);
+                }
+
+                .clear-cache-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(238, 90, 90, 0.4);
+                }
+
+                .clear-cache-btn:active {
+                    transform: translateY(0);
+                }
+
+                .clear-cache-btn .btn-icon {
+                    font-size: 20px;
+                    margin-right: 8px;
+                }
+
+                .clear-cache-btn .btn-text {
+                    font-weight: 600;
                 }
             `;
             document.head.appendChild(style);

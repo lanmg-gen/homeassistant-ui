@@ -35,9 +35,8 @@ const WebSocketManager = {
         try {
             this.ws = new WebSocket(this.url);
 
-            this.ws.onopen = () => {
-                console.log('[WebSocket] 连接已建立');
-                this.isConnected = true;
+        this.ws.onopen = () => {
+            this.isConnected = true;
                 this.reconnectAttempts = 0;
                 
                 // 发送认证
@@ -57,17 +56,16 @@ const WebSocketManager = {
                 this.handleMessage(JSON.parse(event.data));
             };
 
-            this.ws.onclose = () => {
-                console.log('[WebSocket] 连接已关闭');
-                this.handleDisconnect();
+        this.ws.onclose = () => {
+            this.handleDisconnect();
             };
 
             this.ws.onerror = (error) => {
-                console.error('[WebSocket] 连接错误:', error);
+                // WebSocket 连接错误
             };
 
         } catch (error) {
-            console.error('[WebSocket] 创建连接失败:', error);
+            // WebSocket 创建连接失败
             this.handleDisconnect();
         }
     },
@@ -92,11 +90,10 @@ const WebSocketManager = {
                 break;
                 
             case 'auth_ok':
-                console.log('[WebSocket] 认证成功');
                 break;
                 
             case 'auth_invalid':
-                console.error('[WebSocket] 认证失败');
+                // WebSocket 认证失败
                 this.disconnect();
                 break;
                 
@@ -113,7 +110,7 @@ const WebSocketManager = {
                 break;
                 
             default:
-                console.log('[WebSocket] 收到消息:', data);
+                // 收到消息
         }
     },
 
@@ -271,7 +268,7 @@ const WebSocketManager = {
             
             setTimeout(() => this.connect(), delay);
         } else {
-            console.error('[WebSocket] 达到最大重连次数，放弃重连');
+            // WebSocket 达到最大重连次数，放弃重连
         }
     },
 

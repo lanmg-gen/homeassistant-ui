@@ -154,7 +154,7 @@ const Card1x1Component = {
                         return '00:00';
                     }
                 } catch (error) {
-                    console.log('[1x1卡片] finishes_at解析错误:', error);
+                    // finishes_at解析错误
                 }
             }
 
@@ -244,7 +244,6 @@ const Card1x1Component = {
             // 宠物投喂器特殊状态处理
             if (this.devicetype === 'feeder') {
                 // 投喂器状态是计数器的值，直接显示数字+次
-                console.log('[1x1卡片] 投喂器状态:', this.name, 'state:', this.state, 'stateentity:', this.stateentity);
                 // 现在 state 应该是正确的计数值，但如果还是异常值则显示--
                 const count = this.state === 'unavailable' || this.state === 'unknown' || this.state === 'idle' || this.state === 'None' ? '--' : this.state;
                 return `${count}次`;
@@ -315,12 +314,8 @@ const Card1x1Component = {
 
         // 2. 对于冰箱设备，加载冷藏和冷冻温度
         if (this.isFridgeDevice) {
-            // 调试：检查全局配置
-            console.log('[1x1卡片] 全局DEVICE_CONFIGS:', window.DEVICE_CONFIGS);
+            // 检查全局配置
             const globalFridgeConfig = window.DEVICE_CONFIGS ? window.DEVICE_CONFIGS.fridge : null;
-            console.log('[1x1卡片] 全局冰箱配置:', globalFridgeConfig);
-            
-            console.log('[1x1卡片] 冰箱设备初始化:', this.name, 'customprops:', this.customprops, 'fridgesensor:', this.fridgesensor, 'freezersensor:', this.freezersensor);
             
             // 多重备选方案获取传感器ID
             let fridgeSensorId = this.customprops?.fridgeSensor || this.fridgesensor;
@@ -330,20 +325,15 @@ const Card1x1Component = {
             if ((!fridgeSensorId || !freezerSensorId) && globalFridgeConfig) {
                 fridgeSensorId = globalFridgeConfig.customprops?.fridgeSensor || globalFridgeConfig.fridgesensor;
                 freezerSensorId = globalFridgeConfig.customprops?.freezerSensor || globalFridgeConfig.freezersensor;
-                console.log('[1x1卡片] 从全局配置获取传感器ID:', fridgeSensorId, freezerSensorId);
             }
-            
+
             // 如果还是没有，使用硬编码的默认值（临时方案）
             if (!fridgeSensorId) {
                 fridgeSensorId = 'sensor.midjd6_cn_590940698_610_temperature_p_3_1';
-                console.log('[1x1卡片] 使用默认冷藏传感器ID');
             }
             if (!freezerSensorId) {
                 freezerSensorId = 'sensor.midjd6_cn_590940698_610_temperature_p_4_1';
-                console.log('[1x1卡片] 使用默认冷冻传感器ID');
             }
-            
-            console.log('[1x1卡片] 冰箱设备初始化，加载温度:', this.name, 'fridgeSensor:', fridgeSensorId, 'freezerSensor:', freezerSensorId);
             this.loadFridgeTemperatures();
         }
 
@@ -381,7 +371,7 @@ const Card1x1Component = {
                         } else {
                             this.controlEntityState = newState || 'off';
                         }
-                        console.log('[1x1卡片] 计时器控制实体状态更新:', controlEntityId, 'newState:', newState, 'controlEntityState:', this.controlEntityState);
+                        // 计时器控制实体状态更新
                     }
                 }
 
@@ -390,7 +380,7 @@ const Card1x1Component = {
                         // 优先从 customProps 获取传感器ID，兼容旧的 fridgesensor/freezersensor props
                         const fridgeSensorId = this.customProps?.fridgeSensor || this.fridgesensor;
                         const freezerSensorId = this.customProps?.freezerSensor || this.freezersensor;
-                        console.log('[1x1卡片] HA状态更新-冰箱:', data.entityId, 'fridgeSensorId:', fridgeSensorId, 'freezerSensorId:', freezerSensorId);
+                        // HA状态更新-冰箱
                         if (data.entityId === fridgeSensorId) {
                             const tempValue = data.state;
                             if (tempValue && tempValue !== 'unavailable' && tempValue !== 'unknown') {
@@ -577,10 +567,7 @@ const Card1x1Component = {
                     this.state = state || 'unavailable';
                 }
 
-                // 调试：输出投喂器状态
-                if (this.devicetype === 'feeder') {
-                    console.log('[1x1卡片] 加载投喂器状态:', this.name, 'entity:', this.stateentity, 'rawState:', state, 'processedState:', this.state);
-                }
+                // 投喂器状态已加载
             }
         } catch (error) {
             this.state = 'unavailable';
@@ -607,39 +594,32 @@ const Card1x1Component = {
             const globalFridgeConfig = window.DEVICE_CONFIGS.fridge;
             fridgeSensorId = globalFridgeConfig.customProps?.fridgeSensor || globalFridgeConfig.fridgesensor;
             freezerSensorId = globalFridgeConfig.customProps?.freezerSensor || globalFridgeConfig.freezersensor;
-            console.log('[1x1卡片] 从全局配置获取传感器ID:', fridgeSensorId, freezerSensorId);
         }
-        
-        console.log('[1x1卡片] loadFridgeTemperatures:', this.name, 'fridgeSensorId:', fridgeSensorId, 'freezerSensorId:', freezerSensorId);
 
         try {
             // 加载冷藏温度
             if (fridgeSensorId) {
                 const fridgeState = await window.haConnection.getDeviceState(fridgeSensorId);
-                console.log('[1x1卡片] 冷藏温度:', fridgeSensorId, 'state:', fridgeState);
                 if (fridgeState && fridgeState !== 'unavailable' && fridgeState !== 'unknown') {
                     this.fridgeTemp = fridgeState;
                 } else {
                     this.fridgeTemp = '--';
                 }
             } else {
-                console.log('[1x1卡片] 没有配置冷藏传感器');
+                // 没有配置冷藏传感器
             }
 
             // 加载冷冻温度
             if (freezerSensorId) {
                 const freezerState = await window.haConnection.getDeviceState(freezerSensorId);
-                console.log('[1x1卡片] 冷冻温度:', freezerSensorId, 'state:', freezerState);
                 if (freezerState && freezerState !== 'unavailable' && freezerState !== 'unknown') {
                     this.freezerTemp = freezerState;
                 } else {
                     this.freezerTemp = '--';
                 }
-            } else {
-                console.log('[1x1卡片] 没有配置冷冻传感器');
             }
         } catch (error) {
-            console.error('[1x1卡片] 加载冰箱温度失败:', error);
+            // 加载冰箱温度失败
             this.fridgeTemp = '--';
             this.freezerTemp = '--';
         }
@@ -666,7 +646,6 @@ const Card1x1Component = {
                             return;
                         }
                     } catch (error) {
-                        console.error('[1x1卡片] 获取电源状态失败:', error);
                         // 获取失败时允许弹出，避免阻塞用户
                     }
                 }
@@ -711,7 +690,7 @@ const Card1x1Component = {
                     await window.app.handleDeviceClick(device);
                 }
             } catch (error) {
-                console.error('控制设备失败:', error);
+                // 控制设备失败
                 // 显示错误提示
                 if (window.vant && window.vant.Toast) {
                     window.vant.Toast.fail('操作失败');

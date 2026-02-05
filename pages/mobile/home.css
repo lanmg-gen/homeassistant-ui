@@ -90,18 +90,18 @@
 @keyframes cardFadeInUp {
     from {
         opacity: 0;
-        transform: translateY(30px) scale(0.9);
+        transform: translateY(20px);
     }
     to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }
 
 /* 为每个卡片应用延迟动画 */
 .device-grid > * {
     opacity: 0;
-    animation: cardFadeInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: cardFadeInUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* 为不同位置的卡片添加不同的延迟 */

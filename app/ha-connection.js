@@ -78,7 +78,6 @@ class HAConnection {
         }
 
         if (this.ws.readyState !== WebSocket.OPEN) {
-            console.warn('WebSocket 未准备好,当前状态:', this.ws.readyState);
             return;
         }
 
@@ -383,12 +382,11 @@ class HAConnection {
                     // 特殊处理：如果是 Counter 实体，获取 current 属性作为计数值
                     if (entityId.startsWith('counter.') && data.attributes && data.attributes.current !== undefined) {
                         stateToReturn = data.attributes.current.toString();
-                        console.log('[HA连接] Counter实体:', entityId, 'state:', data.state, 'current:', data.attributes.current, '返回:', stateToReturn);
                     }
                     
                     // 添加调试日志，特别是对于冰箱温度传感器
                     if (entityId.includes('temperature')) {
-                        console.log('[HA连接] 温度传感器状态:', entityId, '数据:', data);
+                        // 温度传感器状态
                     }
                     
                     this.states[entityId] = stateToReturn;

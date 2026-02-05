@@ -20,20 +20,44 @@
 
     var config = window.AppConfig && window.AppConfig.cards;
     if (!Array.isArray(config) || config.length === 0) {
-        console.warn('[cards-loader] AppConfig.cards 未配置或为空，跳过卡片加载');
+        // AppConfig.cards 未配置或为空，跳过卡片加载
         loadMain();
         return;
     }
 
     // 注入所有卡片的 CSS（并行插入 <link>，不阻塞）
+    var cssLoadCount = 0;
+    var cssTotal = config.filter(function (c) { return c.id; }).length;
+
     config.forEach(function (card) {
         var id = card.id;
         if (!id) return;
         var link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = 'cards/' + id + '/css/' + id + '-card.css';
+
+        // CSS 加载完成后计数，全部加载完成则显示页面
+        link.onload = function () {
+            cssLoadCount++;
+            if (cssLoadCount >= cssTotal) {
+                showPage();
+            }
+        };
+        link.onerror = function () {
+            console.error('[cards-loader] CSS 加载失败: ' + link.href);
+            cssLoadCount++;
+            if (cssLoadCount >= cssTotal) {
+                showPage();
+            }
+        };
+
         document.head.appendChild(link);
     });
+
+    // 如果没有 CSS 需要加载，直接显示页面
+    if (cssTotal === 0) {
+        showPage();
+    }
 
     // 按配置顺序依次加载卡片 JS，全部 onload 后再加载入口脚本
     loadScripts(0);
@@ -70,5 +94,12 @@
         var script = document.createElement('script');
         script.src = 'index.js';
         document.body.appendChild(script);
+    }
+
+    /**
+     * 显示页面，添加 .loaded 类到 body
+     */
+    function showPage() {
+        document.body.classList.add('loaded');
     }
 })();

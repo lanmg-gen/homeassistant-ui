@@ -12,7 +12,7 @@ const DeviceController = {
         try {
             // 忽略设置类型的卡片，它们不走设备控制流程
             if (device.deviceType === 'settings') {
-                console.log('[DeviceController] 设置类型卡片，跳过设备控制');
+                // 设置类型卡片，跳过设备控制
                 return;
             }
             
@@ -39,7 +39,7 @@ const DeviceController = {
                     break;
             }
         } catch (error) {
-            console.error('控制设备失败:', error);
+            // 控制设备失败
             this.showError(error.message);
         }
     },

@@ -141,14 +141,14 @@ const PageManager = {
 
             const html = await response.text();
 
-            // 插入新内容
-            this.contentArea.innerHTML = html;
-
-            // 加载页面的CSS
+            // 先加载页面的CSS，确保样式先应用
             await this.loadCSS(cssPath, pageName);
 
             // 加载页面的JS
             await this.loadJS(jsPath);
+
+            // 插入新内容（CSS已加载完成）
+            this.contentArea.innerHTML = html;
 
             // 通用页面Vue应用创建逻辑
             const pageObjectName = pageName.charAt(0).toUpperCase() + pageName.slice(1) + 'Page';

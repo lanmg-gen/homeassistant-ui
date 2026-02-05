@@ -259,7 +259,7 @@ const Card1x2Component = {
                 const entityId = this.controlEntity || this.stateentity;
                 // 检查是否有有效的实体ID
                 if (!entityId || typeof entityId !== 'string') {
-                    console.warn(`[1x2卡片] 无效的实体ID: ${entityId}`, new Error().stack);
+                    // 无效的实体ID
                     this.state = 'unavailable';
                     return;
                 }
@@ -277,7 +277,7 @@ const Card1x2Component = {
                     }
                 }
             } catch (error) {
-                console.error('加载设备状态失败:', error);
+                // 加载设备状态失败
                 this.state = 'unavailable';
             } finally {
                 this.loading = false;
@@ -303,7 +303,7 @@ const Card1x2Component = {
                     await window.app.handleDeviceClick(device);
                 }
             } catch (error) {
-                console.error('控制设备失败:', error);
+                // 控制设备失败
                 // 显示错误提示
                 if (window.vant && window.vant.Toast) {
                     window.vant.Toast.fail('操作失败');

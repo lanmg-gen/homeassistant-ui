@@ -171,7 +171,7 @@ const DeviceStateManager = {
                 return state.value;
             }
         } catch (e) {
-            console.warn('[StateManager] 读取本地存储失败:', e);
+            // 读取本地存储失败
         }
         return null;
     },
@@ -248,7 +248,7 @@ const DeviceStateManager = {
                 }
             });
         } catch (e) {
-            console.warn('[StateManager] 加载本地存储失败:', e);
+            // 加载本地存储失败
         }
     },
 
@@ -307,7 +307,7 @@ const DeviceStateManager = {
                 this.updateCache(entityId, state);
             });
         } catch (error) {
-            console.error('[StateManager] 批量请求失败:', error);
+            // 批量请求失败
             entityIds.forEach(id => {
                 this.updateCache(id, 'unavailable');
             });
@@ -459,7 +459,6 @@ const DeviceStateManager = {
         if (this.pollingTimer) {
             clearInterval(this.pollingTimer);
             this.pollingTimer = null;
-            console.log('[StateManager] 停止轮询');
         }
     },
 

@@ -131,7 +131,6 @@ if (!window.MobileHeaderbar) {
                                 condition = data.weather || data.condition || '未知';
                             } else {
                                 // 如果还是找不到，尝试其他可能的字段
-                                console.warn('Weather data structure unexpected, trying to parse...');
                                 for (const key in data) {
                                     if (typeof data[key] === 'object' && data[key].temp) {
                                         temp = data[key].temp;
@@ -305,12 +304,10 @@ if (!window.MobileHeaderbar) {
                 // 获取冷藏温度
                 if (fridgeDevice.stateEntity) {
                     const fridgeState = await window.haConnection.getDeviceState(fridgeDevice.stateEntity);
-                    console.log('[HeaderBar] 冰箱冷藏温度:', fridgeState);
                 }
                 // 获取冷冻温度
                 if (fridgeDevice.customProps?.freezerSensor) {
                     const freezerState = await window.haConnection.getDeviceState(fridgeDevice.customProps.freezerSensor);
-                    console.log('[HeaderBar] 冰箱冷冻温度:', freezerState);
                 }
             } catch (error) {
                 // 静默处理错误

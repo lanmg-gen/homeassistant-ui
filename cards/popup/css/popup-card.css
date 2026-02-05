@@ -57,6 +57,11 @@ body.has-popup {
     }
 }
 
+/* 遮罩淡出动画 */
+.popup-card-mask.closing {
+    animation: popup-mask-out 0.3s ease forwards;
+}
+
 /* ==================== 弹出卡片面板 ==================== */
 /* 实际显示内容的白色玻璃卡片，与 1x1/1x2 卡片视觉一致 */
 
@@ -80,8 +85,13 @@ body.has-popup {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* 卡片出现动画：缩小+下移 → 正常大小+原位 */
+    /* 卡片出现动画：缩小 → 正常大小 */
     animation: popup-card-in 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 卡片关闭动画 */
+.popup-card.closing {
+    animation: popup-card-out 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 /* 大尺寸弹出卡片 - 用于URL显示，几乎占满整个屏幕 */
@@ -111,11 +121,33 @@ body.has-popup {
 @keyframes popup-card-in {
     from {
         opacity: 0;
-        transform: scale(0.9) translateY(20px);
+        transform: scale(0.5);
     }
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: scale(1);
+    }
+}
+
+/* 卡片关闭关键帧 */
+@keyframes popup-card-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+/* 遮罩淡出关键帧 */
+@keyframes popup-mask-out {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
     }
 }
 

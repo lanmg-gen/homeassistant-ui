@@ -21,16 +21,16 @@ const API_CACHE_MAX_AGE = 30000; // API缓存30秒
 
 // 安装时缓存静态资源
 self.addEventListener('install', (event) => {
-    console.log('[SW] 安装中...');
+    // Service Worker 安装中
     
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('[SW] 缓存静态资源');
+                // 缓存静态资源
                 return cache.addAll(STATIC_ASSETS);
             })
             .catch(err => {
-                console.error('[SW] 缓存失败:', err);
+                // 缓存失败
             })
     );
     
@@ -39,7 +39,7 @@ self.addEventListener('install', (event) => {
 
 // 激活时清理旧缓存
 self.addEventListener('activate', (event) => {
-    console.log('[SW] 激活中...');
+    // Service Worker 激活中
     
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -47,7 +47,7 @@ self.addEventListener('activate', (event) => {
                 cacheNames
                     .filter(name => name !== CACHE_NAME && name !== API_CACHE_NAME)
                     .map(name => {
-                        console.log('[SW] 删除旧缓存:', name);
+                        // 删除旧缓存
                         return caches.delete(name);
                     })
             );
@@ -107,7 +107,7 @@ async function handleStaticRequest(request) {
         
         return response;
     } catch (error) {
-        console.error('[SW] 静态资源获取失败:', error);
+        // 静态资源获取失败
         return new Response('离线中', { status: 503 });
     }
 }
@@ -142,7 +142,7 @@ async function handleAPIRequest(request) {
         
         return networkResponse;
     } catch (error) {
-        console.log('[SW] 网络请求失败，尝试使用缓存:', error);
+        // 网络请求失败，尝试使用缓存
         
         // 2. 网络失败，尝试从缓存获取
         const cached = await caches.match(request);
@@ -151,13 +151,13 @@ async function handleAPIRequest(request) {
             // 检查缓存是否过期
             const cacheTime = cached.headers.get('x-cache-time');
             if (cacheTime && Date.now() - parseInt(cacheTime) < API_CACHE_MAX_AGE) {
-                console.log('[SW] 返回缓存的API响应');
+                // 返回缓存的API响应
                 return cached;
             }
         }
         
         // 3. 缓存也过期或不存在
-        console.log('[SW] 无可用缓存');
+        // 无可用缓存
         return new Response(
             JSON.stringify({ error: '离线中，无可用缓存' }),
             { 
@@ -179,7 +179,7 @@ self.addEventListener('sync', (event) => {
  * 同步设备状态
  */
 async function syncDeviceStates() {
-    console.log('[SW] 后台同步设备状态');
+    // 后台同步设备状态
     
     const clients = await self.clients.matchAll();
     clients.forEach(client => {

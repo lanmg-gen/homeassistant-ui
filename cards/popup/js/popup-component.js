@@ -64,46 +64,44 @@ const CardPopupComponent = {
         cardClass: {
             type: String,
             default: ''
+        },
+        /**
+         * 点击位置（用于动画起始点），格式：{ x: number, y: number }
+         */
+        clickOrigin: {
+            type: Object,
+            default: null
         }
     },
 
     // ==================== 组件内部数据 ====================
     data() {
-        return {};
+        return {
+            isClosing: false
+        };
     },
 
-    // ==================== 计算属性 ====================
-    computed: {
-        /**
-         * 显隐状态的双向绑定桥接。
-         * get：从 props.modelValue 读取；
-         * set：通过 emit('update:modelValue') 回写父组件，实现 v-model。
-         */
-        visible: {
-            get() {
-                return this.modelValue;
-            },
-            set(val) {
-                this.$emit('update:modelValue', val);
-                // 显示/隐藏时添加/移除 body 类，禁止/允许背景滚动
-                if (val) {
-                    document.body.classList.add('has-popup');
-                } else {
-                    document.body.classList.remove('has-popup');
-                }
-            }
-        }
-    },
-
-    // ==================== 方法 ====================
+    // ==================== 组件方法 ====================
     methods: {
         /**
          * 关闭弹层。
          * 将 visible 设为 false（会触发 update:modelValue），并发出 close 事件。
          */
         close() {
-            this.visible = false;
-            this.$emit('close');
+            this.isClosing = true;
+            // 等待动画完成后关闭
+            setTimeout(() => {
+                this.$emit('update:modelValue', false);
+                this.isClosing = false;
+                this.$emit('close');
+            }, 300);
+        },
+
+        /**
+         * 获取卡片样式
+         */
+        getCardStyle() {
+            return {};
         },
 
         /**
@@ -130,12 +128,15 @@ const CardPopupComponent = {
     template: `
         <Teleport to="body">
             <div
-                v-if="visible"
+                v-if="modelValue"
                 class="popup-card-mask"
+                :class="{ 'closing': isClosing }"
                 @click="onMaskClick"
             >
                 <div
-                    :class="['popup-card', cardClass]"
+                    ref="cardRef"
+                    :class="['popup-card', cardClass, { 'closing': isClosing }]"
+                    :style="getCardStyle()"
                     @click="onCardClick"
                 >
                     <div class="popup-card__header">

@@ -30,11 +30,6 @@ if (!window.HomePage) {
             const homeApp = Vue.createApp({
                 data() {
                     const cards = window.DEVICE_CARDS ? [...window.DEVICE_CARDS] : [];
-                    // 调试：检查冰箱卡片的 customProps
-                    const fridgeDevice = cards.find(d => d.deviceType === 'fridge');
-                    if (fridgeDevice) {
-                        console.log('[Home] 冰箱设备:', fridgeDevice.name, 'customProps:', fridgeDevice.customProps);
-                    }
 
                     // 从本地存储加载投喂数量
                     let savedFeederAmount = 1;
@@ -149,7 +144,7 @@ if (!window.HomePage) {
                     },
                     // 监控洗衣机模式变化
                     washingMachineMode(newVal, oldVal) {
-                        console.log('[Home] 洗衣机模式变化:', oldVal, '->', newVal);
+                        // 洗衣机模式变化监听
                     }
                 },
                 methods: {
@@ -188,7 +183,7 @@ if (!window.HomePage) {
                         const entityId = device.controlEntity || device.stateEntity;
                         // 防护：检查是否是有效的设备卡片（必须有实体）
                         if (!device || !entityId || typeof entityId !== 'string' || entityId === 'Error') {
-                            console.log('[Home] 非设备项被点击:', device);
+                            // 非设备项被点击，忽略
                             return;
                         }
                         
@@ -300,7 +295,6 @@ if (!window.HomePage) {
                                 window.vant.Toast.success(`投喂 ${amount} 份成功`);
                             }
                         } catch (error) {
-                            console.error('投喂失败:', error);
                             if (window.vant && window.vant.Toast) {
                                 window.vant.Toast.fail('投喂失败');
                             }
@@ -332,7 +326,6 @@ if (!window.HomePage) {
                             // 将内部值转换为中文名（Home Assistant 期望中文选项）
                             const modeObj = this.washingMachineModes.find(m => m.value === mode);
                             if (!modeObj) {
-                                console.error('未找到对应模式:', mode);
                                 return;
                             }
                             const chineseName = modeObj.name;
@@ -346,7 +339,7 @@ if (!window.HomePage) {
                                 window.vant.Toast.success('模式已切换');
                             }
                         } catch (error) {
-                            console.error('设置模式失败:', error);
+                            // 设置模式失败
                         }
                     },
 
@@ -368,7 +361,7 @@ if (!window.HomePage) {
                                 value: newValue
                             });
                         } catch (error) {
-                            console.error('设置漂洗次数失败:', error);
+                            // 设置漂洗次数失败
                         }
                     },
 
@@ -390,7 +383,7 @@ if (!window.HomePage) {
                                 value: newValue
                             });
                         } catch (error) {
-                            console.error('设置水位失败:', error);
+                            // 设置水位失败
                         }
                     },
 
@@ -412,7 +405,7 @@ if (!window.HomePage) {
                                 window.vant.Toast.success(this.washingMachineChildLock ? '童锁已开启' : '童锁已关闭');
                             }
                         } catch (error) {
-                            console.error('切换童锁失败:', error);
+                            // 切换童锁失败
                         }
                     },
 
@@ -443,7 +436,6 @@ if (!window.HomePage) {
                         this.washingMachineStage = '';
                         this.washingMachineTime = '--';
                         this.washingMachineMode = 'daily';
-                        console.log('[Home] 洗衣机弹窗显示, 默认模式:', this.washingMachineMode, '模式列表:', this.washingMachineModes);
                         // 异步加载洗衣机状态
                         this.$nextTick(async () => {
                             await this.loadWashingMachineState();
@@ -458,39 +450,32 @@ if (!window.HomePage) {
 
                         const device = window.DEVICE_CARDS.find(d => d.deviceType === 'washingmachine');
                         if (!device) {
-                            console.log('[Home] 未找到洗衣机设备配置');
                             return;
                         }
 
                         try {
-                            console.log('[Home] 加载洗衣机状态, 设备:', device);
-
                             // 获取状态
                             if (device.stateEntity) {
                                 const state = await window.haConnection.getDeviceState(device.stateEntity);
-                                console.log('[Home] 洗衣机状态:', device.stateEntity, '=', state);
                                 this.washingMachineState = state || '关机';
                             }
 
                             // 获取阶段
                             if (device.stageEntity) {
                                 const stage = await window.haConnection.getDeviceState(device.stageEntity);
-                                console.log('[Home] 洗衣机阶段:', device.stageEntity, '=', stage);
                                 this.washingMachineStage = stage || '';
                             }
 
                             // 获取剩余时间
                             if (device.timeRemainingEntity) {
                                 const time = await window.haConnection.getDeviceState(device.timeRemainingEntity);
-                                console.log('[Home] 洗衣机剩余时间:', device.timeRemainingEntity, '=', time);
                                 this.washingMachineTime = time || '--';
                             }
 
                             // 获取模式
                             if (device.modeEntity) {
                                 const mode = await window.haConnection.getDeviceState(device.modeEntity);
-                                console.log('[Home] 洗衣机模式:', device.modeEntity, '=', mode);
-                                
+
                                 // 创建中文名到value的映射
                                 const modeNameToValue = {};
                                 // 创建value集合
@@ -499,15 +484,15 @@ if (!window.HomePage) {
                                     modeNameToValue[m.name] = m.value;
                                     validValues.add(m.value);
                                 });
-                                
+
                                 // 处理模式值
                                 let mappedMode = 'daily'; // 默认值
                                 if (mode) {
                                     const modeStr = String(mode);
                                     const lowerMode = modeStr.toLowerCase();
-                                    
+
                                     if (lowerMode === 'unknown') {
-                                        console.log('[Home] 洗衣机模式为 unknown，使用默认值 daily');
+                                        // 使用默认值
                                     } else if (modeNameToValue[modeStr]) {
                                         // 是中文名，映射到value
                                         mappedMode = modeNameToValue[modeStr];
@@ -516,45 +501,37 @@ if (!window.HomePage) {
                                         mappedMode = modeStr;
                                     } else {
                                         // 未知值，使用默认
-                                        console.warn('[Home] 未知的洗衣机模式:', modeStr, '，使用默认值 daily');
                                     }
-                                } else {
-                                    console.log('[Home] 洗衣机模式为空，使用默认值 daily');
                                 }
-                                
-                                console.log('[Home] 映射后模式:', mode, '->', mappedMode);
+
                                 this.washingMachineMode = mappedMode;
                             }
 
                             // 获取电源状态
                             if (device.powerSwitch) {
                                 const power = await window.haConnection.getDeviceState(device.powerSwitch);
-                                console.log('[Home] 洗衣机电源:', device.powerSwitch, '=', power);
                                 this.washingMachinePower = power || 'off';
                             }
 
                             // 获取童锁状态
                             if (device.childLock) {
                                 const childLock = await window.haConnection.getDeviceState(device.childLock);
-                                console.log('[Home] 洗衣机童锁:', device.childLock, '=', childLock);
                                 this.washingMachineChildLock = childLock === 'on';
                             }
 
                             // 获取漂洗次数
                             if (device.rinseEntity) {
                                 const rinse = await window.haConnection.getDeviceState(device.rinseEntity);
-                                console.log('[Home] 洗衣机漂洗次数:', device.rinseEntity, '=', rinse);
                                 this.washingMachineRinse = parseInt(rinse) || 2;
                             }
 
                             // 获取水位
                             if (device.waterLevelEntity) {
                                 const water = await window.haConnection.getDeviceState(device.waterLevelEntity);
-                                console.log('[Home] 洗衣机水位:', device.waterLevelEntity, '=', water);
                                 this.washingMachineWater = parseInt(water) || 50;
                             }
                         } catch (error) {
-                            console.error('[Home] 加载洗衣机状态失败:', error);
+                            // 加载洗衣机状态失败
                         }
                     },
 
@@ -596,7 +573,6 @@ if (!window.HomePage) {
                             // 刷新状态
                             setTimeout(() => this.loadWashingMachineState(), 500);
                         } catch (error) {
-                            console.error('控制洗衣机失败:', error);
                             if (window.vant && window.vant.Toast) {
                                 window.vant.Toast.fail('操作失败');
                             }
