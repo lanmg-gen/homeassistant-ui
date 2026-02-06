@@ -18,7 +18,10 @@ const AppConfig = {
         connectionTimeout: 5000,
 
         // 重连间隔（毫秒）
-        reconnectInterval: 3000
+        reconnectInterval: 3000,
+
+        // 设置同步存储实体 ID（input_text 辅助元素）
+        settingsEntityId: 'input_text.webui_settings'
     },
 
     // 页眉标题
@@ -170,6 +173,22 @@ function getHAConfig() {
 function setHAConfig(config) {
     Object.assign(AppConfig.homeAssistant, config);
     return AppConfig.homeAssistant;
+}
+
+/**
+ * 获取 HA 设置存储实体 ID
+ */
+function getHASettingsEntityId() {
+    return AppConfig.homeAssistant.settingsEntityId || 'input_text.webui_settings';
+}
+
+/**
+ * 设置 HA 设置存储实体 ID
+ * @param {string} entityId - 实体 ID
+ */
+function setHASettingsEntityId(entityId) {
+    AppConfig.homeAssistant.settingsEntityId = entityId;
+    return entityId;
 }
 
 /**
@@ -346,6 +365,8 @@ function loadSavedTheme() {
 window.AppConfig = AppConfig;
 window.getHAConfig = getHAConfig;
 window.setHAConfig = setHAConfig;
+window.getHASettingsEntityId = getHASettingsEntityId;
+window.setHASettingsEntityId = setHASettingsEntityId;
 window.getHeaderbarTitle = getHeaderbarTitle;
 window.setHeaderbarTitle = setHeaderbarTitle;
 window.getWeatherConfig = getWeatherConfig;

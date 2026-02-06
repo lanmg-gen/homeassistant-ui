@@ -35,9 +35,8 @@ if (!window.SettingsPage) {
                             { name: '通知设置', icon: '🔔', description: '推送通知管理', type: 'notification' },
                             { name: '隐私安全', icon: '🔒', description: '权限和隐私设置', type: 'privacy' },
                             { name: '网络设置', icon: '🌐', description: '连接和服务器配置', type: 'network' },
-                            { name: '数据同步', icon: '🔄', description: '云端同步设置', type: 'sync' },
                             { name: '清空缓存', icon: '🗑️', description: '清除缓存并刷新页面', type: 'clearCache' },
-                            { name: '文件读取测试', icon: '📄', description: '测试本地文件读取', type: 'fileReadTest' },
+                            { name: 'HA 设置同步', icon: '☁️', description: '同步设置到 HA', type: 'haSettingsSync' },
                             { name: '关于', icon: 'ℹ️', description: '版本信息和帮助', type: 'about' }
                         ],
                         // 弹出卡片状态
@@ -49,7 +48,13 @@ if (!window.SettingsPage) {
                         // 主题选择
                         selectedTheme: 'default',
                         // 主题下拉框状态
-                        showThemeDropdown: false
+                        showThemeDropdown: false,
+                        // 字符使用情况
+                        charUsage: {
+                            used: 0,
+                            remaining: 255,
+                            percentage: 0
+                        }
                     };
                 },
                 computed: {
@@ -71,9 +76,12 @@ if (!window.SettingsPage) {
                 mounted() {
                     // 初始化选中主题为当前主题
                     this.selectedTheme = this.currentTheme.id;
-                    
+
                     // 添加外部点击监听
                     document.addEventListener('click', this.handleClickOutside);
+
+                    // 更新字符使用情况
+                    this.updateCharUsage();
                 },
                 beforeUnmount() {
                     // 移除外部点击监听
@@ -91,6 +99,9 @@ if (!window.SettingsPage) {
                         // 根据类型初始化数据
                         if (card.type === 'general') {
                             this.selectedTheme = this.currentTheme.id;
+                        } else if (card.type === 'haSettingsSync') {
+                            // 更新字符使用情况
+                            this.updateCharUsage();
                         }
                     },
 
@@ -156,7 +167,13 @@ if (!window.SettingsPage) {
                             }
                             // 保存主题设置
                             localStorage.setItem('selectedTheme', themeId);
-                            
+
+                    // 自动同步到 HA
+                    if (window.HASettingsSync) {
+                        const themeNumericId = window.HASettingsSync.themeIdMap[themeId] ?? 0;
+                        window.HASettingsSync.autoSync({ th: themeNumericId });
+                    }
+
                             // 显示成功提示
                             if (window.vant && window.vant.Toast) {
                                 window.vant.Toast.success('主题已应用');
@@ -249,33 +266,57 @@ if (!window.SettingsPage) {
                         // 这里可以跳转到隐私政策页面
                     },
 
-                    // 测试读取本地文件
-                    async testFileRead() {
+                    // 同步设置到 HA
+                    async syncSettingsToHA() {
                         try {
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.loading('正在读取文件...');
-                            }
-
-                            const cfg = await fetch('/local/cfg/my.json').then(r => {
-                                if (!r.ok) {
-                                    throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-                                }
-                                return r.json();
-                            });
-
-                            console.log('[文件读取测试] 读取成功:', cfg);
-
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.success(`读取成功: ${JSON.stringify(cfg)}`);
-                            }
+                            window.HASettingsSync?.showToast('正在同步设置到 HA...', 'loading');
+                            await window.HASettingsSync?.syncToHA();
+                            window.HASettingsSync?.showToast('设置已同步到 HA');
                         } catch (error) {
-                            console.error('[文件读取测试] 失败:', error);
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.fail(`读取失败: ${error.message}`);
-                            }
+                            window.HASettingsSync?.showToast(`同步失败: ${error.message}`, 'fail');
                         }
                     },
-                    
+
+                    // 从 HA 加载设置
+                    async loadSettingsFromHA() {
+                        try {
+            window.HASettingsSync?.showToast('正在从 HA 加载设置...', 'loading');
+
+            const settings = await window.HASettingsSync?.loadFromHA();
+            if (!settings) {
+                throw new Error('未找到保存的设置');
+            }
+
+            // 应用加载的设置
+            window.HASettingsSync?.applySettings(settings);
+
+            // 更新本地状态
+            if (settings.th) {
+                this.selectedTheme = settings.th;
+            }
+
+            // 更新字符使用情况
+            this.updateCharUsage();
+
+            window.HASettingsSync?.showToast('设置已从 HA 加载');
+        } catch (error) {
+            window.HASettingsSync?.showToast(`加载失败: ${error.message}`, 'fail');
+        }
+    },
+
+    // 更新字符使用情况
+    updateCharUsage() {
+        if (window.HASettingsSync) {
+            const settings = window.HASettingsSync.collectCurrentSettings();
+            const sizeInfo = window.HASettingsSync.checkSize(settings);
+            this.charUsage = {
+                used: sizeInfo.size,
+                remaining: Math.max(0, sizeInfo.remaining),
+                percentage: Math.min(100, Math.round((sizeInfo.size / 255) * 100))
+            };
+        }
+    },
+
 
                 },
                 template: `
@@ -390,19 +431,64 @@ if (!window.SettingsPage) {
                                 </div>
                             </div>
 
-                            <div v-else-if="currentPopupType === 'fileReadTest'" class="popup-content">
-                                <div class="file-read-test-content">
+                            <div v-else-if="currentPopupType === 'haSettingsSync'" class="popup-content">
+                                <div class="ha-settings-sync-content">
                                     <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
-                                        测试读取 Home Assistant 的 /local/cfg/ 目录下的文件。<br>
-                                        这用于验证页面是否能读取 HA 配置文件。
+                                        将设置同步到 Home Assistant 的 input_text 实体，实现跨设备同步。
                                     </p>
-                                    <button class="file-read-test-btn" @click="testFileRead">
-                                        <span class="btn-icon">📄</span>
-                                        <span class="btn-text">测试读取 my.json</span>
+                                    <button class="ha-sync-btn" @click="syncSettingsToHA">
+                                        <span class="btn-icon">☁️</span>
+                                        <span class="btn-text">同步设置到 HA</span>
                                     </button>
-                                    <p style="text-align: center; color: rgba(255, 255, 255, 0.6); font-size: 14px; margin-top: 16px;">
-                                        尝试读取: /local/cfg/my.json
-                                    </p>
+                                    <button class="ha-sync-btn" @click="loadSettingsFromHA" style="margin-top: 12px;">
+                                        <span class="btn-icon">📥</span>
+                                        <span class="btn-text">从 HA 加载设置</span>
+                                    </button>
+
+                                    <!-- 字符使用情况 -->
+                                    <div class="char-usage-display" style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.1); border-radius: 12px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                            <span style="color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500;">字符使用情况</span>
+                                            <span :style="{
+                                                color: charUsage.percentage > 90 ? '#ff6b6b' : 'rgba(255,255,255,0.9)',
+                                                fontSize: '14px',
+                                                fontWeight: '600'
+                                            }">
+                                                {{ charUsage.used }} / 255 字符
+                                            </span>
+                                        </div>
+                                        <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
+                                            <div :style="{
+                                                width: charUsage.percentage + '%',
+                                                height: '100%',
+                                                background: charUsage.percentage > 90 ? '#ff6b6b' : 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                                                borderRadius: '4px',
+                                                transition: 'width 0.3s ease, background 0.3s ease'
+                                            }"></div>
+                                        </div>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                            <span style="color: rgba(255,255,255,0.6); font-size: 12px;">已使用 {{ charUsage.percentage }}%</span>
+                                            <span :style="{
+                                                color: charUsage.remaining > 50 ? 'rgba(255,255,255,0.7)' : '#ff6b6b',
+                                                fontSize: '12px'
+                                            }">
+                                                剩余 {{ charUsage.remaining }} 字符
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div style="margin-top: 20px; padding: 12px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                                        <p style="color: rgba(255,255,255,0.7); font-size: 13px; line-height: 1.6;">
+                                            <strong>HA 配置示例：</strong><br>
+                                            在 configuration.yaml 中添加：<br>
+                                            <code style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px;">
+                                                input_text:<br>
+                                                &nbsp;&nbsp;webui_settings:<br>
+                                                &nbsp;&nbsp;&nbsp;&nbsp;name: WebUI 设置
+                                            </code>
+                                        </p>
+                                    </div>
+
                                 </div>
                             </div>
 
@@ -543,17 +629,17 @@ if (!window.SettingsPage) {
                     font-weight: 600;
                 }
 
-                .file-read-test-content {
+                .ha-settings-sync-content {
                     padding: 20px 0;
                 }
 
-                .file-read-test-btn {
+                .ha-sync-btn {
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     width: 100%;
                     padding: 16px 24px;
-                    background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     border: none;
                     border-radius: 12px;
                     color: white;
@@ -561,24 +647,24 @@ if (!window.SettingsPage) {
                     font-weight: 500;
                     cursor: pointer;
                     transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(0, 91, 234, 0.3);
+                    box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
                 }
 
-                .file-read-test-btn:hover {
+                .ha-sync-btn:hover {
                     transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(0, 91, 234, 0.4);
+                    box-shadow: 0 6px 20px rgba(118, 75, 162, 0.4);
                 }
 
-                .file-read-test-btn:active {
+                .ha-sync-btn:active {
                     transform: translateY(0);
                 }
 
-                .file-read-test-btn .btn-icon {
+                .ha-sync-btn .btn-icon {
                     font-size: 20px;
                     margin-right: 8px;
                 }
 
-                .file-read-test-btn .btn-text {
+                .ha-sync-btn .btn-text {
                     font-weight: 600;
                 }
 

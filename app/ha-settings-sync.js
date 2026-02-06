@@ -1,0 +1,306 @@
+/**
+ * HA 设置同步模块
+ * 用于将设置同步到 Home Assistant 的 input_text 实体，实现跨设备同步
+ */
+
+const HASettingsSync = {
+    // HA 实体 ID（从配置中获取）
+    get ENTITY_ID() {
+        return window.getHASettingsEntityId?.() || 'input_text.webui_settings';
+    },
+
+    // 自动同步延迟（毫秒）
+    SYNC_DELAY: 1000,
+
+    // 同步定时器
+    syncTimer: null,
+
+    // 当前缓存的设置
+    cachedSettings: {},
+
+    // 主题 ID 映射（主题名称 -> 数字ID）
+    themeIdMap: {
+        'default': 0,
+        'aurora-borealis': 1,
+        'blue-gradient-waves': 2,
+        'particle-network': 3,
+        'starfield': 4
+    },
+
+    // 数字 ID -> 主题名称 反向映射
+    themeIdReverseMap: {
+        0: 'default',
+        1: 'aurora-borealis',
+        2: 'blue-gradient-waves',
+        3: 'particle-network',
+        4: 'starfield'
+    },
+
+    /**
+     * 初始化设置同步
+     * 在应用启动时调用，自动从 HA 加载设置
+     */
+    async initialize() {
+        console.log('[HA 设置同步] 初始化...');
+
+        // 从 HA 加载设置
+        const settings = await this.loadFromHA();
+
+        if (settings) {
+            // 应用加载的设置
+            this.applySettings(settings);
+            this.cachedSettings = settings;
+            console.log('[HA 设置同步] 已应用 HA 设置:', settings);
+        } else {
+            // 如果 HA 没有设置，从 localStorage 加载
+            this.loadFromLocalStorage();
+        }
+    },
+
+    /**
+     * 应用设置到应用
+     * @param {object} settings - 设置对象
+     */
+    applySettings(settings) {
+        try {
+            // 只应用主题（将数字ID转换为主题名称）
+            if (settings.th !== undefined && window.setBackgroundTheme) {
+                const themeId = this.themeIdReverseMap[settings.th] ?? 'default';
+                window.setBackgroundTheme(themeId);
+                window.loadBackgroundTheme();
+                localStorage.setItem('selectedTheme', themeId);
+            }
+        } catch (error) {
+            console.error('[HA 设置同步] 应用设置失败:', error);
+        }
+    },
+
+    /**
+     * 从 localStorage 加载设置
+     */
+    loadFromLocalStorage() {
+        try {
+            const savedTheme = localStorage.getItem('selectedTheme');
+            if (savedTheme) {
+                // 将主题名称转换为数字ID
+                this.cachedSettings.th = this.themeIdMap[savedTheme] ?? 0;
+                if (window.setBackgroundTheme) {
+                    window.setBackgroundTheme(savedTheme);
+                    window.loadBackgroundTheme();
+                }
+            }
+        } catch (error) {
+            console.error('[HA 设置同步] 从 localStorage 加载设置失败:', error);
+        }
+    },
+
+    /**
+     * 收集当前设置
+     * @returns {object} 当前设置对象
+     */
+    collectCurrentSettings() {
+        const settings = {};
+
+        // 只保存主题（使用数字ID）
+        if (window.getCurrentBackgroundTheme) {
+            const theme = window.getCurrentBackgroundTheme();
+            if (theme && theme.id) {
+                // 将主题名称转换为数字ID
+                settings.th = this.themeIdMap[theme.id] ?? 0;
+            }
+        }
+
+        return settings;
+    },
+
+    /**
+     * 同步设置到 HA（带自动合并）
+     * @param {object} newSettings - 新的设置对象（可选）
+     */
+    async syncToHA(newSettings = null) {
+        try {
+            const haConfig = window.getHAConfig?.();
+            if (!haConfig || !haConfig.url || !haConfig.token) {
+                console.warn('[HA 设置同步] 未配置 HA 连接，跳过同步');
+                throw new Error('未配置 HA 连接，请在网络设置中配置服务器地址和访问令牌');
+            }
+
+            // 收集当前设置，合并新设置
+            const settings = {
+                ...this.cachedSettings,
+                ...this.collectCurrentSettings(),
+                ...newSettings
+            };
+
+            // 不添加时间戳，节省空间
+            // settings.timestamp = new Date().toISOString();
+
+            // 转换为 JSON 字符串（压缩格式）
+            let finalValue = JSON.stringify(settings);
+
+            // 检查字符限制（默认 255）
+            if (finalValue.length > 255) {
+                console.warn('[HA 设置同步] 数据超过 255 字符限制，当前长度:', finalValue.length);
+                throw new Error(`设置数据过大 (${finalValue.length} 字符)，请减少保存的设置项`);
+            }
+
+            console.log('[HA 设置同步] 准备发送数据:', finalValue);
+            console.log('[HA 设置同步] 数据长度:', finalValue.length);
+
+            // 使用 POST 直接更新实体状态
+            const stateUrl = `${haConfig.url}/api/states/${this.ENTITY_ID}`;
+            const headers = {
+                'Authorization': `Bearer ${haConfig.token}`,
+                'Content-Type': 'application/json'
+            };
+
+            const stateBody = {
+                state: finalValue
+            };
+
+            console.log('[HA 设置同步] 请求URL:', stateUrl);
+            console.log('[HA 设置同步] 请求体:', JSON.stringify(stateBody));
+
+            const response = await fetch(stateUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(stateBody)
+            });
+
+            console.log('[HA 设置同步] API 响应状态:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`同步失败: HTTP ${response.status} - ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log('[HA 设置同步] 成功:', result);
+
+            // 等待一下，让 HA 更新状态
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 验证是否真的更新了
+            const currentState = await this.loadFromHA();
+            console.log('[HA 设置同步] 验证 - HA 中的当前值:', currentState);
+
+            // 更新缓存
+            this.cachedSettings = settings;
+
+            console.log('[HA 设置同步] 成功:', settings);
+            return { success: true, data: settings };
+
+        } catch (error) {
+            console.error('[HA 设置同步] 失败:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * 自动同步设置（带防抖）
+     * @param {object} newSettings - 新的设置对象（可选）
+     */
+    autoSync(newSettings = null) {
+        // 清除之前的定时器
+        if (this.syncTimer) {
+            clearTimeout(this.syncTimer);
+        }
+
+        // 设置新的定时器
+        this.syncTimer = setTimeout(async () => {
+            try {
+                await this.syncToHA(newSettings);
+            } catch (error) {
+                console.error('[HA 设置同步] 自动同步失败:', error);
+            }
+        }, this.SYNC_DELAY);
+    },
+
+    /**
+     * 从 HA 加载设置
+     * @returns {Promise<object|null>} 设置对象，失败返回 null
+     */
+    async loadFromHA() {
+        try {
+            const haConfig = window.getHAConfig?.();
+            if (!haConfig || !haConfig.url || !haConfig.token) {
+                console.warn('[HA 设置加载] 未配置 HA 连接，跳过加载');
+                return null;
+            }
+
+            console.log('[HA 设置加载] 正在获取实体:', this.ENTITY_ID);
+
+            // 获取 input_text 状态
+            const response = await fetch(`${haConfig.url}/api/states/${this.ENTITY_ID}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${haConfig.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log('[HA 设置加载] 响应状态:', response.status);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[HA 设置加载] 错误响应:', errorText);
+                if (errorText.includes('not found') || errorText.includes('Unknown entity')) {
+                    console.warn('[HA 设置加载] 实体不存在，请先在 HA 中配置:', this.ENTITY_ID);
+                    return null;
+                }
+                throw new Error(`加载失败: HTTP ${response.status}`);
+            }
+
+            const state = await response.json();
+            console.log('[HA 设置加载] 完整实体状态:', state);
+            console.log('[HA 设置加载] 实体的 state 属性:', state.state);
+
+            const settings = JSON.parse(state.state || '{}');
+
+            console.log('[HA 设置加载] 解析后的设置:', settings);
+            return settings;
+
+        } catch (error) {
+            console.error('[HA 设置加载] 失败:', error);
+            return null;
+        }
+    },
+
+    /**
+     * 检查设置数据大小
+     * @param {object} settings - 设置对象
+     * @returns {object} { size: number, exceeded: boolean }
+     */
+    checkSize(settings) {
+        const jsonSize = JSON.stringify(settings).length;
+        return {
+            size: jsonSize,
+            exceeded: jsonSize > 255,
+            remaining: 255 - jsonSize
+        };
+    },
+
+    /**
+     * 显示同步状态提示
+     * @param {string} message - 提示消息
+     * @param {string} type - 类型: success | fail | loading
+     */
+    showToast(message, type = 'success') {
+        if (window.vant && window.vant.Toast) {
+            switch (type) {
+                case 'loading':
+                    window.vant.Toast.loading(message);
+                    break;
+                case 'fail':
+                    window.vant.Toast.fail(message);
+                    break;
+                default:
+                    window.vant.Toast.success(message);
+            }
+        }
+    }
+};
+
+// 导出到全局
+window.HASettingsSync = HASettingsSync;
+

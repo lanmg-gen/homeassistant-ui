@@ -61,12 +61,13 @@
     <script src="config/config.js"></script>
     <script src="config/device_config.js"></script>
 
-    <!-- 引入HA连接、WebSocket、状态管理器、定时器管理器和设备控制 -->
+    <!-- 引入HA连接、WebSocket、状态管理器、定时器管理器、设备控制和设置同步 -->
     <script src="app/ha-connection.js"></script>
     <script src="app/websocket-manager.js"></script>
     <script src="app/state-manager.js"></script>
     <script src="app/timer-manager.js"></script>
     <script src="app/device-controller.js"></script>
+    <script src="app/ha-settings-sync.js"></script>
     
     <!-- 注册 Service Worker -->
     <script>
@@ -103,8 +104,13 @@
     <!-- 卡片组件由 config.js 的 cards 配置统一加载，无需在此逐个引入；加载完成后再加载 index.js -->
     <script src="app/cards-loader.js"></script>
     <script>
-        // 确保首页 Vue 应用挂载
-        window.addEventListener('load', function () {
+        // 初始化 HA 设置同步
+        window.addEventListener('load', async function () {
+            if (window.HASettingsSync) {
+                await window.HASettingsSync.initialize();
+            }
+
+            // 确保首页 Vue 应用挂载
             if (window.HomePage) {
                 window.HomePage.createVueApp();
             }
