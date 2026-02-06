@@ -102,19 +102,5 @@
     </script>
 
     <!-- 卡片组件由 config.js 的 cards 配置统一加载，无需在此逐个引入；加载完成后再加载 index.js -->
-    <script src="app/cards-loader.js"></script>
-    <script>
-        // 初始化 HA 设置同步
-        window.addEventListener('load', async function () {
-            if (window.HASettingsSync) {
-                await window.HASettingsSync.initialize();
-            }
-
-            // 确保首页 Vue 应用挂载
-            if (window.HomePage) {
-                window.HomePage.createVueApp();
-            }
-        });
-    </script>
 </body>
 </html>

@@ -390,6 +390,10 @@ const App = {
                 if (window.DeviceStateManager) {
                     window.DeviceStateManager.refreshAll();
                 }
+                // HA就绪后初始化设置同步
+                if (window.HASettingsSync) {
+                    window.HASettingsSync.initialize();
+                }
             });
         }
     },

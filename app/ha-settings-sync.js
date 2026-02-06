@@ -18,6 +18,9 @@ const HASettingsSync = {
     // 当前缓存的设置
     cachedSettings: {},
 
+    // 是否正在应用外部设置（防止循环同步）
+    applyingExternalSettings: false,
+
     // 主题 ID 映射（主题名称 -> 数字ID）
     themeIdMap: {
         'default': 0,
@@ -54,6 +57,81 @@ const HASettingsSync = {
         } else {
             // 如果 HA 没有设置，从 localStorage 加载
             this.loadFromLocalStorage();
+        }
+
+        // 监听 HA 状态变化，自动同步外部修改
+        this.startWatching();
+    },
+
+    /**
+     * 开始监听 HA 状态变化
+     */
+    startWatching() {
+        if (!window.haConnection) {
+            console.warn('[HA 设置同步] HA 连接不可用，无法监听状态变化');
+            return;
+        }
+
+        // 先移除旧的监听器（避免重复添加）
+        window.haConnection.removeListener('stateUpdate', this.handleRemoteSettingsUpdate.bind(this));
+
+        // 添加状态更新监听器
+        window.haConnection.addListener('stateUpdate', (data) => {
+            if (data.entityId === this.ENTITY_ID) {
+                console.log('[HA 设置同步] 检测到实体状态更新:', this.ENTITY_ID, data.state);
+                this.handleRemoteSettingsUpdate(data);
+            }
+        });
+
+        console.log('[HA 设置同步] 已开始监听实体状态变化:', this.ENTITY_ID);
+    },
+
+    /**
+     * 处理远程设置更新
+     * @param {object} data - 状态更新数据
+     */
+    async handleRemoteSettingsUpdate(data) {
+        // 如果正在应用外部设置，跳过（防止循环同步）
+        if (this.applyingExternalSettings) {
+            return;
+        }
+
+        try {
+            // 解析新设置
+            const newSettings = JSON.parse(data.state || '{}');
+
+            // 检查设置是否有变化
+            const oldSettings = this.cachedSettings;
+            const settingsJson = JSON.stringify(oldSettings);
+            const newSettingsJson = JSON.stringify(newSettings);
+
+            if (settingsJson === newSettingsJson) {
+                return; // 设置没有变化，跳过
+            }
+
+            console.log('[HA 设置同步] 检测到远程设置变化:', {
+                旧设置: oldSettings,
+                新设置: newSettings
+            });
+
+            // 标记为正在应用外部设置
+            this.applyingExternalSettings = true;
+
+            // 应用新设置
+            this.applySettings(newSettings);
+            this.cachedSettings = newSettings;
+
+            // 显示提示
+            this.showToast('设置已从其他设备同步', 'success');
+
+            // 标记应用完成
+            setTimeout(() => {
+                this.applyingExternalSettings = false;
+            }, 1000);
+
+        } catch (error) {
+            console.error('[HA 设置同步] 处理远程更新失败:', error);
+            this.applyingExternalSettings = false;
         }
     },
 
@@ -147,6 +225,9 @@ const HASettingsSync = {
             console.log('[HA 设置同步] 准备发送数据:', finalValue);
             console.log('[HA 设置同步] 数据长度:', finalValue.length);
 
+            // 标记为正在同步（避免监听器误触发）
+            this.applyingExternalSettings = true;
+
             // 使用 POST 直接更新实体状态
             const stateUrl = `${haConfig.url}/api/states/${this.ENTITY_ID}`;
             const headers = {
@@ -187,11 +268,17 @@ const HASettingsSync = {
             // 更新缓存
             this.cachedSettings = settings;
 
+            // 标记同步完成
+            setTimeout(() => {
+                this.applyingExternalSettings = false;
+            }, 1000);
+
             console.log('[HA 设置同步] 成功:', settings);
             return { success: true, data: settings };
 
         } catch (error) {
             console.error('[HA 设置同步] 失败:', error);
+            this.applyingExternalSettings = false;
             throw error;
         }
     },
