@@ -54,7 +54,13 @@ if (!window.SettingsPage) {
                             used: 0,
                             remaining: 255,
                             percentage: 0
-                        }
+                        },
+                        // 页眉标题
+                        headerTitle: '',
+                        // 天气城市选择
+                        selectedWeatherCity: '',
+                        // 天气城市下拉框状态
+                        showCityDropdown: false
                     };
                 },
                 computed: {
@@ -71,11 +77,30 @@ if (!window.SettingsPage) {
                             return window.getCurrentBackgroundTheme();
                         }
                         return { id: 'default', name: '默认渐变' };
+                    },
+                    // 天气城市选项
+                    weatherCityOptions() {
+                        return [
+                            { id: '达拉特旗', name: '达拉特旗' },
+                            { id: '北京', name: '北京' },
+                            { id: '上海', name: '上海' },
+                            { id: '广州', name: '广州' },
+                            { id: '深圳', name: '深圳' },
+                            { id: '包头', name: '包头' },
+                            { id: '呼和浩特', name: '呼和浩特' }
+                        ];
                     }
                 },
                 mounted() {
                     // 初始化选中主题为当前主题
                     this.selectedTheme = this.currentTheme.id;
+
+                    // 初始化页眉标题
+                    this.headerTitle = window.getHeaderbarTitle?.() || '智能家庭控制中心';
+
+                    // 初始化天气城市
+                    const weatherConfig = window.getWeatherConfig?.();
+                    this.selectedWeatherCity = weatherConfig?.city || '达拉特旗';
 
                     // 添加外部点击监听
                     document.addEventListener('click', this.handleClickOutside);
@@ -228,13 +253,75 @@ if (!window.SettingsPage) {
                         if (this.showThemeDropdown && !event.target.closest('.custom-theme-selector')) {
                             this.showThemeDropdown = false;
                         }
+                        if (this.showCityDropdown && !event.target.closest('.custom-theme-selector')) {
+                            this.showCityDropdown = false;
+                        }
                     },
                     
                     // 切换主题下拉框
                     toggleThemeDropdown() {
                         this.showThemeDropdown = !this.showThemeDropdown;
                     },
-                    
+
+                    // 切换天气城市下拉框
+                    toggleCityDropdown() {
+                        this.showCityDropdown = !this.showCityDropdown;
+                    },
+
+                    // 应用页眉标题
+                    applyHeaderTitle() {
+                        if (window.setHeaderbarTitle && this.headerTitle.trim()) {
+                            window.setHeaderbarTitle(this.headerTitle.trim());
+                            localStorage.setItem('headerbarTitle', this.headerTitle.trim());
+
+                            // 更新页眉显示
+                            const titleCells = document.querySelectorAll('.headerbar-title-cell');
+                            if (titleCells && titleCells.length > 0) {
+                                titleCells.forEach(cell => {
+                                    cell.textContent = this.headerTitle.trim();
+                                });
+                            }
+
+                            // 自动同步到 HA
+                            if (window.HASettingsSync) {
+                                window.HASettingsSync.autoSync({ t: this.headerTitle.trim() });
+                            }
+
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success('页眉标题已更新');
+                            }
+                        }
+                    },
+
+                    // 选择天气城市
+                    selectWeatherCity(cityId) {
+                        this.selectedWeatherCity = cityId;
+                        this.showCityDropdown = false;
+
+                        if (window.setWeatherConfig) {
+                            window.setWeatherConfig({ city: cityId });
+                            localStorage.setItem('weatherCity', cityId);
+
+                            // 刷新天气数据
+                            if (window.MobileHeaderbar) {
+                                window.MobileHeaderbar.loadConfig();
+                                window.MobileHeaderbar.fetchWeather();
+                            }
+
+                            // 自动同步到 HA
+                            if (window.HASettingsSync) {
+                                const cityNumericId = window.HASettingsSync.weatherCityMap[cityId];
+                                if (cityNumericId !== undefined) {
+                                    window.HASettingsSync.autoSync({ c: cityNumericId });
+                                }
+                            }
+
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.success('天气城市已更新');
+                            }
+                        }
+                    },
+
                     // 获取HA配置信息
                     getHAConfigInfo() {
                         if (window.getHAConfig) {
@@ -348,6 +435,16 @@ if (!window.SettingsPage) {
                             <!-- 根据弹出类型显示不同内容 -->
                             <div v-if="currentPopupType === 'general'" class="popup-content">
                                 <div class="setting-item">
+                                    <label>页眉标题</label>
+                                    <input 
+                                        type="text" 
+                                        v-model="headerTitle" 
+                                        class="header-title-input"
+                                        placeholder="输入页眉标题"
+                                        @change="applyHeaderTitle"
+                                    />
+                                </div>
+                                <div class="setting-item">
                                     <label>背景主题</label>
                                     <div ref="themeSelector" class="custom-theme-selector" @click="toggleThemeDropdown">
                                         <span class="selected-theme">{{ getCurrentThemeName() }}</span>
@@ -362,6 +459,25 @@ if (!window.SettingsPage) {
                                                  :class="{ active: selectedTheme === theme.id }"
                                                  @click="selectTheme(theme.id)">
                                                 {{ theme.name }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label>天气城市</label>
+                                    <div ref="citySelector" class="custom-theme-selector" @click="toggleCityDropdown">
+                                        <span class="selected-theme">{{ selectedWeatherCity }}</span>
+                                        <span class="dropdown-arrow" :style="{ transform: showCityDropdown ? 'rotate(180deg)' : 'none' }">▼</span>
+                                        <div v-if="showCityDropdown" 
+                                             class="theme-dropdown" 
+                                             @click.stop
+                                             :style="getDropdownStyle($refs.citySelector)">
+                                            <div v-for="city in weatherCityOptions" 
+                                                 :key="city.id" 
+                                                 class="theme-option" 
+                                                 :class="{ active: selectedWeatherCity === city.id }"
+                                                 @click="selectWeatherCity(city.id)">
+                                                {{ city.name }}
                                             </div>
                                         </div>
                                     </div>
