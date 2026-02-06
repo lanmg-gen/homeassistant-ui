@@ -655,21 +655,24 @@ if (!window.SettingsPage) {
                 
                 .theme-dropdown {
                     position: absolute;
-                    top: 100%;
+                    bottom: 100%;
                     left: 0;
                     right: 0;
                     z-index: 1000;
-                    margin-top: 8px;
-                    background: rgba(255, 255, 255, 0.15);
+                    margin-bottom: 8px;
+                    background: rgba(50, 50, 70, 0.95);
                     border: 1px solid rgba(255, 255, 255, 0.2);
                     border-radius: 12px;
                     backdrop-filter: blur(15px);
                     overflow: hidden;
                     animation: dropdownFadeIn 0.2s ease;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
                 }
                 
                 @keyframes dropdownFadeIn {
-                    from { opacity: 0; transform: translateY(-10px); }
+                    from { opacity: 0; transform: translateY(10px); }
                     to { opacity: 1; transform: translateY(0); }
                 }
                 
@@ -695,14 +698,18 @@ if (!window.SettingsPage) {
                 }
                 
                 .setting-item {
-                    margin-bottom: 20px;
+                    margin-bottom: 24px;
+                }
+
+                .setting-item:last-child {
+                    margin-bottom: 0;
                 }
 
                 .setting-item label {
                     display: block;
-                    color: white;
+                    color: rgba(255, 255, 255, 0.9);
                     font-weight: 500;
-                    margin-bottom: 8px;
+                    margin-bottom: 10px;
                     font-size: 14px;
                 }
 
