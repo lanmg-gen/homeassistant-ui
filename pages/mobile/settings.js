@@ -165,6 +165,15 @@ if (!window.SettingsPage) {
                         this.showPopup = false;
                         this.currentPopupType = '';
                     },
+                    
+                    // HA 设置同步弹窗确定按钮点击处理
+                    onHaSettingsSyncConfirm() {
+                        // 给用户一个提示，表示已了解 HA 设置同步功能
+                        if (window.vant && window.vant.Toast) {
+                            window.vant.Toast.success('HA 设置同步功能已就绪');
+                        }
+                        this.closePopup();
+                    },
 
                     // 处理弹出卡片按钮点击
                     handlePopupAction(action) {
@@ -226,9 +235,6 @@ if (!window.SettingsPage) {
                             return {};
                         }
                         
-                        // 如果需要向上展开
-                        const rect = element.getBoundingClientRect();
-                        const dropdownHeight = 200; // 预估下拉框高度
                         return {
                             top: 'auto',
                             bottom: '100%',
@@ -450,6 +456,9 @@ if (!window.SettingsPage) {
                     <card-popup
                         v-model="showPopup"
                         :title="popupTitle"
+                        :show-close="true"
+                        :show-confirm="currentPopupType === 'haSettingsSync' || currentPopupType === 'general'"
+                        :on-confirm="currentPopupType === 'haSettingsSync' ? onHaSettingsSyncConfirm : applyGeneralSettings"
                         @close="closePopup"
                     >
                         <div class="settings-popup">
@@ -505,10 +514,6 @@ if (!window.SettingsPage) {
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- 确定按钮 -->
-                                <div class="popup-buttons" style="margin-top: 24px;">
-                                    <button class="popup-button popup-button-confirm" @click="applyGeneralSettings">确定</button>
                                 </div>
                             </div>
                             
@@ -631,11 +636,6 @@ if (!window.SettingsPage) {
                                                 &nbsp;&nbsp;&nbsp;&nbsp;name: WebUI 设置
                                             </code>
                                         </p>
-                                    </div>
-
-                                    <!-- 确定按钮 -->
-                                    <div class="popup-buttons" style="margin-top: 24px;">
-                                        <button class="popup-button popup-button-confirm" @click="closePopup">确定</button>
                                     </div>
                                 </div>
                             </div>

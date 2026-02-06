@@ -51,6 +51,20 @@ const CardPopupComponent = {
             default: true
         },
         /**
+         * 是否在标题栏右侧显示确定按钮（在关闭按钮左侧）。
+         */
+        showConfirm: {
+            type: Boolean,
+            default: false
+        },
+        /**
+         * 确定按钮点击事件回调。
+         */
+        onConfirm: {
+            type: Function,
+            default: null
+        },
+        /**
          * 点击遮罩（蒙层）时是否关闭弹层。
          * 为 true 时点击弹层外部会关闭；点击弹层内部不会关闭（已阻止冒泡）。
          */
@@ -83,6 +97,16 @@ const CardPopupComponent = {
 
     // ==================== 组件方法 ====================
     methods: {
+        /**
+         * 确定按钮点击处理。
+         * 如果有 onConfirm 回调则调用，然后关闭弹层。
+         */
+        handleConfirm() {
+            if (typeof this.onConfirm === 'function') {
+                this.onConfirm();
+            }
+            this.close();
+        },
         /**
          * 关闭弹层。
          * 将 visible 设为 false（会触发 update:modelValue），并发出 close 事件。
@@ -141,6 +165,14 @@ const CardPopupComponent = {
                 >
                     <div class="popup-card__header">
                         <h2 class="popup-card__title">{{ title }}</h2>
+                    <div class="popup-card__header-buttons">
+                        <button
+                            v-if="showConfirm"
+                            type="button"
+                            class="popup-card__confirm"
+                            aria-label="确定"
+                            @click="handleConfirm"
+                        >✓</button>
                         <button
                             v-if="showClose"
                             type="button"
@@ -148,6 +180,7 @@ const CardPopupComponent = {
                             aria-label="关闭"
                             @click="close"
                         ></button>
+                    </div>
                     </div>
                     <div class="popup-card__body" v-bind="$attrs">
                         <slot></slot>
