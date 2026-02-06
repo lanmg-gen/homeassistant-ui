@@ -356,11 +356,19 @@ const HASettingsSync = {
             }, 1000);
 
             console.log('[HA 设置同步] 成功:', settings);
+            
+            // 显示同步成功提示
+            this.showToast('设置已同步到 Home Assistant', 'success');
+            
             return { success: true, data: settings };
 
         } catch (error) {
             console.error('[HA 设置同步] 失败:', error);
             this.applyingExternalSettings = false;
+            
+            // 显示同步失败提示
+            this.showToast(`同步失败: ${error.message}`, 'fail');
+            
             throw error;
         }
     },
@@ -467,6 +475,52 @@ const HASettingsSync = {
                     window.vant.Toast.success(message);
             }
         }
+    },
+
+    /**
+     * 清除本地存储的设置缓存
+     */
+    clearCache() {
+        console.log('[HA 设置同步] 开始清除本地缓存...');
+        
+        // 要清除的键列表
+        const keysToClear = [
+            'ha_general_settings',
+            'ha_network_settings', 
+            'ha_scene_settings',
+            'ha_shortcut_settings'
+        ];
+        
+        let clearedCount = 0;
+        keysToClear.forEach(key => {
+            if (localStorage.getItem(key)) {
+                localStorage.removeItem(key);
+                console.log(`[HA 设置同步] 已清除缓存: ${key}`);
+                clearedCount++;
+            }
+        });
+        
+        // 也清除可能的备份键
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('ha_') || key.includes('settings') || key.includes('backup'))) {
+                localStorage.removeItem(key);
+                console.log(`[HA 设置同步] 已清除相关缓存: ${key}`);
+                clearedCount++;
+            }
+        }
+        
+        console.log(`[HA 设置同步] 缓存清除完成，共清除 ${clearedCount} 项`);
+        
+        // 显示清除成功提示
+        this.showToast(`缓存清除成功，已清理 ${clearedCount} 项数据`, 'success');
+        
+        // 触发页面刷新以应用更改
+        setTimeout(() => {
+            if (confirm('缓存已清除，是否立即刷新页面以应用更改？')) {
+                window.location.reload();
+            }
+        }, 1000);
     }
 };
 

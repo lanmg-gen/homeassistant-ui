@@ -182,8 +182,9 @@ if (!window.SettingsPage) {
                         this.closePopup();
                     },
                     
-                    // 应用主题
+                    // 应用主题（仅更新状态，不自动同步）
                     applyTheme(themeId) {
+                        this.selectedTheme = themeId;
                         if (window.setBackgroundTheme) {
                             window.setBackgroundTheme(themeId);
                             // 立即加载并应用背景主题
@@ -192,17 +193,6 @@ if (!window.SettingsPage) {
                             }
                             // 保存主题设置
                             localStorage.setItem('selectedTheme', themeId);
-
-                    // 自动同步到 HA
-                    if (window.HASettingsSync) {
-                        const themeNumericId = window.HASettingsSync.themeIdMap[themeId] ?? 0;
-                        window.HASettingsSync.autoSync({ th: themeNumericId });
-                    }
-
-                            // 显示成功提示
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.success('主题已应用');
-                            }
                         }
                     },
                     
@@ -212,11 +202,10 @@ if (!window.SettingsPage) {
                         return theme ? theme.name : '默认渐变';
                     },
                     
-                    // 选择主题
+                    // 选择主题（仅更新选中状态）
                     selectTheme(themeId) {
                         this.selectedTheme = themeId;
                         this.showThemeDropdown = false;
-                        this.applyTheme(themeId);
                     },
                     
                     // 检查下拉框是否需要向上展开
@@ -293,33 +282,10 @@ if (!window.SettingsPage) {
                         }
                     },
 
-                    // 选择天气城市
+                    // 选择天气城市（仅更新选中状态）
                     selectWeatherCity(cityId) {
                         this.selectedWeatherCity = cityId;
                         this.showCityDropdown = false;
-
-                        if (window.setWeatherConfig) {
-                            window.setWeatherConfig({ city: cityId });
-                            localStorage.setItem('weatherCity', cityId);
-
-                            // 刷新天气数据
-                            if (window.MobileHeaderbar) {
-                                window.MobileHeaderbar.loadConfig();
-                                window.MobileHeaderbar.fetchWeather();
-                            }
-
-                            // 自动同步到 HA
-                            if (window.HASettingsSync) {
-                                const cityNumericId = window.HASettingsSync.weatherCityMap[cityId];
-                                if (cityNumericId !== undefined) {
-                                    window.HASettingsSync.autoSync({ c: cityNumericId });
-                                }
-                            }
-
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.success('天气城市已更新');
-                            }
-                        }
                     },
 
                     // 获取HA配置信息
@@ -441,7 +407,6 @@ if (!window.SettingsPage) {
                                         v-model="headerTitle" 
                                         class="header-title-input"
                                         placeholder="输入页眉标题"
-                                        @change="applyHeaderTitle"
                                     />
                                 </div>
                                 <div class="setting-item">
@@ -481,6 +446,10 @@ if (!window.SettingsPage) {
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+                                <!-- 确定按钮 -->
+                                <div class="popup-buttons" style="margin-top: 24px;">
+                                    <button class="popup-button popup-button-confirm" @click="applyGeneralSettings">确定</button>
                                 </div>
                             </div>
                             
@@ -547,7 +516,7 @@ if (!window.SettingsPage) {
                                 </div>
                             </div>
 
-                            <div v-else-if="currentPopupType === 'haSettingsSync'" class="popup-content">
+<div v-else-if="currentPopupType === 'haSettingsSync'" class="popup-content">
                                 <div class="ha-settings-sync-content">
                                     <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
                                         将设置同步到 Home Assistant 的 input_text 实体，实现跨设备同步。
@@ -560,6 +529,11 @@ if (!window.SettingsPage) {
                                         <span class="btn-icon">📥</span>
                                         <span class="btn-text">从 HA 加载设置</span>
                                     </button>
+                                    <!-- 确定按钮 -->
+                                    <div class="popup-buttons" style="margin-top: 24px;">
+                                        <button class="popup-button popup-button-confirm" @click="closePopup">确定</button>
+                                    </div>
+                                </div>
 
                                     <!-- 字符使用情况 -->
                                     <div class="char-usage-display" style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.1); border-radius: 12px;">
