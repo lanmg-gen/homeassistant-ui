@@ -39,6 +39,28 @@ const HASettingsSync = {
         4: 'starfield'
     },
 
+    // 天气城市ID映射（常见城市名 -> 数字ID）
+    weatherCityMap: {
+        '北京': 1,
+        '上海': 2,
+        '广州': 3,
+        '深圳': 4,
+        '达拉特旗': 5,
+        '包头': 6,
+        '呼和浩特': 7
+    },
+
+    // 数字ID -> 天气城市名 反向映射
+    weatherCityReverseMap: {
+        1: '北京',
+        2: '上海',
+        3: '广州',
+        4: '深圳',
+        5: '达拉特旗',
+        6: '包头',
+        7: '呼和浩特'
+    },
+
     /**
      * 初始化设置同步
      * 在应用启动时调用，自动从 HA 加载设置
@@ -141,12 +163,37 @@ const HASettingsSync = {
      */
     applySettings(settings) {
         try {
-            // 只应用主题（将数字ID转换为主题名称）
+            // 应用主题（将数字ID转换为主题名称）
             if (settings.th !== undefined && window.setBackgroundTheme) {
                 const themeId = this.themeIdReverseMap[settings.th] ?? 'default';
                 window.setBackgroundTheme(themeId);
                 window.loadBackgroundTheme();
                 localStorage.setItem('selectedTheme', themeId);
+            }
+
+            // 应用页眉标题
+            if (settings.t !== undefined && window.setHeaderbarTitle) {
+                window.setHeaderbarTitle(settings.t);
+                // 更新页眉标题显示
+                const titleCells = document.querySelectorAll('.headerbar-title-cell');
+                if (titleCells && titleCells.length > 0) {
+                    titleCells.forEach(cell => {
+                        cell.textContent = settings.t;
+                    });
+                }
+            }
+
+            // 应用天气城市（将数字ID转换为城市名）
+            if (settings.c !== undefined && window.setWeatherConfig) {
+                const cityName = this.weatherCityReverseMap[settings.c];
+                if (cityName) {
+                    window.setWeatherConfig({ city: cityName });
+                    // 重新加载页眉配置
+                    if (window.MobileHeaderbar) {
+                        window.MobileHeaderbar.loadConfig();
+                        window.MobileHeaderbar.fetchWeather();
+                    }
+                }
             }
         } catch (error) {
             console.error('[HA 设置同步] 应用设置失败:', error);
@@ -158,13 +205,30 @@ const HASettingsSync = {
      */
     loadFromLocalStorage() {
         try {
+            // 加载主题
             const savedTheme = localStorage.getItem('selectedTheme');
             if (savedTheme) {
-                // 将主题名称转换为数字ID
                 this.cachedSettings.th = this.themeIdMap[savedTheme] ?? 0;
                 if (window.setBackgroundTheme) {
                     window.setBackgroundTheme(savedTheme);
                     window.loadBackgroundTheme();
+                }
+            }
+
+            // 加载页眉标题
+            const savedTitle = localStorage.getItem('headerbarTitle');
+            if (savedTitle && window.setHeaderbarTitle) {
+                this.cachedSettings.t = savedTitle;
+                window.setHeaderbarTitle(savedTitle);
+            }
+
+            // 加载天气城市
+            const savedCity = localStorage.getItem('weatherCity');
+            if (savedCity && window.setWeatherConfig) {
+                const cityId = this.weatherCityMap[savedCity];
+                if (cityId !== undefined) {
+                    this.cachedSettings.c = cityId;
+                    window.setWeatherConfig({ city: savedCity });
                 }
             }
         } catch (error) {
@@ -179,12 +243,30 @@ const HASettingsSync = {
     collectCurrentSettings() {
         const settings = {};
 
-        // 只保存主题（使用数字ID）
+        // 收集主题（使用数字ID）
         if (window.getCurrentBackgroundTheme) {
             const theme = window.getCurrentBackgroundTheme();
             if (theme && theme.id) {
-                // 将主题名称转换为数字ID
                 settings.th = this.themeIdMap[theme.id] ?? 0;
+            }
+        }
+
+        // 收集页眉标题
+        if (window.getHeaderbarTitle) {
+            const title = window.getHeaderbarTitle();
+            if (title && title !== '智能家庭控制中心') { // 不同步默认标题
+                settings.t = title;
+            }
+        }
+
+        // 收集天气城市（使用数字ID）
+        if (window.getWeatherConfig) {
+            const weatherConfig = window.getWeatherConfig();
+            if (weatherConfig && weatherConfig.city) {
+                const cityId = this.weatherCityMap[weatherConfig.city];
+                if (cityId !== undefined) {
+                    settings.c = cityId;
+                }
             }
         }
 
