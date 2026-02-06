@@ -212,10 +212,10 @@ if (!window.SettingsPage) {
                     checkDropdownPosition(element) {
                         if (!element) return false;
                         const rect = element.getBoundingClientRect();
-                        const dropdownHeight = 200; // 预估下拉框高度
                         const viewportHeight = window.innerHeight;
                         const spaceBelow = viewportHeight - rect.bottom;
                         const spaceAbove = rect.top;
+                        const dropdownHeight = 200; // 预估下拉框高度
                         
                         return spaceBelow < dropdownHeight && spaceAbove > dropdownHeight;
                     },
@@ -257,7 +257,7 @@ if (!window.SettingsPage) {
                         this.showCityDropdown = !this.showCityDropdown;
                     },
 
-                    // 应用页眉标题
+                    // 应用页眉标题（仅更新状态，不自动同步）
                     applyHeaderTitle() {
                         if (window.setHeaderbarTitle && this.headerTitle.trim()) {
                             window.setHeaderbarTitle(this.headerTitle.trim());
@@ -269,15 +269,6 @@ if (!window.SettingsPage) {
                                 titleCells.forEach(cell => {
                                     cell.textContent = this.headerTitle.trim();
                                 });
-                            }
-
-                            // 自动同步到 HA
-                            if (window.HASettingsSync) {
-                                window.HASettingsSync.autoSync({ t: this.headerTitle.trim() });
-                            }
-
-                            if (window.vant && window.vant.Toast) {
-                                window.vant.Toast.success('页眉标题已更新');
                             }
                         }
                     },
@@ -370,6 +361,73 @@ if (!window.SettingsPage) {
         }
     },
 
+    // 应用通用设置（点击确定按钮时调用）
+    applyGeneralSettings() {
+        const settings = {};
+
+        // 1. 应用主题
+        if (window.setBackgroundTheme && this.selectedTheme) {
+            window.setBackgroundTheme(this.selectedTheme);
+            if (window.loadBackgroundTheme) {
+                window.loadBackgroundTheme();
+            }
+            localStorage.setItem('selectedTheme', this.selectedTheme);
+
+            // 添加到同步设置
+            if (window.HASettingsSync) {
+                settings.th = window.HASettingsSync.themeIdMap[this.selectedTheme] ?? 0;
+            }
+        }
+
+        // 2. 应用页眉标题
+        if (window.setHeaderbarTitle && this.headerTitle.trim()) {
+            const title = this.headerTitle.trim();
+            window.setHeaderbarTitle(title);
+            localStorage.setItem('headerbarTitle', title);
+
+            // 更新页眉显示
+            const titleCells = document.querySelectorAll('.headerbar-title-cell');
+            if (titleCells && titleCells.length > 0) {
+                titleCells.forEach(cell => {
+                    cell.textContent = title;
+                });
+            }
+
+            // 添加到同步设置
+            settings.t = title;
+        }
+
+        // 3. 应用天气城市
+        if (window.setWeatherConfig && this.selectedWeatherCity) {
+            window.setWeatherConfig({ city: this.selectedWeatherCity });
+            localStorage.setItem('weatherCity', this.selectedWeatherCity);
+
+            // 刷新天气数据
+            if (window.MobileHeaderbar) {
+                window.MobileHeaderbar.loadConfig();
+                window.MobileHeaderbar.fetchWeather();
+            }
+
+            // 添加到同步设置
+            if (window.HASettingsSync) {
+                const cityNumericId = window.HASettingsSync.weatherCityMap[this.selectedWeatherCity];
+                if (cityNumericId !== undefined) {
+                    settings.c = cityNumericId;
+                }
+            }
+        }
+
+        // 4. 同步到 HA
+        if (window.HASettingsSync && Object.keys(settings).length > 0) {
+            window.HASettingsSync.autoSync(settings);
+        }
+
+        // 5. 显示成功提示并关闭弹窗
+        if (window.vant && window.vant.Toast) {
+            window.vant.Toast.success('设置已保存');
+        }
+        this.closePopup();
+    },
 
                 },
                 template: `
@@ -387,6 +445,7 @@ if (!window.SettingsPage) {
                             @click.native.stop
                         ></card-1x1>
                     </div>
+                    
                     <!-- 弹出卡片 -->
                     <card-popup
                         v-model="showPopup"
@@ -516,7 +575,7 @@ if (!window.SettingsPage) {
                                 </div>
                             </div>
 
-<div v-else-if="currentPopupType === 'haSettingsSync'" class="popup-content">
+                            <div v-else-if="currentPopupType === 'haSettingsSync'" class="popup-content">
                                 <div class="ha-settings-sync-content">
                                     <p style="text-align: center; color: rgba(255, 255, 255, 0.8); margin-bottom: 24px;">
                                         将设置同步到 Home Assistant 的 input_text 实体，实现跨设备同步。
@@ -529,12 +588,7 @@ if (!window.SettingsPage) {
                                         <span class="btn-icon">📥</span>
                                         <span class="btn-text">从 HA 加载设置</span>
                                     </button>
-                                    <!-- 确定按钮 -->
-                                    <div class="popup-buttons" style="margin-top: 24px;">
-                                        <button class="popup-button popup-button-confirm" @click="closePopup">确定</button>
-                                    </div>
-                                </div>
-
+                                    
                                     <!-- 字符使用情况 -->
                                     <div class="char-usage-display" style="margin-top: 24px; padding: 16px; background: rgba(255,255,255,0.1); border-radius: 12px;">
                                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -579,6 +633,10 @@ if (!window.SettingsPage) {
                                         </p>
                                     </div>
 
+                                    <!-- 确定按钮 -->
+                                    <div class="popup-buttons" style="margin-top: 24px;">
+                                        <button class="popup-button popup-button-confirm" @click="closePopup">确定</button>
+                                    </div>
                                 </div>
                             </div>
 
