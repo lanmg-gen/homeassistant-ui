@@ -415,7 +415,10 @@ const Card1x2Component = {
 
     // ==================== 模板 ====================
     template: `
-        <div :class="[cardClass, { 'on': state === 'on' || (isACDevice && state !== 'off' && state !== 'unavailable') }]" @click="handleClick" :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }">
+        <div :class="[cardClass, { 'on': state === 'on' || (isACDevice && state !== 'off' && state !== 'unavailable') }]" 
+             @click="handleClick" 
+             :style="{ overflow: hasdetailpage ? 'visible' : 'hidden' }"
+             draggable="true">
             <!-- 设备图标 -->
             <div class="card-1x2__icon">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="card-1x2__icon-svg">

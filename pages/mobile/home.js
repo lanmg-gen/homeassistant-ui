@@ -46,6 +46,9 @@ if (!window.HomePage) {
                         deviceCards: cards,
                         draggedItem: null,
                         draggedIndex: null,
+                        // 编辑模式状态
+                        isEditMode: false,
+                        sortableInstance: null,
                         // 弹出卡片状态
                         showPopup: false,
                         popupTitle: '',
@@ -199,26 +202,50 @@ if (!window.HomePage) {
                         this.draggedItem = this.deviceCards[index];
                         event.dataTransfer.effectAllowed = 'move';
                         event.dataTransfer.setData('text/plain', index);
-                        // 延迟添加拖拽样式,避免拖拽时元素不可见
-                        setTimeout(() => {
-                            event.target.classList.add('dragging');
-                        }, 0);
+
+                        // 添加拖拽样式到目标元素
+                        const targetElement = event.currentTarget;
+                        if (targetElement) {
+                            targetElement.classList.add('dragging');
+                        }
                     },
 
                     // 拖拽结束
                     onDragEnd(event) {
-                        event.target.classList.remove('dragging');
+                        // 移除拖拽样式
+                        const targetElement = event.currentTarget;
+                        if (targetElement) {
+                            targetElement.classList.remove('dragging');
+                        }
+
+                        // 移除所有卡片的 drag-over 样式
+                        document.querySelectorAll('.drag-over').forEach(el => {
+                            el.classList.remove('drag-over');
+                        });
+
                         this.draggedItem = null;
                         this.draggedIndex = null;
-
-                        // 保存到本地存储
-                        this.saveCardOrder();
                     },
 
                     // 拖拽经过
                     onDragOver(event) {
                         event.preventDefault();
                         event.dataTransfer.dropEffect = 'move';
+
+                        // 添加拖拽悬停样式
+                        const targetElement = event.currentTarget;
+                        if (targetElement) {
+                            targetElement.classList.add('drag-over');
+                        }
+                    },
+
+                    // 拖拽离开
+                    onDragLeave(event) {
+                        // 移除拖拽悬停样式
+                        const targetElement = event.currentTarget;
+                        if (targetElement) {
+                            targetElement.classList.remove('drag-over');
+                        }
                     },
 
                     // 放下
@@ -228,10 +255,50 @@ if (!window.HomePage) {
                             return;
                         }
 
-                        // 移动卡片
                         const draggedItem = this.deviceCards[this.draggedIndex];
-                        this.deviceCards.splice(this.draggedIndex, 1);
-                        this.deviceCards.splice(targetIndex, 0, draggedItem);
+                        const targetItem = this.deviceCards[targetIndex];
+
+                        // 判断拖拽源和目标的卡片类型（是否为 1x2）
+                        const isDragged1x2 = draggedItem.span === 2;
+                        const isTarget1x2 = targetItem.span === 2;
+
+                        // 情况1: 拖拽 1x2 到 1x1 位置 - 需要挤占 2 个位置
+                        if (isDragged1x2 && !isTarget1x2) {
+                            // 移除拖拽的 1x2 卡片
+                            this.deviceCards.splice(this.draggedIndex, 1);
+
+                            // 重新计算插入位置（因为移除后索引可能变化）
+                            let adjustedTargetIndex = targetIndex;
+                            if (this.draggedIndex < targetIndex) {
+                                adjustedTargetIndex = targetIndex - 1;
+                            }
+
+                            // 在目标位置插入 1x2 卡片
+                            this.deviceCards.splice(adjustedTargetIndex, 0, draggedItem);
+                        }
+                        // 情况2: 拖拽 1x1 到 1x2 位置 - 需要把 1x2 往后移
+                        else if (!isDragged1x2 && isTarget1x2) {
+                            // 移除拖拽的 1x1 卡片
+                            this.deviceCards.splice(this.draggedIndex, 1);
+
+                            // 重新计算插入位置
+                            let adjustedTargetIndex = targetIndex;
+                            if (this.draggedIndex < targetIndex) {
+                                adjustedTargetIndex = targetIndex - 1;
+                            }
+
+                            // 在 1x2 卡片位置插入 1x1 卡片
+                            this.deviceCards.splice(adjustedTargetIndex, 0, draggedItem);
+                        }
+                        // 情况3: 1x2 拖到 1x2 或 1x1 拖到 1x1 - 直接交换
+                        else {
+                            // 移动卡片
+                            this.deviceCards.splice(this.draggedIndex, 1);
+                            this.deviceCards.splice(targetIndex, 0, draggedItem);
+                        }
+
+                        // 保存到本地存储
+                        this.saveCardOrder();
                     },
 
                     // 保存卡片顺序到本地存储
@@ -931,16 +998,430 @@ if (!window.HomePage) {
                         }
                     },
 
+                    // 初始化编辑模式长按检测
+                    initEditModeHandler() {
+                        const deviceGrid = document.querySelector('.device-grid');
+                        if (!deviceGrid) return;
+
+                        let longPressTimer = null;
+                        const longPressDuration = 1000;
+                        let startX = 0;
+                        let startY = 0;
+                        let isLongPress = false;
+                        let preventNextClick = false;
+                        let currentCard = null;
+                        let isDragging = false;
+
+                        // 阻止桌面端右键菜单
+                        deviceGrid.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
+
+                        // 捕获并阻止长按后的点击事件
+                        deviceGrid.addEventListener('click', (e) => {
+                            if (preventNextClick) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                preventNextClick = false;
+                            }
+                        }, true);
+
+                        // 点击空白区域退出编辑模式
+                        document.addEventListener('click', (e) => {
+                            if (this.isEditMode && !e.target.closest('.device-grid')) {
+                                this.exitEditMode();
+                            }
+                        });
+
+                        const handleStart = (e) => {
+                            const touch = e.touches ? e.touches[0] : e;
+                            startX = touch.clientX;
+                            startY = touch.clientY;
+                            isLongPress = false;
+                            preventNextClick = false;
+                            currentCard = e.target.closest('.draggable-card');
+
+                            longPressTimer = setTimeout(() => {
+                                isLongPress = true;
+                                preventNextClick = true;
+                                this.enterEditMode();
+                                // 安全调用震动
+                                try {
+                                    if (navigator.vibrate && typeof navigator.vibrate === 'function') {
+                                        navigator.vibrate(50);
+                                    }
+                                } catch (e) {
+                                    // 忽略震动错误
+                                }
+
+                                // 立即开始拖拽
+                                if (currentCard) {
+                                    this.startCustomDrag(currentCard, touch.clientX, touch.clientY);
+                                }
+                            }, longPressDuration);
+                        };
+
+                        const handleMove = (e) => {
+                            if (!longPressTimer) return;
+
+                            const touch = e.touches ? e.touches[0] : e;
+                            const moveX = Math.abs(touch.clientX - startX);
+                            const moveY = Math.abs(touch.clientY - startY);
+
+                            if (moveX > 10 || moveY > 10) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+                        };
+
+                        const handleEnd = (e) => {
+                            if (longPressTimer) {
+                                clearTimeout(longPressTimer);
+                                longPressTimer = null;
+                            }
+
+                            currentCard = null;
+                            isDragging = false;
+                        };
+
+                        // 触摸事件
+                        deviceGrid.addEventListener('touchstart', handleStart, { passive: false });
+                        deviceGrid.addEventListener('touchmove', handleMove, { passive: false });
+                        deviceGrid.addEventListener('touchend', handleEnd, { passive: false });
+                        deviceGrid.addEventListener('touchcancel', handleEnd, { passive: false });
+
+                        // 鼠标事件
+                        deviceGrid.addEventListener('mousedown', handleStart);
+                        deviceGrid.addEventListener('mousemove', handleMove);
+                        document.addEventListener('mouseup', handleEnd);
+                    },
+
+                    // 进入编辑模式
+                    enterEditMode() {
+                        this.isEditMode = true;
+                        // 不使用 SortableJS，完全使用自定义拖拽
+                    },
+
+                    // 退出编辑模式
+                    exitEditMode() {
+                        this.isEditMode = false;
+                        if (this.sortableInstance) {
+                            this.sortableInstance.destroy();
+                            this.sortableInstance = null;
+                        }
+                    },
+
+                    // 初始化 SortableJS
+                    initSortable() {
+                        const deviceGrid = document.querySelector('.device-grid');
+                        if (!deviceGrid || typeof Sortable === 'undefined') return;
+
+                        if (this.sortableInstance) {
+                            this.sortableInstance.destroy();
+                        }
+
+                        this.sortableInstance = new Sortable(deviceGrid, {
+                            animation: 300,
+                            easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                            dragClass: 'sortable-drag',
+                            chosenClass: 'sortable-chosen',
+                            ghostClass: 'sortable-ghost',
+                            // 编辑模式下无延迟，立即拖动
+                            delay: 0,
+                            touchStartThreshold: 0,
+                            // 使用原生拖拽
+                            forceFallback: false,
+                            swapThreshold: 0.65,
+                            invertSwap: false,
+                            preventOnFilter: true,
+                            filter: 'input, textarea, button, select, .no-drag',
+                            onStart: (evt) => {
+                                document.body.classList.add('is-dragging');
+                            },
+                            onEnd: (evt) => {
+                                document.body.classList.remove('is-dragging');
+                                
+                                const newOrder = Array.from(deviceGrid.children).map(el => {
+                                    const index = el.getAttribute('data-original-index');
+                                    return this.deviceCards[index];
+                                }).filter(card => card);
+
+                                this.deviceCards = newOrder;
+                                this.saveCardOrder();
+
+                                const movedItem = evt.item;
+                                if (movedItem) {
+                                    movedItem.classList.add('sortable-bounce');
+                                    setTimeout(() => {
+                                        movedItem.classList.remove('sortable-bounce');
+                                    }, 400);
+                                }
+                                
+                                setTimeout(() => {
+                                    this.exitEditMode();
+                                }, 500);
+                            }
+                        });
+                    },
+
+                    // 自定义拖拽实现
+                    startCustomDrag(cardElement, clientX, clientY) {
+                        if (!cardElement) return;
+                        
+                        const deviceGrid = document.querySelector('.device-grid');
+                        const rect = cardElement.getBoundingClientRect();
+                        const offsetX = clientX - rect.left;
+                        const offsetY = clientY - rect.top;
+                        
+                        // 检测输入设备类型（触摸或鼠标）
+                        const isTouch = clientX !== undefined && 'ontouchstart' in window;
+                        const eventType = {
+                            move: isTouch ? 'touchmove' : 'mousemove',
+                            end: isTouch ? 'touchend' : 'mouseup',
+                            cancel: isTouch ? 'touchcancel' : undefined
+                        };
+                        
+                        // 创建克隆元素
+                        const clone = cardElement.cloneNode(true);
+                        clone.style.position = 'fixed';
+                        clone.style.left = rect.left + 'px';
+                        clone.style.top = rect.top + 'px';
+                        clone.style.width = rect.width + 'px';
+                        clone.style.height = rect.height + 'px';
+                        clone.style.zIndex = '10000';
+                        clone.style.opacity = '0.9';
+                        clone.style.transform = 'scale(1.05)';
+                        clone.style.pointerEvents = 'none';
+                        clone.classList.add('dragging-clone');
+                        document.body.appendChild(clone);
+
+                        // 设置拖拽状态
+                        isDragging = true;
+
+                        // 隐藏原卡片
+                        cardElement.style.opacity = '0.3';
+                        
+                        let currentIndex = Array.from(deviceGrid.children).indexOf(cardElement);
+                        
+                        const handleMove = (e) => {
+                            // 阻止页面滚动（仅触摸屏）
+                            if (isTouch) {
+                                e.preventDefault();
+                            }
+
+                            const touch = e.touches ? e.touches[0] : e;
+                            clone.style.left = (touch.clientX - offsetX) + 'px';
+                            clone.style.top = (touch.clientY - offsetY) + 'px';
+
+                            // 检测悬停的卡片
+                            clone.style.visibility = 'hidden';
+                            const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+                            clone.style.visibility = 'visible';
+
+                            const targetCard = elemBelow?.closest('.draggable-card');
+                            if (targetCard && targetCard !== cardElement) {
+                                const targetIndex = Array.from(deviceGrid.children).indexOf(targetCard);
+                                const newIndex = Array.from(deviceGrid.children).indexOf(cardElement);
+
+                                if (targetIndex !== -1 && targetIndex !== newIndex) {
+                                    // 获取网格列数（移动端3列，桌面端6列）
+                                    const columns = window.innerWidth <= 767 ? 3 : 6;
+
+                                    // 判断是否为1x2卡片
+                                    const isCard1x2 = cardElement.classList.contains('card-1x2');
+                                    const isTarget1x2 = targetCard.classList.contains('card-1x2');
+
+                                    // 判断是否相邻（左右相邻索引差1，上下相邻索引差列数）
+                                    const indexDiff = Math.abs(targetIndex - newIndex);
+                                    const isAdjacent = indexDiff === 1 || indexDiff === columns;
+
+                                    if (isAdjacent) {
+                                        // 相邻的情况
+                                        if (isCard1x2 && !isTarget1x2) {
+                                            // 1x2替换1x1：需要替换两个1x1（上下各一个）
+                                            // 找到目标卡片旁边的另一个1x1卡片
+                                            const children = Array.from(deviceGrid.children);
+                                            let secondTarget = null;
+
+                                            if (indexDiff === 1) {
+                                                // 左右相邻，找上下相邻的卡片
+                                                const targetRow = Math.floor(targetIndex / columns);
+                                                const cardRow = Math.floor(newIndex / columns);
+
+                                                if (targetRow > 0) {
+                                                    // 找上面的卡片
+                                                    secondTarget = children[targetIndex - columns];
+                                                } else if (targetRow < Math.floor((children.length - 1) / columns)) {
+                                                    // 找下面的卡片
+                                                    secondTarget = children[targetIndex + columns];
+                                                }
+                                            } else {
+                                                // 上下相邻，找左右相邻的卡片
+                                                if (targetIndex % columns > 0) {
+                                                    // 找左边的卡片
+                                                    secondTarget = children[targetIndex - 1];
+                                                } else if (targetIndex % columns < columns - 1) {
+                                                    // 找右边的卡片
+                                                    secondTarget = children[targetIndex + 1];
+                                                }
+                                            }
+
+                                            // 执行替换：1x2移到目标位置，两个1x1移到1x2原位置
+                                            const cardNext = cardElement.nextSibling;
+                                            const targetNext = targetCard.nextSibling;
+
+                                            // 先移动1x2到目标位置
+                                            if (targetNext) {
+                                                deviceGrid.insertBefore(cardElement, targetNext);
+                                            } else {
+                                                deviceGrid.appendChild(cardElement);
+                                            }
+
+                                            // 移动第一个1x1到1x2原位置
+                                            if (cardNext) {
+                                                deviceGrid.insertBefore(targetCard, cardNext);
+                                            } else {
+                                                deviceGrid.appendChild(targetCard);
+                                            }
+
+                                            // 如果有第二个1x1，也移动过去
+                                            if (secondTarget && secondTarget !== cardElement && secondTarget !== targetCard) {
+                                                const secondNext = secondTarget.nextSibling;
+                                                if (secondNext) {
+                                                    deviceGrid.insertBefore(secondTarget, secondNext);
+                                                } else {
+                                                    deviceGrid.appendChild(secondTarget);
+                                                }
+                                            }
+                                        } else if (!isCard1x2 && isTarget1x2) {
+                                            // 1x1替换1x2：使用左右排挤逻辑
+                                            if (targetIndex > newIndex) {
+                                                deviceGrid.insertBefore(cardElement, targetCard.nextSibling);
+                                            } else {
+                                                deviceGrid.insertBefore(cardElement, targetCard);
+                                            }
+                                        } else {
+                                            // 都是1x1或都是1x2：正常交换
+                                            const cardNext = cardElement.nextSibling;
+                                            const targetNext = targetCard.nextSibling;
+
+                                            if (targetIndex > newIndex) {
+                                                // 目标在后面
+                                                if (targetNext) {
+                                                    deviceGrid.insertBefore(cardElement, targetNext);
+                                                } else {
+                                                    deviceGrid.appendChild(cardElement);
+                                                }
+                                                if (cardNext) {
+                                                    deviceGrid.insertBefore(targetCard, cardNext);
+                                                } else {
+                                                    deviceGrid.appendChild(targetCard);
+                                                }
+                                            } else {
+                                                // 目标在前面
+                                                if (cardNext) {
+                                                    deviceGrid.insertBefore(targetCard, cardNext);
+                                                } else {
+                                                    deviceGrid.appendChild(targetCard);
+                                                }
+                                                if (targetNext) {
+                                                    deviceGrid.insertBefore(cardElement, targetNext);
+                                                } else {
+                                                    deviceGrid.appendChild(cardElement);
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // 不相邻：使用排挤逻辑
+                                        if (targetIndex > newIndex) {
+                                            deviceGrid.insertBefore(cardElement, targetCard.nextSibling);
+                                        } else {
+                                            deviceGrid.insertBefore(cardElement, targetCard);
+                                        }
+                                    }
+                                    currentIndex = targetIndex;
+                                }
+                            }
+                        };
+                        
+                        const handleEnd = (e) => {
+                            // 确保只处理一次
+                            if (cardElement.dataset.dragEnded === 'true') {
+                                return;
+                            }
+                            cardElement.dataset.dragEnded = 'true';
+
+                            // 移除事件监听器
+                            document.removeEventListener(eventType.move, handleMove);
+                            document.removeEventListener(eventType.end, handleEnd);
+                            if (eventType.cancel) {
+                                document.removeEventListener(eventType.cancel, handleEnd);
+                            }
+
+                            // 移除克隆元素
+                            const clone = document.querySelector('.dragging-clone');
+                            if (clone && clone.parentNode) {
+                                clone.remove();
+                            }
+
+                            // 恢复原卡片不透明度
+                            cardElement.style.opacity = '';
+                            delete cardElement.dataset.dragEnded;
+
+                            // 重置拖拽状态
+                            isDragging = false;
+
+                            // 防御性清理：移除所有克隆元素
+                            document.querySelectorAll('.dragging-clone').forEach(el => el.remove());
+
+                            // 防御性清理：恢复所有半透明卡片的不透明度
+                            document.querySelectorAll('.draggable-card[style*="opacity: 0.3"]').forEach(el => {
+                                el.style.opacity = '';
+                            });
+
+                            // 更新数据
+                            const newOrder = Array.from(deviceGrid.children).map(el => {
+                                const index = el.getAttribute('data-original-index');
+                                return this.deviceCards[index];
+                            }).filter(card => card);
+
+                            this.deviceCards = newOrder;
+                            this.saveCardOrder();
+
+                            // 退出编辑模式
+                            this.exitEditMode();
+                        };
+                        
+                        // 根据设备类型添加事件监听器
+                        if (isTouch) {
+                            // 触摸事件：使用 passive: false 允许阻止滚动
+                            document.addEventListener(eventType.move, handleMove, { passive: false });
+                            document.addEventListener(eventType.end, handleEnd, { once: true });
+                            if (eventType.cancel) {
+                                document.addEventListener(eventType.cancel, handleEnd, { once: true });
+                            }
+                        } else {
+                            // 鼠标事件
+                            document.addEventListener(eventType.move, handleMove, { passive: true });
+                            document.addEventListener(eventType.end, handleEnd, { once: true });
+                        }
+                    },
+
 
                 },
                 components: {
                     'card-1x1': window.Card1x1Component
                 },
                         template: `
-                    <div class="device-grid">
+                    <!-- 编辑模式边框提示 -->
+                    <div v-if="isEditMode" class="edit-mode-indicator">
+                        <span class="edit-mode-hint">编辑模式 - 拖动卡片调整位置</span>
+                    </div>
+                    <div class="device-grid" :class="{ 'edit-mode': isEditMode }">
                         <card-1x1
-                            v-for="(device, index) in deviceCards1x1"
-                            :key="'1x1-' + index"
+                            v-for="device in deviceCards1x1"
+                            :key="device.stateEntity || device.name"
                             :name="device.name"
                             :icon="device.icon"
                             :stateentity="device.stateEntity"
@@ -950,22 +1431,17 @@ if (!window.HomePage) {
                             :hasdetailpage="device.deviceType === 'climate' || device.deviceType === 'url' || device.deviceType === 'feeder' || device.deviceType === 'washingmachine'"
                             :powerentity="device.powerEntity"
                             :controlurl="device.controlUrl"
-                            :data-index="index"
+                            :data-original-index="getOriginalIndex(device)"
                             :customprops="device.customProps"
                             :feederamount="device.deviceType === 'feeder' ? feederAmount : 1"
-                            draggable="true"
-                            class="draggable-card"
-                            @dragstart="onDragStart($event, index)"
-                            @dragend="onDragEnd($event)"
-                            @dragover="onDragOver($event)"
-                            @drop="onDrop($event, index)"
-                            @open-detail="handleOpenDetail"
-                            @feeder-click="handleFeederClick"
-                            @feeder-settings="handleFeederSettings"
+                            :class="['draggable-card', { 'edit-mode-card': isEditMode }]"
+                            @open-detail="!isEditMode && handleOpenDetail($event)"
+                            @feeder-click="!isEditMode && handleFeederClick($event)"
+                            @feeder-settings="!isEditMode && handleFeederSettings($event)"
                         ></card-1x1>
                         <card-1x2
-                            v-for="(device, index) in deviceCards1x2"
-                            :key="'1x2-' + index"
+                            v-for="device in deviceCards1x2"
+                            :key="device.stateEntity || device.name"
                             :name="device.name"
                             :icon="device.icon"
                             :stateentity="device.stateEntity"
@@ -976,14 +1452,9 @@ if (!window.HomePage) {
                             :powerentity="device.powerEntity"
                             :controlurl="device.controlUrl"
                             :customprops="device.customProps"
-                            :data-index="index"
-                            draggable="true"
-                            class="draggable-card"
-                            @dragstart="onDragStart($event, deviceCards1x1.length + index)"
-                            @dragend="onDragEnd($event)"
-                            @dragover="onDragOver($event)"
-                            @drop="onDrop($event, deviceCards1x1.length + index)"
-                            @open-detail="handleOpenDetail"
+                            :data-original-index="getOriginalIndex(device)"
+                            :class="['draggable-card', 'card-1x2', { 'edit-mode-card': isEditMode }]"
+                            @open-detail="!isEditMode && handleOpenDetail($event)"
                         ></card-1x2>
                     </div>
                     <!-- 弹出卡片 -->
@@ -1251,6 +1722,11 @@ if (!window.HomePage) {
                 mounted() {
                     // 从本地存储加载卡片顺序
                     this.loadCardOrder();
+
+                    // 初始化长按检测以进入编辑模式
+                    this.$nextTick(() => {
+                        this.initEditModeHandler();
+                    });
                 }
             });
 

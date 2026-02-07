@@ -61,6 +61,13 @@ const HASettingsSync = {
         7: '呼和浩特'
     },
 
+    // 连接状态
+    connectionStatus: {
+        isConnected: false,
+        lastCheck: null,
+        error: null
+    },
+
     /**
      * 初始化设置同步
      * 在应用启动时调用，自动从 HA 加载设置
@@ -521,8 +528,151 @@ const HASettingsSync = {
                 window.location.reload();
             }
         }, 1000);
+    },
+    
+    /**
+     * 测试 HA 连接状态
+     * @returns {Promise<object>} 连接测试结果
+     */
+    async testConnection() {
+        const config = window.getHAConfig?.();
+        
+        if (!config) {
+            this.connectionStatus = {
+                isConnected: false,
+                lastCheck: new Date(),
+                error: 'HA 配置未找到'
+            };
+            return this.connectionStatus;
+        }
+
+        if (!config.enabled) {
+            this.connectionStatus = {
+                isConnected: false,
+                lastCheck: new Date(),
+                error: 'HA 同步已禁用'
+            };
+            return this.connectionStatus;
+        }
+
+        if (!config.url || !config.token) {
+            this.connectionStatus = {
+                isConnected: false,
+                lastCheck: new Date(),
+                error: 'HA URL 或 Token 未配置'
+            };
+            return this.connectionStatus;
+        }
+
+        try {
+            // 构建测试 URL
+            const testUrl = `${config.url}/api/states/${this.ENTITY_ID}`;
+            
+            const response = await fetch(testUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${config.token}`,
+                    'Content-Type': 'application/json',
+                },
+                timeout: config.connectionTimeout || 10000
+            });
+
+            if (response.ok) {
+                this.connectionStatus = {
+                    isConnected: true,
+                    lastCheck: new Date(),
+                    error: null
+                };
+            } else {
+                const errorText = await response.text();
+                let errorMessage = `HTTP ${response.status}`;
+                
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch {
+                    errorMessage = errorText || errorMessage;
+                }
+                
+                this.connectionStatus = {
+                    isConnected: false,
+                    lastCheck: new Date(),
+                    error: `连接失败: ${errorMessage}`
+                };
+            }
+        } catch (error) {
+            let errorMessage = '网络连接失败';
+            
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage = '无法连接到 HA 服务器（可能是网络问题或 URL 错误）';
+            } else if (error.name === 'AbortError') {
+                errorMessage = '连接超时';
+            } else {
+                errorMessage = error.message;
+            }
+            
+            this.connectionStatus = {
+                isConnected: false,
+                lastCheck: new Date(),
+                error: errorMessage
+            };
+        }
+        
+        return this.connectionStatus;
+    },
+
+    /**
+     * 获取连接状态文本
+     * @returns {string} 状态文本
+     */
+    getConnectionStatusText() {
+        if (!this.connectionStatus.lastCheck) {
+            return '未检测';
+        }
+        
+        if (this.connectionStatus.isConnected) {
+            return `已连接 (${this.formatTime(this.connectionStatus.lastCheck)})`;
+        } else {
+            return `连接失败 (${this.formatTime(this.connectionStatus.lastCheck)})`;
+        }
+    },
+
+    /**
+     * 获取连接状态类型（用于 UI 样式）
+     * @returns {string} 状态类型：'success', 'error', 'warning', 'info'
+     */
+    getConnectionStatusType() {
+        if (!this.connectionStatus.lastCheck) {
+            return 'info';
+        }
+        
+        return this.connectionStatus.isConnected ? 'success' : 'error';
+    },
+
+    /**
+     * 格式化时间显示
+     * @param {Date} date 
+     * @returns {string}
+     */
+    formatTime(date) {
+        if (!date) return '';
+        return date.toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    },
+
+    /**
+     * 获取详细错误信息
+     * @returns {string|null} 错误信息
+     */
+    getConnectionError() {
+        return this.connectionStatus.error;
     }
 };
+
+// 导出到全局
 
 // 导出到全局
 window.HASettingsSync = HASettingsSync;

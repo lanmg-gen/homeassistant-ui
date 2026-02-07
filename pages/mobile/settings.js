@@ -56,11 +56,13 @@ if (!window.SettingsPage) {
                             percentage: 0
                         },
                         // 页眉标题
-                        headerTitle: '',
-                        // 天气城市选择
-                        selectedWeatherCity: '',
-                        // 天气城市下拉框状态
-                        showCityDropdown: false
+                    headerTitle: '',
+                    // 天气城市选择
+                    selectedWeatherCity: '',
+                    // 天气城市下拉框状态
+                    showCityDropdown: false,
+                    // HA 连接状态（实时）
+                    haConnectionStatus: null
                     };
                 },
                 computed: {
@@ -300,6 +302,45 @@ if (!window.SettingsPage) {
                         return null;
                     },
                     
+                    // 获取HA实时连接状态信息
+                    getHARealTimeStatus() {
+                        return this.haConnectionStatus;
+                    },
+                    
+                    // 测试HA连接
+                    async testHAConnection() {
+                        if (window.HASettingsSync) {
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.loading('正在测试 HA 连接...');
+                            }
+                            
+                            try {
+                                const result = await window.HASettingsSync.testConnection();
+                                
+                                // 直接更新页面状态
+                                this.haConnectionStatus = result;
+
+                                if (result.isConnected) {
+                                    if (window.vant && window.vant.Toast) {
+                                        window.vant.Toast.success('HA 连接测试成功');
+                                    }
+                                } else {
+                                    if (window.vant && window.vant.Toast) {
+                                        window.vant.Toast.fail(`连接失败: ${result.error}`);
+                                    }
+                                }
+                            } catch (error) {
+                                if (window.vant && window.vant.Toast) {
+                                    window.vant.Toast.fail(`测试出错: ${error.message}`);
+                                }
+                            }
+                        } else {
+                            if (window.vant && window.vant.Toast) {
+                                window.vant.Toast.fail('HA 设置同步模块未加载');
+                            }
+                        }
+                    },
+                    
                     // 显示用户协议
                     showTerms() {
                         if (window.showToast) {
@@ -529,7 +570,12 @@ if (!window.SettingsPage) {
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">连接状态：</span>
-                                        <span class="info-value">{{ getHAConfigInfo()?.enabled || '未知' }}</span>
+                                    <span class="info-value" :style="{ 
+                                        color: haConnectionStatus?.isConnected ? '#4CAF50' : 
+                                               haConnectionStatus && !haConnectionStatus.isConnected ? '#f44336' : '#FF9800'
+                                    }">
+                                        {{ haConnectionStatus?.statusText || getHAConfigInfo()?.enabled || '未检测' }}
+                                    </span>
                                     </div>
                                     <div class="info-item">
                                         <span class="info-label">连接超时：</span>
@@ -539,7 +585,18 @@ if (!window.SettingsPage) {
                                         <span class="info-label">重连间隔：</span>
                                         <span class="info-value">{{ getHAConfigInfo()?.reconnectInterval }}ms</span>
                                     </div>
+                                
+                                <!-- 连接测试按钮 -->
+                                <div class="info-item" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 16px; margin-top: 16px;">
+                                    <button class="ha-sync-btn" @click="testHAConnection" style="width: 100%; justify-content: center;">
+                                        <span class="btn-icon">🔍</span>
+                                        <span class="btn-text">测试 HA 连接</span>
+                                    </button>
+                                    <div v-if="haConnectionStatus && !haConnectionStatus.isConnected" style="margin-top: 8px; padding: 8px; background: rgba(244, 67, 54, 0.1); border-radius: 6px; font-size: 12px; color: #ff6b6b;">
+                                        <strong>错误详情:</strong> {{ haConnectionStatus.error }}
+                                    </div>
                                 </div>
+                            </div>
                             </div>
                             
                             <div v-else-if="currentPopupType === 'about'" class="popup-content">
