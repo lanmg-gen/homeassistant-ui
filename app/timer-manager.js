@@ -31,7 +31,7 @@ const TimerManager = {
             });
         }, this.interval);
 
-        console.log('[TimerManager] 全局定时器已启动');
+
     },
 
     /**
@@ -41,7 +41,7 @@ const TimerManager = {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
-            console.log('[TimerManager] 全局定时器已停止');
+
         }
     },
 
@@ -63,7 +63,7 @@ const TimerManager = {
             this.start();
         }
 
-        console.log(`[TimerManager] 注册计时器，当前数量: ${this.timers.size}`);
+
 
         // 返回取消注册的函数
         return () => this.unregister(callback);
@@ -76,7 +76,7 @@ const TimerManager = {
     unregister(callback) {
         this.timers.delete(callback);
 
-        console.log(`[TimerManager] 取消注册计时器，当前数量: ${this.timers.size}`);
+
 
         // 如果没有计时器了，停止全局定时器
         if (this.timers.size === 0) {

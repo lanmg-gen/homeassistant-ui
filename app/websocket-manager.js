@@ -264,7 +264,7 @@ const WebSocketManager = {
             this.reconnectAttempts++;
             const delay = this.reconnectDelay * this.reconnectAttempts;
             
-            console.log(`[WebSocket] ${delay}ms 后尝试第 ${this.reconnectAttempts} 次重连...`);
+
             
             setTimeout(() => this.connect(), delay);
         } else {

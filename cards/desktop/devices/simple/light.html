@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>灯光控制</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            font-family: 'Arial', sans-serif;
+            width: 100px;
+            height: auto;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 15px;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        .light-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            overflow: visible;
+            transform-origin: center;
+            flex: 1;
+            width: 100%;
+        }
+        .light-container:hover {
+            transform: scale(1.05);
+        }
+        .light-icon {
+            font-size: 48px;
+            transition: opacity 0.3s;
+        }
+        .light-icon.on {
+            opacity: 1;
+            filter: drop-shadow(0 0 10px rgba(255, 235, 59, 0.8));
+        }
+        .light-icon.off {
+            opacity: 1.0;
+            filter: grayscale(70%) brightness(0.8);
+        }
+        .light-name {
+            font-size: 12px;
+            color: #111;
+            text-align: center;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+            font-weight: 600;
+        }
+        .light-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+        .light-img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+    <div class="light-container" id="lightContainer">
+        <div class="light-icon off" id="lightIcon">💡</div>
+        <div class="light-name" id="lightName">灯光</div>
+        <div class="light-value" id="lightValue">关</div>
+    </div>
+
+    <script>
+        // 默认配置
+        const defaultConfig = {
+            controlEntity: '',
+            displayEntity: '',
+            icon: '💡',
+            iconType: 'emoji', // emoji 或 ico
+            name: '灯光',
+            // 新增配置项
+            width: 120,        // 组件宽度（像素）
+            height: 180,       // 组件高度（像素）
+            opacity: 1.0,      // 透明度（0.0 - 1.0）
+            showName: true,    // 是否显示设备名称
+            showSwitch: true   // 是否显示开关状态
+        };
+
+        // 当前配置
+        let config = { ...defaultConfig };
+
+        // 获取配置参数
+        function loadConfig() {
+            console.log('灯光组件开始加载配置...');
+            const urlParams = new URLSearchParams(window.location.search);
+            const configParam = urlParams.get('config');
+            console.log('URL中的配置参数:', configParam);
+
+            if (configParam) {
+                try {
+                    config = { ...defaultConfig, ...JSON.parse(decodeURIComponent(configParam)) };
+                    console.log('配置加载成功:', config);
+                } catch (e) {
+                    console.error('解析配置失败:', e);
+                }
+            } else {
+                console.log('没有配置参数，使用默认配置');
+            }
+
+            updateUI();
+        }
+
+        // 更新UI
+        function updateUI() {
+            const lightIcon = document.getElementById('lightIcon');
+            const lightName = document.getElementById('lightName');
+            const lightValue = document.getElementById('lightValue');
+            const lightContainer = document.getElementById('lightContainer');
+
+            console.log('updateUI called, config.showName:', config.showName, 'config.showSwitch:', config.showSwitch);
+
+            // 设置图标
+            if (config.iconType === 'ico') {
+                lightIcon.className = 'light-icon off light-img';
+                lightIcon.textContent = '';
+                lightIcon.style.background = `url(${config.icon}) center/contain no-repeat`;
+            } else {
+                lightIcon.className = 'light-icon off';
+                lightIcon.textContent = config.icon;
+                lightIcon.style.background = '';
+            }
+
+            // 设置名称
+            lightName.textContent = config.name;
+            
+            // 控制名称显示/隐藏（默认显示，除非显式设置为false）
+            if (config.showName !== false) {
+                lightName.style.display = 'block';
+                console.log('lightName set to block');
+            } else {
+                // 使用多种方法确保隐藏
+                lightName.style.display = 'none';
+                lightName.style.visibility = 'hidden';
+                lightName.style.height = '0';
+                lightName.style.overflow = 'hidden';
+                console.log('lightName set to none with multiple methods, config.showName:', config.showName, 'type:', typeof config.showName);
+            }
+            
+            // 控制开关状态显示/隐藏（默认显示，除非显式设置为false）
+            if (config.showSwitch !== false) {
+                lightValue.style.display = 'block';
+                console.log('lightValue set to block');
+            } else {
+                lightValue.style.display = 'none';
+                console.log('lightValue set to none');
+            }
+            
+            // 应用尺寸和透明度
+            applyStyles();
+        }
+        
+        // 应用样式（尺寸和透明度）
+        function applyStyles() {
+            const lightContainer = document.getElementById('lightContainer');
+            const lightIcon = document.getElementById('lightIcon');
+            const lightName = document.getElementById('lightName');
+            const lightValue = document.getElementById('lightValue');
+            const body = document.body;
+            
+            // 设置容器尺寸 - 直接设置width和height，使用box-sizing确保padding包含在内
+            if (config.width && config.height) {
+                body.style.width = `${config.width}px`;
+                body.style.height = `${config.height}px`;
+                body.style.boxSizing = 'border-box';
+                // lightContainer填充整个body
+                lightContainer.style.width = '100%';
+                lightContainer.style.height = '100%';
+            }
+            
+            // 设置透明度 - 分别应用到各个元素以避免叠加
+            if (config.opacity !== undefined) {
+                const baseOpacity = config.opacity;
+                lightIcon.style.opacity = baseOpacity;
+                lightName.style.opacity = baseOpacity;
+                lightValue.style.opacity = baseOpacity;
+                // 容器本身保持不透明，避免叠加
+                lightContainer.style.opacity = 1;
+            } else {
+                // 重置透明度
+                lightIcon.style.opacity = '';
+                lightName.style.opacity = '';
+                lightValue.style.opacity = '';
+                lightContainer.style.opacity = '';
+            }
+        }
+
+        // 切换灯光状态
+        function toggleLight() {
+            console.log('灯光组件被点击，当前配置:', config);
+            console.log('controlEntity值:', config.controlEntity, '类型:', typeof config.controlEntity);
+            if (!config.controlEntity) {
+                console.warn('控制实体未设置，无法控制灯光');
+                // 不再使用alert，以免干扰测试
+                return;
+            }
+
+            console.log('发送控制消息到父页面...');
+            // 通过 postMessage 通知父页面控制灯光
+            window.parent.postMessage({
+                type: 'controlEntity',
+                entityId: config.controlEntity,
+                action: 'toggle'
+            }, '*');
+            console.log('控制消息已发送');
+
+            // 模拟切换效果（实际状态应由 HomeAssistant 更新）
+            const lightIcon = document.getElementById('lightIcon');
+            lightIcon.classList.toggle('on');
+            lightIcon.classList.toggle('off');
+
+            const lightValue = document.getElementById('lightValue');
+            lightValue.textContent = lightIcon.classList.contains('on') ? '开' : '关';
+        }
+
+        // 监听状态更新
+        function handleStateUpdate(state) {
+            const lightIcon = document.getElementById('lightIcon');
+            const lightValue = document.getElementById('lightValue');
+
+            if (state === 'on') {
+                lightIcon.classList.add('on');
+                lightIcon.classList.remove('off');
+                lightValue.textContent = '开';
+            } else if (state === 'off') {
+                lightIcon.classList.remove('on');
+                lightIcon.classList.add('off');
+                lightValue.textContent = '关';
+            }
+        }
+
+        // 更新配置
+        function updateConfig(newConfig) {
+            console.log('updateConfig called with newConfig:', newConfig);
+            console.log('defaultConfig.showName:', defaultConfig.showName, 'defaultConfig.showSwitch:', defaultConfig.showSwitch);
+            console.log('newConfig.showName:', newConfig.showName, 'newConfig.showSwitch:', newConfig.showSwitch);
+            
+            config = { ...defaultConfig, ...newConfig };
+            
+            console.log('merged config.showName:', config.showName, 'config.showSwitch:', config.showSwitch);
+            updateUI();
+        }
+
+        // 初始化函数
+        function init() {
+            console.log('灯光组件初始化...');
+            // 绑定点击事件
+            const container = document.getElementById('lightContainer');
+            if (container) {
+                container.addEventListener('click', toggleLight);
+                console.log('点击事件绑定成功');
+            } else {
+                console.error('找不到lightContainer元素');
+            }
+
+            // 监听来自父页面的消息
+            window.addEventListener('message', (e) => {
+                if (e.data) {
+                    if (e.data.type === 'updateState') {
+                        handleStateUpdate(e.data.state);
+                    } else if (e.data.type === 'updateConfig') {
+                        updateConfig(e.data.config);
+                    }
+                }
+            });
+
+            // 加载配置
+            loadConfig();
+        }
+
+        // 确保DOM加载完成后再初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            // DOM已经加载完成，直接初始化
+            init();
+        }
+    </script>
+</body>
+</html>

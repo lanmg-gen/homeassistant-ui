@@ -314,7 +314,7 @@ function loadBackgroundTheme() {
     const container = document.getElementById('background-container');
     
     if (!container) {
-        console.warn('Background container not found');
+        // 背景容器未找到
         return;
     }
     

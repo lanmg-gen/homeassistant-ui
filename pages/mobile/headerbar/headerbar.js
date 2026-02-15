@@ -112,7 +112,6 @@ if (!window.MobileHeaderbar) {
 
                             // 检查返回数据的格式（这个API直接返回数据，没有status和data包装）
                             if (!result || !result.list || !Array.isArray(result.list) || result.list.length === 0) {
-                                // console.error('Invalid weather response:', result);
                                 reject(new Error('天气数据格式异常'));
                                 return;
                             }
@@ -157,7 +156,6 @@ if (!window.MobileHeaderbar) {
                             resolve();
                         } catch (error) {
                             delete window.weatherCallback;
-                            // console.error('Weather parsing error:', error);
                             reject(new Error('天气数据解析失败'));
                         }
                     };
@@ -175,7 +173,6 @@ if (!window.MobileHeaderbar) {
                 this.weatherLoading = false;
                 this.updateWeatherDisplay();
             } catch (error) {
-                // console.error('Failed to fetch weather:', error);
                 this.weatherError = error.message;
                 this.weatherData = {
                     temp: '--',
@@ -352,7 +349,7 @@ if (!window.MobileHeaderbar) {
                     statusEl.textContent = statusMap[state] || state || '--';
                 }
             } catch (error) {
-                // console.error('获取扫地机状态失败:', error);
+                // 获取扫地机状态失败，静默处理
             }
         },
 
@@ -371,7 +368,7 @@ if (!window.MobileHeaderbar) {
                     statusEl.textContent = state ? `${state}次` : '--';
                 }
             } catch (error) {
-                // console.error('获取投喂器状态失败:', error);
+                // 获取投喂器状态失败，静默处理
             }
         },
 
@@ -416,7 +413,7 @@ if (!window.MobileHeaderbar) {
                     }
                 }
             } catch (error) {
-                // console.error('获取空调状态失败:', error);
+                // 获取空调状态失败，静默处理
             }
         },
 

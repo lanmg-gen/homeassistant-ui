@@ -35,6 +35,7 @@ if (!window.SettingsPage) {
                             { name: '通知设置', icon: '🔔', description: '推送通知管理', type: 'notification' },
                             { name: '隐私安全', icon: '🔒', description: '权限和隐私设置', type: 'privacy' },
                             { name: '网络设置', icon: '🌐', description: '连接和服务器配置', type: 'network' },
+                            { name: '宠物投喂设置', icon: '🍽️', description: '设置投喂份数', type: 'feeder' },
                             { name: '清空缓存', icon: '🗑️', description: '清除缓存并刷新页面', type: 'clearCache' },
                             { name: 'HA 设置同步', icon: '☁️', description: '同步设置到 HA', type: 'haSettingsSync' },
                             { name: '关于', icon: 'ℹ️', description: '版本信息和帮助', type: 'about' }

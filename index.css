@@ -24,6 +24,14 @@ body {
     position: relative;
 }
 
+/* 桌面端禁止滚动 */
+@media (min-width: 768px) {
+    body {
+        overflow: hidden;
+        height: 100vh;
+    }
+}
+
 /* 背景容器 */
 #background-container {
     position: fixed;
@@ -200,8 +208,9 @@ body {
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
     margin: 0;
     border-radius: 0;
-    z-index: 1000;
+    z-index: 100;
     transition: all 0.3s ease;
+    pointer-events: auto;
 }
 
 /* 导航项 */
@@ -315,8 +324,10 @@ body {
     }
 
     .main-content {
-        padding: 30px;
-        padding-bottom: 120px;
+        padding: 20px;
+        padding-bottom: 100px;
+        height: 100vh;
+        overflow: hidden;
     }
 }
 

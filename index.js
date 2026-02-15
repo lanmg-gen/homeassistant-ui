@@ -25,7 +25,7 @@ const AppState = {
             this.data.currentPage = pageName;
             this.saveToStorage();
         } else {
-            // console.error(`Invalid page: ${pageName}`);
+            // 页面无效，静默处理
         }
     },
     
@@ -39,7 +39,7 @@ const AppState = {
         try {
             localStorage.setItem('appCurrentPage', this.data.currentPage);
         } catch (error) {
-            // console.error('Failed to save to localStorage:', error);
+            // localStorage保存失败，静默处理
         }
     },
     
@@ -51,7 +51,7 @@ const AppState = {
                 this.data.currentPage = savedPage;
             }
         } catch (error) {
-            // console.error('Failed to load from localStorage:', error);
+            // localStorage加载失败，静默处理
         }
     }
 };
@@ -65,7 +65,7 @@ const PageManager = {
     init() {
         this.contentArea = document.querySelector('.main-content');
         if (!this.contentArea) {
-            // console.error('Main content area not found');
+            // 主内容区域未找到
             return;
         }
 
@@ -121,7 +121,7 @@ const PageManager = {
                     window.HomePage.vueApp.unmount();
                     window.HomePage.vueApp = null;
                 } catch (e) {
-                    // console.error('清理 Vue 应用时出错:', e);
+                    // 清理 Vue 应用时出错，静默处理
                 }
             }
 
@@ -144,15 +144,21 @@ const PageManager = {
             // 先加载页面的CSS，确保样式先应用
             await this.loadCSS(cssPath, pageName);
 
-            // 加载页面的JS
-            await this.loadJS(jsPath);
-
             // 插入新内容（CSS已加载完成）
             this.contentArea.innerHTML = html;
 
+            // 加载页面的JS
+            await this.loadJS(jsPath);
+
             // 通用页面Vue应用创建逻辑
+            const deviceType = AppState.data.isMobile ? 'mobile' : 'desktop';
             const pageObjectName = pageName.charAt(0).toUpperCase() + pageName.slice(1) + 'Page';
-            if (window[pageObjectName] && window[pageObjectName].createVueApp) {
+            const pageObjectNameDesktop = pageName.charAt(0).toUpperCase() + pageName.slice(1) + 'PageDesktop';
+
+            // 优先使用带设备类型后缀的页面对象
+            if (deviceType === 'desktop' && window[pageObjectNameDesktop] && window[pageObjectNameDesktop].createVueApp) {
+                window[pageObjectNameDesktop].createVueApp();
+            } else if (window[pageObjectName] && window[pageObjectName].createVueApp) {
                 window[pageObjectName].createVueApp();
             }
 
@@ -163,7 +169,6 @@ const PageManager = {
             }, 50);
 
             } catch (error) {
-                // console.error('Failed to load page:', error);
                 this.showError(`加载页面失败: ${error.message}`);
             }
     },
@@ -179,7 +184,6 @@ const PageManager = {
                 resolve();
             };
             link.onerror = () => {
-                // console.warn(`CSS load failed: ${path}`);
                 resolve(); // 不阻塞，即使CSS加载失败也继续
             };
             document.head.appendChild(link);
@@ -195,7 +199,6 @@ const PageManager = {
                 resolve();
             };
             script.onerror = () => {
-                // console.warn(`JS load failed: ${path}`);
                 resolve(); // 不阻塞，即使JS加载失败也继续
             };
             document.body.appendChild(script);
@@ -403,7 +406,7 @@ const App = {
         try {
             const headerbarContainer = document.getElementById('mobile-headerbar');
             if (!headerbarContainer) {
-                console.warn('Mobile headerbar container not found');
+                // 移动端页眉容器未找到
                 return;
             }
             
@@ -428,7 +431,7 @@ const App = {
             script.src = 'pages/mobile/headerbar/headerbar.js';
             document.body.appendChild(script);
         } catch (error) {
-            // console.error('Failed to load mobile headerbar:', error);
+            // 加载移动端页眉失败，静默处理
         }
     },
     
@@ -525,7 +528,7 @@ window.app = {
     getDeviceState: (entityId) => {
         // 防御性检查：确保 entityId 有效
         if (!entityId || typeof entityId !== 'string') {
-            console.warn(`[app.getDeviceState] 无效的实体ID: ${entityId}`, new Error().stack);
+            // 无效的实体ID
             return Promise.resolve('unavailable');
         }
         return window.haConnection ? window.haConnection.getDeviceState(entityId) : Promise.resolve('off');

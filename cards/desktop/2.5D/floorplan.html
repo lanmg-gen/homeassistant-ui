@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2.5D 户型图绘制工具</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #floorCanvas {
+            display: block;
+            cursor: crosshair;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.98);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            width: 200px;
+            display: none;
+        }
+        .toolbar.show { display: block; }
+        .toolbar-header {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            background: #f0f0f0;
+            margin-bottom: 6px;
+            width: 100%;
+        }
+        .btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="floorCanvas"></canvas>
+
+    <div class="toolbar" id="toolbar">
+        <div class="toolbar-header">
+            <span>绘图工具</span>
+            <button onclick="hideToolbar()">✕</button>
+        </div>
+        <button class="btn active" onclick="setMode('draw')">自由绘制</button>
+        <button class="btn" onclick="setMode('line')">直线</button>
+        <button class="btn" onclick="setMode('select')">选择</button>
+        <button class="btn" onclick="setMode('edit')">编辑</button>
+        <hr style="margin: 10px 0;">
+        <button class="btn" onclick="clearCanvas()">清空画布</button>
+        <button class="btn" onclick="showLengthDialog()">设置长度</button>
+    </div>
+
+    <div class="info-panel">
+        <div>模式: <span id="currentMode">画笔</span></div>
+        <div>坐标: <span id="coords">0, 0</span></div>
+        <div>线条: <span id="lineCount">0</span></div>
+        <div>房间: <span id="roomCount">0</span></div>
+    </div>
+
+    <!-- 长度设置对话框 -->
+    <div class="dialog-overlay" id="lengthDialogOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;">
+        <div class="dialog" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 300px;">
+            <h3>设置直线长度</h3>
+            <p>当前长度: <span id="currentLengthMm">0</span> mm</p>
+            <input type="number" id="lengthInput" placeholder="输入长度 (mm)" style="width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <button onclick="applyLength()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">确定</button>
+                <button onclick="hideLengthDialog()" style="padding: 8px 16px; background: #ccc; color: #333; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 房间重命名对话框 -->
+    <div class="dialog-overlay" id="renameDialogOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000;">
+        <div class="dialog" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); min-width: 300px;">
+            <h3>重命名房间</h3>
+            <p>房间: <span id="renameRoomId">未知</span></p>
+            <input type="text" id="renameInput" placeholder="输入房间名称" style="width: 100%; padding: 8px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <button onclick="applyRename()" style="padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">确定</button>
+                <button onclick="hideRenameDialog()" style="padding: 8px 16px; background: #ccc; color: #333; border: none; border-radius: 4px; cursor: pointer;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('floorCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 配置
+        const config = {
+            gridSize: 20,
+            pixelsPerMm: 1, // 1像素 = 1毫米
+            roomFillColor: 'rgba(102, 126, 234, 0.2)',
+            roomStrokeColor: '#667eea',
+            lineColor: '#2c3e50',
+            lineWidth: 2,
+            snapDistance: 10 // 像素
+        };
+
+        // 状态
+        let mode = 'draw'; // 'draw', 'line', 'select', 'edit'
+        let isDrawing = false;
+        let isToolbarOpen = false;
+        let paths = []; // 线条数组: {id, points: [{x,y}], lockedLength: boolean, lengthMm: number}
+        let rooms = []; // 房间数组: {id, points: [{x,y}], name, fillColor, strokeColor}
+        let currentPath = [];
+        let selectedItem = null; // 当前选中的线条或房间
+        let selectedPoint = null; // 当前选中的点
+        let draggingRoom = null; // 正在拖动的房间
+        let roomDragOffset = { x: 0, y: 0 }; // 房间拖动的偏移量
+        let nextId = 1;
+
+        // 工具函数
+        function generateId() {
+            return `item-${nextId++}`;
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            // 网格吸附
+            if (config.snapDistance > 0) {
+                const snapX = Math.round(x / config.gridSize) * config.gridSize;
+                const snapY = Math.round(y / config.gridSize) * config.gridSize;
+                if (Math.abs(snapX - x) <= config.snapDistance && Math.abs(snapY - y) <= config.snapDistance) {
+                    return { x: snapX, y: snapY };
+                }
+            }
+            return { x, y };
+        }
+
+        function distance(p1, p2) {
+            return Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+        }
+
+        function pixelsToMm(pixels) {
+            return pixels / config.pixelsPerMm;
+        }
+
+        function mmToPixels(mm) {
+            return mm * config.pixelsPerMm;
+        }
+
+        // 初始化
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            drawGrid();
+            bindEvents();
+            redraw();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = 0; x <= canvas.width; x += config.gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+            }
+            for (let y = 0; y <= canvas.height; y += config.gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+            }
+            ctx.stroke();
+        }
+
+        function bindEvents() {
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('contextmenu', handleContextMenu);
+            canvas.addEventListener('dblclick', handleDoubleClick);
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                drawGrid();
+                redraw();
+            });
+
+            // 监听父页面消息
+            window.addEventListener('message', (e) => {
+                const { action, data } = e.data;
+                switch (action) {
+                    case 'enableDrawing':
+                        isToolbarOpen = true;
+                        mode = 'draw';
+                        updateModeDisplay();
+                        break;
+                    case 'disableDrawing':
+                        isToolbarOpen = false;
+                        hideToolbar();
+                        break;
+                    case 'clearCanvas':
+                        clearCanvas();
+                        break;
+                    case 'importConfig':
+                        if (data?.config) importConfig(data.config);
+                        break;
+                    case 'getConfig':
+                        const config = exportFloorplanConfig();
+                        e.source.postMessage({
+                            action: 'exportConfig',
+                            data: { config }
+                        }, '*');
+                        break;
+                    case 'setModeSelect':
+                        if (isToolbarOpen) setMode('select');
+                        break;
+                    case 'setModeEdit':
+                        if (isToolbarOpen) setMode('edit');
+                        break;
+                    case 'setModeDraw':
+                        if (isToolbarOpen) setMode('draw');
+                        break;
+                    case 'setModeLine':
+                        if (isToolbarOpen) setMode('line');
+                        break;
+                    case 'closeRoom':
+                        if (isToolbarOpen) closeRoom();
+                        break;
+                }
+            });
+        }
+
+        // 鼠标事件处理
+        function handleMouseDown(e) {
+            if (!isToolbarOpen) return;
+            const pos = getPos(e);
+
+            if (mode === 'select' || mode === 'edit') {
+                // 检查是否点击了点
+                const point = findPointAt(pos);
+                if (point) {
+                    selectedPoint = point;
+                    return;
+                }
+                // 检查是否点击了线条或房间
+                const item = findItemAt(pos);
+                if (item) {
+                    selectedItem = item;
+                    // 如果是房间，准备拖动
+                    if (item.type === 'room') {
+                        draggingRoom = item.data;
+                        // 计算鼠标位置与房间中心的偏移量
+                        const center = getPolygonCenter(draggingRoom.points);
+                        roomDragOffset.x = pos.x - center.x;
+                        roomDragOffset.y = pos.y - center.y;
+                    }
+                    return;
+                }
+                // 未选中任何东西，清空选择
+                selectedItem = null;
+                selectedPoint = null;
+                draggingRoom = null;
+            }
+
+            if (mode === 'draw' || mode === 'line') {
+                isDrawing = true;
+                currentPath = [pos];
+            }
+        }
+
+        function handleMouseMove(e) {
+            const pos = getPos(e);
+            document.getElementById('coords').textContent = `${pos.x}, ${pos.y}`;
+
+            if (!isDrawing && !selectedPoint && !draggingRoom) return;
+
+            if (draggingRoom) {
+                // 拖动整个房间：计算新中心位置
+                const newCenterX = pos.x - roomDragOffset.x;
+                const newCenterY = pos.y - roomDragOffset.y;
+                const oldCenter = getPolygonCenter(draggingRoom.points);
+                const dx = newCenterX - oldCenter.x;
+                const dy = newCenterY - oldCenter.y;
+                draggingRoom.points.forEach(point => {
+                    point.x += dx;
+                    point.y += dy;
+                });
+                redraw();
+                return;
+            }
+
+            if (selectedPoint) {
+                // 移动选中的点
+                // 检查该点是否属于锁定长度的直线
+                const path = findPathContainingPoint(selectedPoint);
+                if (path && path.lockedLength && path.points.length === 2) {
+                    // 锁定长度的直线：保持长度不变
+                    const otherPoint = path.points[0] === selectedPoint ? path.points[1] : path.points[0];
+                    const currentDist = distance(selectedPoint, otherPoint);
+                    const targetDist = mmToPixels(path.lengthMm);
+                    if (currentDist === 0) {
+                        // 如果距离为0，将选中的点移动到保持距离的位置
+                        selectedPoint.x = otherPoint.x + targetDist;
+                        selectedPoint.y = otherPoint.y;
+                    } else {
+                        const scale = targetDist / currentDist;
+                        const dx = selectedPoint.x - otherPoint.x;
+                        const dy = selectedPoint.y - otherPoint.y;
+                        selectedPoint.x = otherPoint.x + dx * scale;
+                        selectedPoint.y = otherPoint.y + dy * scale;
+                    }
+                } else {
+                    // 普通点移动
+                    selectedPoint.x = pos.x;
+                    selectedPoint.y = pos.y;
+                }
+                redraw();
+                return;
+            }
+
+            if (isDrawing && mode === 'draw') {
+                redraw();
+                ctx.strokeStyle = config.lineColor;
+                ctx.lineWidth = config.lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            }
+        }
+
+        function handleMouseUp(e) {
+            if (!isDrawing && !selectedPoint && !draggingRoom) return;
+            
+            const pos = getPos(e);
+            
+            if (selectedPoint) {
+                selectedPoint = null;
+                return;
+            }
+
+            if (draggingRoom) {
+                draggingRoom = null;
+                return;
+            }
+
+            if (mode === 'line') {
+                // 创建直线
+                const line = {
+                    id: generateId(),
+                    points: [currentPath[0], pos],
+                    lockedLength: false,
+                    lengthMm: pixelsToMm(distance(currentPath[0], pos))
+                };
+                paths.push(line);
+            } else if (mode === 'draw') {
+                currentPath.push(pos);
+                if (currentPath.length >= 2) {
+                    const path = {
+                        id: generateId(),
+                        points: [...currentPath],
+                        lockedLength: false,
+                        lengthMm: null
+                    };
+                    paths.push(path);
+                    
+                    // 检查是否闭合
+                    if (currentPath.length >= 3) {
+                        const first = currentPath[0];
+                        const last = currentPath[currentPath.length - 1];
+                        if (distance(first, last) <= config.snapDistance) {
+                            // 创建房间
+                            createRoom([...currentPath]);
+                            // 移除对应的路径
+                            paths.pop();
+                        }
+                    }
+                }
+            }
+            
+            isDrawing = false;
+            currentPath = [];
+            redraw();
+            updateInfo();
+        }
+
+        function handleContextMenu(e) {
+            e.preventDefault();
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    action: 'requestContextMenu',
+                    data: { x: e.clientX, y: e.clientY }
+                }, '*');
+            }
+        }
+
+        function handleDoubleClick(e) {
+            if (!isToolbarOpen) return;
+            const pos = getPos(e);
+            const item = findItemAt(pos);
+            if (item && item.type === 'room') {
+                showRenameDialog(item.data);
+            }
+        }
+
+        // 查找函数
+        function findPointAt(pos) {
+            const threshold = 8;
+            
+            // 检查路径点
+            for (const path of paths) {
+                for (const point of path.points) {
+                    if (distance(point, pos) <= threshold) {
+                        return point;
+                    }
+                }
+            }
+            
+            // 检查房间点
+            for (const room of rooms) {
+                for (const point of room.points) {
+                    if (distance(point, pos) <= threshold) {
+                        return point;
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        function findPathContainingPoint(point) {
+            for (const path of paths) {
+                for (const p of path.points) {
+                    if (p === point) {
+                        return path;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function findItemAt(pos) {
+            const threshold = 6;
+            
+            // 检查线条
+            for (const path of paths) {
+                for (let i = 0; i < path.points.length - 1; i++) {
+                    const p1 = path.points[i];
+                    const p2 = path.points[i + 1];
+                    // 计算点到线段距离
+                    const d = pointToLineDistance(pos, p1, p2);
+                    if (d <= threshold) {
+                        return { type: 'path', data: path };
+                    }
+                }
+            }
+            
+            // 检查房间
+            for (const room of rooms) {
+                // 粗略检查点是否在房间多边形内
+                if (pointInPolygon(pos, room.points)) {
+                    return { type: 'room', data: room };
+                }
+            }
+            
+            return null;
+        }
+
+        function pointToLineDistance(p, a, b) {
+            const A = p.x - a.x;
+            const B = p.y - a.y;
+            const C = b.x - a.x;
+            const D = b.y - a.y;
+
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+
+            let xx, yy;
+            if (param < 0) {
+                xx = a.x;
+                yy = a.y;
+            } else if (param > 1) {
+                xx = b.x;
+                yy = b.y;
+            } else {
+                xx = a.x + param * C;
+                yy = a.y + param * D;
+            }
+
+            const dx = p.x - xx;
+            const dy = p.y - yy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function pointInPolygon(point, polygon) {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i].x, yi = polygon[i].y;
+                const xj = polygon[j].x, yj = polygon[j].y;
+
+                const intersect = ((yi > point.y) !== (yj > point.y))
+                    && (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        // 房间功能
+        function createRoom(points) {
+            const room = {
+                id: generateId(),
+                points: points,
+                name: `房间 ${rooms.length + 1}`,
+                fillColor: config.roomFillColor,
+                strokeColor: config.roomStrokeColor
+            };
+            rooms.push(room);
+            return room;
+        }
+
+        function closeRoom() {
+            // 如果当前有正在绘制的路径，尝试闭合它
+            if (currentPath.length >= 3) {
+                createRoom([...currentPath]);
+                currentPath = [];
+                isDrawing = false;
+                redraw();
+                updateInfo();
+                return true;
+            }
+            // 如果选中了一个路径，将其转换为房间
+            if (selectedItem && selectedItem.type === 'path') {
+                const path = selectedItem.data;
+                if (path.points.length >= 3) {
+                    createRoom([...path.points]);
+                    // 从路径数组中移除
+                    paths = paths.filter(p => p.id !== path.id);
+                    selectedItem = null;
+                    redraw();
+                    updateInfo();
+                    return true;
+                }
+            }
+            alert('无法闭合：需要至少三个点构成的多边形');
+            return false;
+        }
+
+        function deleteRoom(roomId) {
+            rooms = rooms.filter(r => r.id !== roomId);
+        }
+
+        function renameRoom(roomId, newName) {
+            const room = rooms.find(r => r.id === roomId);
+            if (room) room.name = newName;
+        }
+
+        // 绘制函数
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+
+            // 绘制房间
+            rooms.forEach(room => {
+                if (!room || !room.points) return;
+                ctx.fillStyle = room.fillColor;
+                ctx.strokeStyle = room.strokeColor;
+                ctx.lineWidth = config.lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(room.points[0].x, room.points[0].y);
+                for (let i = 1; i < room.points.length; i++) {
+                    ctx.lineTo(room.points[i].x, room.points[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // 绘制房间名称
+                if (room.name) {
+                    const center = getPolygonCenter(room.points);
+                    ctx.fillStyle = '#333';
+                    ctx.font = '14px Microsoft YaHei';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(room.name, center.x, center.y);
+                }
+            });
+
+            // 绘制线条
+            paths.forEach(path => {
+                if (!path || !path.points) return;
+                ctx.strokeStyle = config.lineColor;
+                ctx.lineWidth = config.lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(path.points[0].x, path.points[0].y);
+                for (let i = 1; i < path.points.length; i++) {
+                    ctx.lineTo(path.points[i].x, path.points[i].y);
+                }
+                ctx.stroke();
+
+                // 绘制端点
+                path.points.forEach(point => {
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            });
+
+            // 绘制当前路径
+            if (isDrawing && currentPath.length > 0) {
+                ctx.strokeStyle = config.lineColor;
+                ctx.lineWidth = config.lineWidth;
+                ctx.beginPath();
+                ctx.moveTo(currentPath[0].x, currentPath[0].y);
+                for (let i = 1; i < currentPath.length; i++) {
+                    ctx.lineTo(currentPath[i].x, currentPath[i].y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function getPolygonCenter(points) {
+            let x = 0, y = 0;
+            points.forEach(p => {
+                x += p.x;
+                y += p.y;
+            });
+            return { x: x / points.length, y: y / points.length };
+        }
+
+        // 信息更新
+        function updateInfo() {
+            document.getElementById('lineCount').textContent = paths.length;
+            document.getElementById('roomCount').textContent = rooms.length;
+        }
+
+        // 工具栏相关
+        function setMode(m) {
+            mode = m;
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            const evt = window.event || arguments.callee.caller.arguments[0];
+            if (evt && evt.target) {
+                evt.target.classList.add('active');
+            }
+            updateModeDisplay();
+        }
+        
+        function updateModeDisplay() {
+            document.getElementById('currentMode').textContent = mode;
+        }
+
+        function showToolbar() {
+            isToolbarOpen = true;
+            document.getElementById('toolbar').classList.add('show');
+        }
+
+        function hideToolbar() {
+            isToolbarOpen = false;
+            isDrawing = false;
+            currentPath = [];
+            document.getElementById('toolbar').classList.remove('show');
+        }
+
+        function clearCanvas() {
+            if (!confirm('确定要清空画布吗？')) return;
+            paths = [];
+            rooms = [];
+            redraw();
+            updateInfo();
+        }
+
+        // 配置导入导出
+        function importConfig(configData) {
+            if (!configData) {
+                configData = {};
+            }
+            paths = configData.paths || [];
+            rooms = configData.rooms || [];
+            redraw();
+            updateInfo();
+        }
+
+        function exportFloorplanConfig() {
+            return { paths, rooms };
+        }
+
+        // 长度设置对话框功能
+        function showLengthDialog() {
+            if (!selectedItem || selectedItem.type !== 'path') {
+                alert('请先选择一条直线');
+                return;
+            }
+            const path = selectedItem.data;
+            const currentLength = path.lengthMm || pixelsToMm(distance(path.points[0], path.points[1]));
+            document.getElementById('currentLengthMm').textContent = currentLength.toFixed(1);
+            document.getElementById('lengthInput').value = currentLength.toFixed(1);
+            document.getElementById('lengthDialogOverlay').style.display = 'block';
+        }
+
+        function hideLengthDialog() {
+            document.getElementById('lengthDialogOverlay').style.display = 'none';
+        }
+
+        function applyLength() {
+            const input = document.getElementById('lengthInput');
+            const lengthMm = parseFloat(input.value);
+            if (isNaN(lengthMm) || lengthMm <= 0) {
+                alert('请输入有效的正数长度');
+                return;
+            }
+            
+            if (!selectedItem || selectedItem.type !== 'path') {
+                alert('未选中直线');
+                return;
+            }
+            
+            const path = selectedItem.data;
+            if (path.points.length !== 2) {
+                alert('只能设置直线的长度');
+                return;
+            }
+            
+            // 锁定长度并设置毫米值
+            path.lockedLength = true;
+            path.lengthMm = lengthMm;
+            
+            // 保持第一个点不变，调整第二个点以保持长度
+            const p1 = path.points[0];
+            const p2 = path.points[1];
+            const currentDist = distance(p1, p2);
+            if (currentDist === 0) {
+                // 如果当前距离为0，将第二个点向右移动
+                p2.x = p1.x + mmToPixels(lengthMm);
+                p2.y = p1.y;
+            } else {
+                const scale = mmToPixels(lengthMm) / currentDist;
+                p2.x = p1.x + (p2.x - p1.x) * scale;
+                p2.y = p1.y + (p2.y - p1.y) * scale;
+            }
+            
+            hideLengthDialog();
+            redraw();
+        }
+
+        // 房间重命名功能
+        let renamingRoom = null;
+
+        function showRenameDialog(room) {
+            renamingRoom = room;
+            document.getElementById('renameRoomId').textContent = room.name;
+            document.getElementById('renameInput').value = room.name;
+            document.getElementById('renameDialogOverlay').style.display = 'block';
+        }
+
+        function hideRenameDialog() {
+            document.getElementById('renameDialogOverlay').style.display = 'none';
+            renamingRoom = null;
+        }
+
+        function applyRename() {
+            if (!renamingRoom) return;
+            const input = document.getElementById('renameInput');
+            const newName = input.value.trim();
+            if (!newName) {
+                alert('房间名称不能为空');
+                return;
+            }
+            renamingRoom.name = newName;
+            hideRenameDialog();
+            redraw();
+        }
+
+        // 全局导出
+        window.exportFloorplanConfig = exportFloorplanConfig;
+        window.importFloorplanConfig = importConfig;
+        window.showLengthDialog = showLengthDialog;
+
+        // 初始化
+        init();
+    </script>
+</body>
+</html>

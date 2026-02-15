@@ -1,15 +1,137 @@
-<!-- 首页 - 桌面端 -->
-<div class="page home-page">
-    <div class="page-header">
-        <h1 class="page-title">首页</h1>
-        <p class="page-subtitle">欢迎使用智能家居控制面板</p>
+<!-- 首页 - 桌面端自由布局 -->
+<div class="desktop-home-container">
+    <!-- 自由布局画布 -->
+    <div class="free-layout-canvas" id="freeLayoutCanvas"></div>
+
+    <!-- 右键菜单 - 画布 -->
+    <div class="context-menu desktop-context-menu" id="desktopContextMenu">
+        <div class="context-menu-item" onclick="DesktopLayout.showEditToolbar()">✏️ 编辑布局</div>
+        <div class="context-menu-item" onclick="DesktopLayout.clearCanvas()">🗑️ 清空画布</div>
     </div>
-    
-    <div class="page-content">
-        <div class="welcome-card">
-            <div class="welcome-icon">🏠</div>
-            <h2>欢迎使用</h2>
-            <p>这里是首页内容区域 - 桌面端</p>
+
+    <!-- 右键菜单 - 组件 -->
+    <div class="context-menu component-context-menu" id="componentContextMenu">
+        <div class="context-menu-item" onclick="DesktopLayout.deleteSelectedComponent()">🗑️ 删除组件</div>
+        <div class="context-menu-item" onclick="DesktopLayout.bringToFront()">⬆️ 置于顶层</div>
+        <div class="context-menu-item" onclick="DesktopLayout.sendToBack()">⬇️ 置于底层</div>
+    </div>
+
+    <!-- 编辑工具栏 -->
+    <div class="edit-toolbar" id="editToolbar">
+        <div class="edit-toolbar-header" id="editToolbarHeader">
+            <span class="drag-handle">⋮⋮</span>
+            <span>🛠️ 编辑工具</span>
+            <button type="button" class="close-btn" id="closeEditToolbar">✕</button>
+        </div>
+        <div class="edit-toolbar-content">
+            <div class="toolbar-section">
+                <h4>添加组件</h4>
+                <div class="component-categories">
+                    <div class="category collapsed">
+                        <div class="category-header" onclick="DesktopLayout.toggleCategory(this)">
+                            <span class="category-icon">🏠</span>
+                            <span class="category-name">户型</span>
+                            <span class="category-arrow">▼</span>
+                        </div>
+                        <div class="category-items">
+                            <button class="toolbar-btn" onclick="DesktopLayout.addComponent('floorplan')">
+                                <span class="btn-icon">🏠</span>
+                                <span class="btn-text">户型图</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="category collapsed">
+                        <div class="category-header" onclick="DesktopLayout.toggleCategory(this)">
+                            <span class="category-icon">🕐</span>
+                            <span class="category-name">时钟</span>
+                            <span class="category-arrow">▼</span>
+                        </div>
+                        <div class="category-items">
+                            <button class="toolbar-btn" onclick="DesktopLayout.addComponent('analogClock')">
+                                <span class="btn-icon">🕐</span>
+                                <span class="btn-text">模拟时钟</span>
+                            </button>
+                            <button class="toolbar-btn" onclick="DesktopLayout.addComponent('digitalClock')">
+                                <span class="btn-icon">🕒</span>
+                                <span class="btn-text">数字时钟</span>
+                            </button>
+                            <button class="toolbar-btn" onclick="DesktopLayout.addComponent('flipClock')">
+                                <span class="btn-icon">🕓</span>
+                                <span class="btn-text">翻牌时钟</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="category collapsed">
+                        <div class="category-header" onclick="DesktopLayout.toggleCategory(this)">
+                            <span class="category-icon">💡</span>
+                            <span class="category-name">设备</span>
+                            <span class="category-arrow">▼</span>
+                        </div>
+                        <div class="category-items">
+                            <button class="toolbar-btn" onclick="DesktopLayout.addLight()">
+                                <span class="btn-icon">💡</span>
+                                <span class="btn-text">灯光</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="toolbar-section">
+                <h4>布局操作</h4>
+                <button class="toolbar-btn" onclick="DesktopLayout.saveLayout()">
+                    <span class="btn-icon">💾</span>
+                    <span class="btn-text">保存布局</span>
+                </button>
+                <button class="toolbar-btn" onclick="DesktopLayout.loadLayout()">
+                    <span class="btn-icon">📂</span>
+                    <span class="btn-text">加载布局</span>
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- 组件模板 - 户型图 -->
+    <template id="floorplanComponentTemplate">
+        <div class="layout-component floorplan-component" data-component-type="floorplan">
+            <div class="component-drag-layer"></div>
+            <div class="component-click-layer"></div>
+            <iframe class="floorplan-iframe" src="cards/desktop/2.5D/floorplan.html" frameborder="0"></iframe>
+        </div>
+    </template>
+
+    <!-- 组件模板 - 模拟时钟 -->
+    <template id="analogClockComponentTemplate">
+        <div class="layout-component clock-component analog-clock" data-component-type="analogClock">
+            <div class="component-drag-layer"></div>
+            <div class="component-click-layer"></div>
+            <iframe class="clock-iframe" src="cards/desktop/clock/analog/clock.html" frameborder="0" scrolling="no"></iframe>
+        </div>
+    </template>
+
+    <!-- 组件模板 - 数字时钟 -->
+    <template id="digitalClockComponentTemplate">
+        <div class="layout-component clock-component digital-clock" data-component-type="digitalClock">
+            <div class="component-drag-layer"></div>
+            <div class="component-click-layer"></div>
+            <iframe class="clock-iframe" src="cards/desktop/clock/digital/clock.html" frameborder="0" scrolling="no"></iframe>
+        </div>
+    </template>
+
+    <!-- 组件模板 - 翻牌时钟 -->
+    <template id="flipClockComponentTemplate">
+        <div class="layout-component clock-component flip-clock" data-component-type="flipClock">
+            <div class="component-drag-layer"></div>
+            <div class="component-click-layer"></div>
+            <iframe class="clock-iframe" src="cards/desktop/clock/flip/clock.html" frameborder="0" scrolling="no"></iframe>
+        </div>
+    </template>
+
+    <!-- 组件模板 - 灯光 -->
+    <template id="lightComponentTemplate">
+        <div class="layout-component device-component light-component" data-component-type="light">
+            <div class="component-drag-layer"></div>
+            <div class="component-click-layer"></div>
+            <iframe class="device-iframe" src="" data-config='{}' frameborder="0" scrolling="no"></iframe>
+        </div>
+    </template>
 </div>

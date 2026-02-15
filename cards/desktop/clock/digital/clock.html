@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字时钟</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            font-family: 'Courier New', monospace;
+            width: 220px;
+            height: 110px;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .clock {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .date {
+            font-size: 16px;
+            color: #666;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="date" id="date">2024-01-01</div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour12: false });
+            const dateStr = now.toLocaleDateString('zh-CN');
+            document.getElementById('clock').textContent = timeStr;
+            document.getElementById('date').textContent = dateStr;
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // 响应父页面的尺寸请求
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'requestSize') {
+                const width = document.body.scrollWidth || document.body.offsetWidth;
+                const height = document.body.scrollHeight || document.body.offsetHeight;
+                window.parent.postMessage({
+                    type: 'reportSize',
+                    width: width,
+                    height: height
+                }, '*');
+            }
+        });
+    </script>
+</body>
+</html>

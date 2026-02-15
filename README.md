@@ -23,6 +23,11 @@
    ├── libs/
    └── backgrounds/
    ```
+   **嵌入页面方法**
+   ### 在home assistant中打开"设置->仪表盘->添加仪表盘"->"网页表盘"->"复制以下内容"->"保存"
+   ```
+   http://HA地址:8123/local/webui/index.html
+   ```
 
 2. **访问控制面板**
 
@@ -49,7 +54,6 @@ python -m http.server 8000
 然后访问 `http://localhost:8000`
 
 ---
-可以在ha里创建一个网页仪表盘把地址填进去，这样就可以完美的嵌入到ha仪表盘里了，
 
 ## 使用方法
 

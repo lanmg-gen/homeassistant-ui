@@ -12,6 +12,7 @@
     
     <!-- 引入样式文件 -->
     <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="pages/desktop/home.css">
 </head>
 <body>
     <!-- 初始隐藏，防止样式加载前的闪烁 -->
@@ -57,10 +58,6 @@
     <!-- 引入Vue -->
     <script src="libs/vue.global.js"></script>
 
-    <!-- 引入SortableJS - 用于iOS风格拖放动画 -->
-    <script src="libs/sortablejs.js"></script>
-
-
     <!-- 引入配置文件 -->
     <script src="config/config.js"></script>
     <script src="config/device_config.js"></script>
@@ -79,7 +76,7 @@
             window.addEventListener('load', () => {
                 // 检查是否在支持的协议下运行（file:// 不支持 Service Worker）
                 if (window.location.protocol === 'file:') {
-                    console.log('[SW] 本地文件协议不支持 Service Worker，跳过注册');
+                    // 本地文件协议不支持 Service Worker，跳过注册
                     return;
                 }
 
@@ -91,15 +88,7 @@
 
                 // 只在非 HA App 环境下注册 Service Worker
                 if (!isHAApp) {
-                    navigator.serviceWorker.register('sw.js')
-                        .then(registration => {
-                            console.log('[SW] 注册成功:', registration.scope);
-                        })
-                        .catch(error => {
-                            console.log('[SW] 注册失败:', error);
-                        });
-                } else {
-                    console.log('[SW] 检测到 HA App 环境，跳过 Service Worker 注册');
+                    navigator.serviceWorker.register('sw.js');
                 }
             });
         }

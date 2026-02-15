@@ -58,7 +58,7 @@ class HAConnection {
         };
 
         this.ws.onerror = (error) => {
-            console.error('WebSocket 错误:', error);
+
             this.connected = false;
         };
 
@@ -108,7 +108,7 @@ class HAConnection {
                     break;
 
                 case 'auth_invalid':
-                    console.error('认证失败: Token 无效');
+
                     this.notifyListeners('error', { message: 'Token 无效,请检查配置' });
                     break;
 
@@ -122,7 +122,7 @@ class HAConnection {
                 case 'result':
                     // 处理订阅/调用服务的响应
                     if (message.success === false) {
-                        console.error('操作失败:', message.error);
+
                         // 检查是否有待处理的调用
                         if (this.pendingCalls && this.pendingCalls[message.id]) {
                             this.pendingCalls[message.id].reject(new Error(message.error.message));
@@ -230,7 +230,6 @@ class HAConnection {
                 this.states[entity_id] = new_state ? new_state.state : null;
 
             // 调试：输出所有state_changed事件（已关闭以减少日志干扰）
-            // console.log('[HA连接] state_changed事件:', entity_id, 'state:', new_state ? new_state.state : null);
 
                 // 通知监听器
                 this.notifyListeners('stateUpdate', {
@@ -267,6 +266,7 @@ class HAConnection {
      * @returns {Promise}
      */
     async callService(domain, service, data) {
+        console.log(`[HAConnection] 调用服务: ${domain}.${service}, 数据:`, data);
         // 优先使用 WebSocket 调用
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             return this.callServiceWebSocket(domain, service, data);
@@ -284,6 +284,7 @@ class HAConnection {
      * @returns {Promise}
      */
     async callServiceWebSocket(domain, service, data) {
+        console.log(`[HAConnection] 通过 WebSocket 调用服务: ${domain}.${service}`, data);
         const messageId = this.generateId();
 
         return new Promise((resolve, reject) => {
@@ -311,6 +312,7 @@ class HAConnection {
      * @returns {Promise}
      */
     async callServiceREST(domain, service, data) {
+        console.log(`[HAConnection] 通过 REST API 调用服务: ${domain}.${service}`, data);
         return new Promise((resolve, reject) => {
             if (!this.url || !this.token) {
                 reject(new Error('HA 未连接'));
@@ -352,7 +354,7 @@ class HAConnection {
     async getDeviceState(entityId) {
         // 防御性检查：确保 entityId 有效且不是 "Error" 字符串
         if (!entityId || typeof entityId !== 'string' || entityId === 'Error' || !entityId.includes('.')) {
-            console.warn(`[ha-connection] 无效的实体ID: ${entityId}`, new Error().stack);
+            // 无效的实体ID
             return 'unavailable';
         }
 

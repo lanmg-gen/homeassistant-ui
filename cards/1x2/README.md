@@ -117,7 +117,6 @@ window.app = {
 
     // 处理设备点击
     async handleDeviceClick(device) {
-        console.log('点击设备:', device.name);
         // 执行设备控制逻辑
     },
 

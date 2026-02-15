@@ -73,7 +73,7 @@ const HASettingsSync = {
      * 在应用启动时调用，自动从 HA 加载设置
      */
     async initialize() {
-        console.log('[HA 设置同步] 初始化...');
+
 
         // 从 HA 加载设置
         const settings = await this.loadFromHA();
@@ -82,7 +82,7 @@ const HASettingsSync = {
             // 应用加载的设置
             this.applySettings(settings);
             this.cachedSettings = settings;
-            console.log('[HA 设置同步] 已应用 HA 设置:', settings);
+
         } else {
             // 如果 HA 没有设置，从 localStorage 加载
             this.loadFromLocalStorage();
@@ -97,7 +97,7 @@ const HASettingsSync = {
      */
     startWatching() {
         if (!window.haConnection) {
-            console.warn('[HA 设置同步] HA 连接不可用，无法监听状态变化');
+
             return;
         }
 
@@ -107,12 +107,12 @@ const HASettingsSync = {
         // 添加状态更新监听器
         window.haConnection.addListener('stateUpdate', (data) => {
             if (data.entityId === this.ENTITY_ID) {
-                console.log('[HA 设置同步] 检测到实体状态更新:', this.ENTITY_ID, data.state);
+
                 this.handleRemoteSettingsUpdate(data);
             }
         });
 
-        console.log('[HA 设置同步] 已开始监听实体状态变化:', this.ENTITY_ID);
+
     },
 
     /**
@@ -138,10 +138,7 @@ const HASettingsSync = {
                 return; // 设置没有变化，跳过
             }
 
-            console.log('[HA 设置同步] 检测到远程设置变化:', {
-                旧设置: oldSettings,
-                新设置: newSettings
-            });
+
 
             // 标记为正在应用外部设置
             this.applyingExternalSettings = true;
@@ -201,6 +198,11 @@ const HASettingsSync = {
                         window.MobileHeaderbar.fetchWeather();
                     }
                 }
+            }
+
+            // 确保 feedCount 有默认值
+            if (settings.feedCount === undefined) {
+                settings.feedCount = 1;
             }
         } catch (error) {
             console.error('[HA 设置同步] 应用设置失败:', error);
@@ -277,6 +279,19 @@ const HASettingsSync = {
             }
         }
 
+        // 收集宠物投喂份数
+        try {
+            const savedFeederAmount = localStorage.getItem('feederAmount');
+            if (savedFeederAmount) {
+                const feederAmount = parseInt(savedFeederAmount, 10);
+                if (!isNaN(feederAmount) && feederAmount >= 1) {
+                    settings.feedCount = feederAmount;
+                }
+            }
+        } catch (error) {
+            // 读取失败静默处理
+        }
+
         return settings;
     },
 
@@ -288,7 +303,7 @@ const HASettingsSync = {
         try {
             const haConfig = window.getHAConfig?.();
             if (!haConfig || !haConfig.url || !haConfig.token) {
-                console.warn('[HA 设置同步] 未配置 HA 连接，跳过同步');
+
                 throw new Error('未配置 HA 连接，请在网络设置中配置服务器地址和访问令牌');
             }
 
@@ -307,12 +322,11 @@ const HASettingsSync = {
 
             // 检查字符限制（默认 255）
             if (finalValue.length > 255) {
-                console.warn('[HA 设置同步] 数据超过 255 字符限制，当前长度:', finalValue.length);
+
                 throw new Error(`设置数据过大 (${finalValue.length} 字符)，请减少保存的设置项`);
             }
 
-            console.log('[HA 设置同步] 准备发送数据:', finalValue);
-            console.log('[HA 设置同步] 数据长度:', finalValue.length);
+
 
             // 标记为正在同步（避免监听器误触发）
             this.applyingExternalSettings = true;
@@ -328,8 +342,7 @@ const HASettingsSync = {
                 state: finalValue
             };
 
-            console.log('[HA 设置同步] 请求URL:', stateUrl);
-            console.log('[HA 设置同步] 请求体:', JSON.stringify(stateBody));
+
 
             const response = await fetch(stateUrl, {
                 method: 'POST',
@@ -337,32 +350,36 @@ const HASettingsSync = {
                 body: JSON.stringify(stateBody)
             });
 
-            console.log('[HA 设置同步] API 响应状态:', response.status);
+
 
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`同步失败: HTTP ${response.status} - ${errorText}`);
             }
 
-            const result = await response.json();
-            console.log('[HA 设置同步] 成功:', result);
+            await response.json(); // 确保响应是有效的JSON
+
 
             // 等待一下，让 HA 更新状态
             await new Promise(resolve => setTimeout(resolve, 500));
 
             // 验证是否真的更新了
-            const currentState = await this.loadFromHA();
-            console.log('[HA 设置同步] 验证 - HA 中的当前值:', currentState);
+            await this.loadFromHA();
+
 
             // 更新缓存
             this.cachedSettings = settings;
+            // 强制确保 feedCount 是我们设置的（防止 HA 返回的数据缺失该字段）
+            if (settings.feedCount !== undefined) {
+                this.cachedSettings.feedCount = settings.feedCount;
+            }
 
             // 标记同步完成
             setTimeout(() => {
                 this.applyingExternalSettings = false;
             }, 1000);
 
-            console.log('[HA 设置同步] 成功:', settings);
+
             
             // 显示同步成功提示
             this.showToast('设置已同步到 Home Assistant', 'success');
@@ -408,11 +425,11 @@ const HASettingsSync = {
         try {
             const haConfig = window.getHAConfig?.();
             if (!haConfig || !haConfig.url || !haConfig.token) {
-                console.warn('[HA 设置加载] 未配置 HA 连接，跳过加载');
+
                 return null;
             }
 
-            console.log('[HA 设置加载] 正在获取实体:', this.ENTITY_ID);
+
 
             // 获取 input_text 状态
             const response = await fetch(`${haConfig.url}/api/states/${this.ENTITY_ID}`, {
@@ -423,29 +440,26 @@ const HASettingsSync = {
                 }
             });
 
-            console.log('[HA 设置加载] 响应状态:', response.status);
+
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('[HA 设置加载] 错误响应:', errorText);
                 if (errorText.includes('not found') || errorText.includes('Unknown entity')) {
-                    console.warn('[HA 设置加载] 实体不存在，请先在 HA 中配置:', this.ENTITY_ID);
                     return null;
                 }
                 throw new Error(`加载失败: HTTP ${response.status}`);
             }
 
             const state = await response.json();
-            console.log('[HA 设置加载] 完整实体状态:', state);
-            console.log('[HA 设置加载] 实体的 state 属性:', state.state);
+
 
             const settings = JSON.parse(state.state || '{}');
 
-            console.log('[HA 设置加载] 解析后的设置:', settings);
+
             return settings;
 
         } catch (error) {
-            console.error('[HA 设置加载] 失败:', error);
+
             return null;
         }
     },
@@ -488,7 +502,7 @@ const HASettingsSync = {
      * 清除本地存储的设置缓存
      */
     clearCache() {
-        console.log('[HA 设置同步] 开始清除本地缓存...');
+
         
         // 要清除的键列表
         const keysToClear = [
@@ -502,7 +516,7 @@ const HASettingsSync = {
         keysToClear.forEach(key => {
             if (localStorage.getItem(key)) {
                 localStorage.removeItem(key);
-                console.log(`[HA 设置同步] 已清除缓存: ${key}`);
+
                 clearedCount++;
             }
         });
@@ -512,12 +526,12 @@ const HASettingsSync = {
             const key = localStorage.key(i);
             if (key && (key.startsWith('ha_') || key.includes('settings') || key.includes('backup'))) {
                 localStorage.removeItem(key);
-                console.log(`[HA 设置同步] 已清除相关缓存: ${key}`);
+
                 clearedCount++;
             }
         }
         
-        console.log(`[HA 设置同步] 缓存清除完成，共清除 ${clearedCount} 项`);
+
         
         // 显示清除成功提示
         this.showToast(`缓存清除成功，已清理 ${clearedCount} 项数据`, 'success');

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>翻牌时钟</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            font-family: 'Arial', sans-serif;
+            width: 360px;
+            height: 70px;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .clock {
+            display: flex;
+            gap: 10px;
+        }
+        .digit {
+            width: 40px;
+            height: 60px;
+            background: #333;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .separator {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="clock">
+        <div class="digit" id="h1">0</div>
+        <div class="digit" id="h2">0</div>
+        <div class="separator">:</div>
+        <div class="digit" id="m1">0</div>
+        <div class="digit" id="m2">0</div>
+        <div class="separator">:</div>
+        <div class="digit" id="s1">0</div>
+        <div class="digit" id="s2">0</div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+
+            document.getElementById('h1').textContent = hours[0];
+            document.getElementById('h2').textContent = hours[1];
+            document.getElementById('m1').textContent = minutes[0];
+            document.getElementById('m2').textContent = minutes[1];
+            document.getElementById('s1').textContent = seconds[0];
+            document.getElementById('s2').textContent = seconds[1];
+        }
+
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // 响应父页面的尺寸请求
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'requestSize') {
+                const width = document.body.scrollWidth || document.body.offsetWidth;
+                const height = document.body.scrollHeight || document.body.offsetHeight;
+                window.parent.postMessage({
+                    type: 'reportSize',
+                    width: width,
+                    height: height
+                }, '*');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -449,7 +449,7 @@ const DeviceStateManager = {
             this.refreshAll();
         }, interval);
 
-        console.log(`[StateManager] 启动轮询，间隔 ${interval}ms`);
+
     },
 
     /**

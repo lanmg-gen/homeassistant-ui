@@ -65,12 +65,14 @@ const DeviceController = {
      */
     async controlToggleDevice(device, domain, simpleToggle = false) {
         const entityId = device.controlEntity || device.stateEntity;
+        console.log(`[DeviceController] 控制设备调用: domain=${domain}, entityId=${entityId}, device=`, device);
 
         if (!this._isValidEntityId(entityId, domain)) {
             return;
         }
 
         const currentState = await window.haConnection.getDeviceState(entityId);
+        console.log(`[DeviceController] 当前设备状态: ${entityId} = ${currentState}`);
 
         if (simpleToggle) {
             // 简单开关：只根据当前开关状态
@@ -120,9 +122,26 @@ const DeviceController = {
             return;
         }
 
+        // 默认份数
+        let feedCount = 1;
+
+        // 安全读取设置
+        if (window.HASettingsSync && window.HASettingsSync.cachedSettings) {
+            feedCount = window.HASettingsSync.cachedSettings.feedCount;
+            // 确保是数字
+            if (typeof feedCount !== 'number' || feedCount < 1) {
+                feedCount = 1;
+            }
+            console.log('[Feeder] 读取到设置份数:', feedCount, 'entity:', controlEntity);
+        } else {
+            console.log('[Feeder] HASettingsSync 或 cachedSettings 未就绪，使用默认份数 1');
+        }
+
+        console.log('[Feeder] 最终调用服务 value:', feedCount);
+
         await window.haConnection.callService('number', 'set_value', {
             entity_id: controlEntity,
-            value: 1
+            value: feedCount
         });
     },
 
