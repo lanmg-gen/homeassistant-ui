@@ -26,9 +26,8 @@ const AppConfig = {
         // AppDaemon 服务器地址（如果与 HA 端口不同）
         // 建议：在不能直接跨域访问时，可将此项改为代理路径（例如 '/appdaemon'）,
         // 然后在前端或反向代理上将该路径转发到实际 AppDaemon 地址。
-        // AppDaemon 通常运行在独立端口（例如 5050），使用绝对地址以避免与 HA（8123）混淆
+        // AppDaemon 服务在独立端口 5050 上运行，使用绝对地址避免错误拼接
         appDaemonUrl: 'http://192.168.4.5:5050'
-        //appDaemonUrl: '/appdaemon'
     },
 
     // 页眉标题
@@ -79,7 +78,6 @@ const AppConfig = {
         items: [
             { id: 'home', name: '首页', icon: '🏠' },
             { id: 'scenes', name: '场景', icon: '🎬' },
-            { id: 'apps', name: '应用', icon: '📱' },
             { id: 'settings', name: '设置', icon: '⚙️' }
         ]
     },
@@ -102,21 +100,19 @@ const AppConfig = {
     // 页面配置
     pages: {
         // 可用页面列表
-        available: ['home', 'scenes', 'apps', 'settings'],
+        available: ['home', 'scenes', 'settings'],
         
         // 页面路径配置
         paths: {
             mobile: {
                 home: 'pages/mobile/home.html',
                 scenes: 'pages/mobile/scenes.html',
-                apps: 'pages/mobile/apps.html',
                 settings: 'pages/mobile/settings.html',
                 headerbar: 'pages/mobile/headerbar/headerbar.html'
             },
             desktop: {
                 home: 'pages/desktop/home.html',
                 scenes: 'pages/desktop/scenes.html',
-                apps: 'pages/desktop/apps.html',
                 settings: 'pages/desktop/settings.html'
             }
         }

@@ -1,0 +1,20 @@
+{
+  "api": {
+    "baseUrl": "http://192.168.4.13:8080",
+    "apiKey": "rt2zKUzNmpBbchT2ZUwszoXdILuKzPudthRPqbq9oWY621unaU"
+  },
+  "app": {
+    "name": "库存管理",
+    "version": "1.0.0",
+    "description": "Grocy库存管理客户端",
+    "icon": "📦"
+  },
+  "ui": {
+    "theme": "light",
+    "language": "zh-CN"
+  },
+  "features": {
+    "enableDebug": false,
+    "enableAnalytics": false
+  }
+}

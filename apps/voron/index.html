@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klipper 客户端</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 侧边栏菜单 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">Klipper 控制</div>
+        </div>
+        <div class="sidebar-content">
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item active" data-tab="dashboard">仪表盘</li>
+                <li class="sidebar-menu-item" data-tab="control">控制</li>
+                <li class="sidebar-menu-item" data-tab="files">文件</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 背景遮罩 -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 顶部栏 -->
+        <div class="top-bar">
+            <button class="menu-toggle">☰</button>
+            <h1>Klipper 客户端</h1>
+        </div>
+
+        <!-- 连接状态 -->
+        <div id="connectionStatus" class="connection-status disconnected">
+            未连接
+        </div>
+
+        <!-- 仪表盘 -->
+        <div id="dashboard" class="tab-content active">
+            <h2>仪表盘</h2>
+            <div class="status-cards">
+                <div class="status-card">
+                    <h3>打印机状态</h3>
+                    <div id="printerStatus" class="value">离线</div>
+                </div>
+                <div class="status-card">
+                    <h3>热端温度</h3>
+                    <div id="hotendTemp" class="value">-- °C</div>
+                </div>
+                <div class="status-card">
+                    <h3>热床温度</h3>
+                    <div id="bedTemp" class="value">-- °C</div>
+                </div>
+                <div class="status-card">
+                    <h3>打印进度</h3>
+                    <div id="printProgress" class="value">-- %</div>
+                </div>
+            </div>
+            <div class="control-buttons">
+                <button id="startPrint" class="control-button start">开始打印</button>
+                <button id="pausePrint" class="control-button pause">暂停打印</button>
+                <button id="stopPrint" class="control-button stop">停止打印</button>
+            </div>
+        </div>
+
+        <!-- 控制 -->
+        <div id="control" class="tab-content">
+            <h2>温度控制</h2>
+            <div class="temperature-control">
+                <div class="temperature-item">
+                    <label>热端目标温度</label>
+                    <input type="number" id="hotendTarget" value="0" min="0" max="300">
+                    <button id="setHotendTemp">设置</button>
+                </div>
+                <div class="temperature-item">
+                    <label>热床目标温度</label>
+                    <input type="number" id="bedTarget" value="0" min="0" max="150">
+                    <button id="setBedTemp">设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件 -->
+        <div id="files" class="tab-content">
+            <h2>打印文件</h2>
+            <div id="fileList" class="file-list">
+                <div class="file-item">加载中...</div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

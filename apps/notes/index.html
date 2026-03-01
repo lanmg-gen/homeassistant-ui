@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>思源笔记客户端</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container" id="appContainer">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="app-title">思源笔记</div>
+                <div class="status-info">
+                    <span class="status-dot connecting" id="statusDot"></span>
+                    <span id="statusText">正在连接...</span>
+                </div>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索笔记...">
+            </div>
+            
+            <div class="nav-content">
+                <div class="nav-section">
+                    <div class="section-title" id="sectionTitle">笔记本</div>
+                    <ul class="nav-list" id="navList">
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="content-header">
+                <h1 class="content-title" id="contentTitle">思源笔记</h1>
+                <div class="header-actions">
+                    <div class="action-button" id="editButton">
+                        ✏️
+                    </div>
+                    <div class="action-button" id="saveButton" style="display: none;">
+                        💾
+                    </div>
+                    <div class="menu-toggle" id="menuToggle">
+                        ☰
+                    </div>
+                </div>
+            </div>
+            
+            <div class="content-body" id="contentBody">
+                <div class="state-container" id="stateContainer">
+                    <div class="spinner" id="spinner"></div>
+                    <p class="state-message" id="stateMessage">正在连接到思源笔记...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

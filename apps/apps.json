@@ -1,0 +1,13 @@
+{
+  "apps": [
+    {
+      "name": "notes"
+    },
+    {
+      "name": "inventory"
+    },
+    {
+      "name": "voron"
+    }
+  ]
+}

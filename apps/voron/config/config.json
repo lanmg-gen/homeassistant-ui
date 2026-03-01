@@ -1,0 +1,21 @@
+{
+  "api": {
+    "host": "http://192.168.4.6",
+    "port": 7125,
+    "apiKey": "44529bba6eb145b494e234e12d87f3a9"
+  },
+  "app": {
+    "name": "voron2.4",
+    "version": "1.0.0",
+    "description": "3D打印机控制客户端",
+    "icon": "svg:voron/assets/ico.svg"
+  },
+  "ui": {
+    "theme": "light",
+    "language": "zh-CN"
+  },
+  "features": {
+    "enableDebug": false,
+    "enableAnalytics": false
+  }
+}

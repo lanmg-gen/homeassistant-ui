@@ -935,7 +935,7 @@ if (!window.DesktopLayout) {
                         const haConfig = window.getHAConfig();
                         console.log('尝试重新初始化 HA 连接，配置:', haConfig);
                         if (haConfig && haConfig.enabled && haConfig.url && haConfig.token) {
-                            window.haConnection.init(haConfig.url, haConfig.token);
+                            window.haConnection.init(haConfig.url, haConfig.token, haConfig.appDaemonUrl);
                             console.log('HA 连接重新初始化请求已发送');
                         }
                     } catch (initError) {

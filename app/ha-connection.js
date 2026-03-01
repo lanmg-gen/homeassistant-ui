@@ -14,16 +14,20 @@ class HAConnection {
         this.listeners = [];
         this.states = {}; // 存储所有设备状态
         this.messageId = 1; // 消息 ID 计数器
+        this.appDaemonUrl = null; // AppDaemon 独立 URL
     }
 
     /**
      * 初始化连接
      * @param {string} url - HA 服务器地址
      * @param {string} token - 访问令牌
+     * @param {string} appDaemonUrl - AppDaemon 服务器地址（可选）
      */
-    init(url, token) {
+    init(url, token, appDaemonUrl = null) {
         this.url = url;
         this.token = token;
+        this.appDaemonUrl = appDaemonUrl || url; // 如果没有指定，使用 HA URL
+
         this.connect();
     }
 
@@ -267,6 +271,7 @@ class HAConnection {
      */
     async callService(domain, service, data) {
         console.log(`[HAConnection] 调用服务: ${domain}.${service}, 数据:`, data);
+        
         // 优先使用 WebSocket 调用
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             return this.callServiceWebSocket(domain, service, data);
@@ -275,6 +280,13 @@ class HAConnection {
         // 回退到 REST API
         return this.callServiceREST(domain, service, data);
     }
+
+
+
+
+
+
+
 
     /**
      * 通过 WebSocket 调用 HA 服务
@@ -347,6 +359,77 @@ class HAConnection {
     }
 
     /**
+     * 调用 AppDaemon 自定义服务
+     * @param {string} namespace - 命名空间（通常是 'default'）
+     * @param {string} app - 应用名称
+     * @param {string} service - 服务名称
+     * @param {Object} data - 服务数据
+     * @returns {Promise}
+     */
+    async callAppDaemonService(namespace, app, service, data) {
+        console.log(`[HAConnection] 调用 AppDaemon 服务: ${namespace}.${app}.${service}`, data);
+
+        // 尝试多种 AppDaemon API 格式
+        const formats = [
+            `/api/appdaemon/service/${namespace}/${app}/${service}`,
+            `/api/appdaemon/services/${namespace}/${app}/${service}`,
+            `/api/appdaemon/${namespace}/${app}/${service}`,
+            `/api/service/${namespace}/${app}/${service}`
+        ];
+
+        const headers = {
+            'Authorization': `Bearer ${this.token}`,
+            'Content-Type': 'application/json'
+        };
+
+        // 尝试两个 URL：AppDaemon 独立 URL 和 HA URL
+        const urlsToTry = this.appDaemonUrl !== this.url ? [this.appDaemonUrl, this.url] : [this.url];
+
+        for (const baseUrl of urlsToTry) {
+            console.log(`[HAConnection] 尝试基础 URL: ${baseUrl}`);
+
+            for (const format of formats) {
+                const apiUrl = `${baseUrl}${format}`;
+                console.log(`[HAConnection] 尝试 API URL: ${apiUrl}`);
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify(data)
+                    });
+
+                if (response.ok) {
+                    console.log(`[HAConnection] 成功: ${apiUrl}`);
+                    return await response.json();
+                } else {
+                    const text = await response.text();
+                    console.log(`[HAConnection] 失败 ${response.status}: ${apiUrl} - ${text}`);
+                    // 500 错误可能是认证问题，尝试不使用 token
+                    if (response.status === 500) {
+                        throw new Error(`服务调用失败: ${response.status} - ${text}`);
+                    }
+                }
+                } catch (error) {
+                    console.log(`[HAConnection] 错误: ${apiUrl} - ${error.message}`);
+                    // 友好提示：在浏览器环境下，Failed to fetch 常由 CORS/网络阻塞引起
+                    try {
+                        if (typeof window !== 'undefined' && window.vant && window.vant.Toast) {
+                            const short = error && error.message ? error.message : String(error);
+                            window.vant.Toast.fail(`无法访问 AppDaemon (${apiUrl})：${short}（请检查网络或 CORS 设置）`);
+                        }
+                    } catch (e) {
+                        // 忽略提示失败
+                    }
+                }
+            }
+        }
+
+        // 所有格式都失败
+        throw new Error('所有 API 格式都失败，无法连接到 AppDaemon 服务');
+    }
+
+    /**
      * 获取设备状态
      * @param {string} entityId - 实体 ID
      * @returns {Promise<string>}
@@ -357,6 +440,10 @@ class HAConnection {
             // 无效的实体ID
             return 'unavailable';
         }
+
+
+
+
 
         return new Promise((resolve) => {
             // 从缓存中获取
@@ -399,6 +486,8 @@ class HAConnection {
                 });
         });
     }
+
+
 
     /**
      * 添加事件监听器

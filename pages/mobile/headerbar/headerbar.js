@@ -144,13 +144,34 @@ if (!window.MobileHeaderbar) {
 
                             // 解析温度（可能是字符串如 "15℃" 或数字 15）
                             if (typeof temp === 'string') {
-                                temp = parseInt(temp.replace(/[^\d-]/g, '')) || temp;
+                                // 移除所有℃符号
+                                let cleaned = temp.replace(/℃/g, '');
+                                // 如果包含斜杠，可能是温度范围
+                                if (cleaned.includes('/')) {
+                                    // 分割为最低温和最高温
+                                    const parts = cleaned.split('/');
+                                    const low = parts[0].trim();
+                                    const high = parts[1].trim();
+                                    // 确保每个部分都是有效的数字（可能带负号）
+                                    const lowNum = parseInt(low) || low;
+                                    const highNum = parseInt(high) || high;
+                                    // 重新组合
+                                    temp = `${lowNum}/${highNum}`;
+                                } else {
+                                    // 单个温度值
+                                    const num = parseInt(cleaned);
+                                    if (!isNaN(num)) {
+                                        temp = num.toString();
+                                    } else {
+                                        temp = cleaned;
+                                    }
+                                }
                             }
 
                             this.weatherData = {
                                 temp: temp,
                                 condition: condition,
-                                city: data.city || WEATHER_API_CITY
+                                city: data.city || this.weatherConfig.city || '达拉特旗'
                             };
 
                             resolve();
@@ -177,7 +198,7 @@ if (!window.MobileHeaderbar) {
                 this.weatherData = {
                     temp: '--',
                     condition: '获取失败',
-                    city: WEATHER_API_CITY
+                    city: this.weatherConfig.city || '达拉特旗'
                 };
                 this.weatherLoading = false;
                 this.updateWeatherDisplay();
@@ -192,7 +213,34 @@ if (!window.MobileHeaderbar) {
             const cityEl = document.getElementById('weatherCity');
 
             if (tempEl) {
-                tempEl.textContent = this.weatherLoading ? '--' : `${this.weatherData?.temp ?? '--'}℃`;
+                if (this.weatherLoading) {
+                    tempEl.textContent = '--';
+                } else {
+                    let temp = this.weatherData?.temp ?? '--';
+                    // 确保温度字符串不包含重复的℃符号
+                    if (typeof temp === 'string') {
+                        // 移除所有℃符号（全角和半角）
+                        temp = temp.replace(/℃/g, '').replace(/°C/gi, '');
+                        // 如果包含斜杠，可能是温度范围，确保格式正确
+                        if (temp.includes('/')) {
+                            const parts = temp.split('/');
+                            const low = parts[0].trim();
+                            const high = parts[1].trim();
+                            // 确保每个部分都是有效的数字（可能带负号）
+                            const lowNum = parseInt(low) || low;
+                            const highNum = parseInt(high) || high;
+                            temp = `${lowNum}/${highNum}`;
+                        } else {
+                            // 单个温度值，确保是数字
+                            const num = parseInt(temp);
+                            if (!isNaN(num)) {
+                                temp = num.toString();
+                            }
+                        }
+                    }
+                    // 统一添加℃符号
+                    tempEl.textContent = `${temp}℃`;
+                }
             }
 
             if (conditionEl) {

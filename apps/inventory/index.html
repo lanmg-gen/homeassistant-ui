@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocy 客户端</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 侧边栏菜单 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">菜单</div>
+        </div>
+        <div class="sidebar-content">
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item active" data-tab="stock">库存</li>
+                <li class="sidebar-menu-item" data-tab="shopping">购物清单</li>
+                <li class="sidebar-menu-item" data-tab="recipes">食谱</li>
+                <li class="sidebar-menu-item" data-tab="tasks">任务</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 背景遮罩 -->
+    <div class="sidebar-overlay"></div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        <!-- 顶部栏 -->
+        <div class="top-bar">
+            <button class="menu-toggle">☰</button>
+            <h1>库存管理</h1>
+        </div>
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <div id="stock" class="tab-content active">
+            <div class="section-header">
+                <h2>库存管理</h2>
+                <div class="search-container">
+                    <input type="text" id="stockSearch" placeholder="搜索库存物品...">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+            <div id="stockList"></div>
+        </div>
+
+        <div id="shopping" class="tab-content">
+            <h2>购物清单</h2>
+            <div class="add-item-form">
+                <input type="text" id="newItem" placeholder="添加物品">
+                <button id="addItemBtn">添加</button>
+            </div>
+            <div id="shoppingList"></div>
+        </div>
+
+        <div id="recipes" class="tab-content">
+            <h2>食谱管理</h2>
+            <div id="recipesList"></div>
+        </div>
+
+        <div id="tasks" class="tab-content">
+            <h2>任务管理</h2>
+            <div id="tasksList"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

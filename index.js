@@ -116,14 +116,21 @@ const PageManager = {
             this.removeOldResources();
 
             // 清理旧的 Vue 应用实例
-            if (window.HomePage && window.HomePage.vueApp) {
-                try {
-                    window.HomePage.vueApp.unmount();
-                    window.HomePage.vueApp = null;
-                } catch (e) {
-                    // 清理 Vue 应用时出错，静默处理
+            const pageObjects = ['HomePage', 'SettingsPage', 'ScenesPage', 'AppsPage', 'AppsPageDesktop'];
+            pageObjects.forEach(pageObj => {
+                if (window[pageObj] && window[pageObj].vueApp) {
+                    try {
+                        if (typeof window[pageObj].vueApp.unmount === 'function') {
+                            window[pageObj].vueApp.unmount();
+                        }
+                    } catch (e) {
+                        // 清理 Vue 应用时出错，静默处理
+                    } finally {
+                        // 无论是否成功，都将 vueApp 设置为 null
+                        window[pageObj].vueApp = null;
+                    }
                 }
-            }
+            });
 
             // 添加淡出动画
             this.contentArea.style.opacity = '0';
@@ -257,9 +264,41 @@ const PageManager = {
 const NavigationManager = {
     // 初始化导航
     init() {
+        this.generateNavItems();
         this.navItems = document.querySelectorAll('.nav-item');
         this.bindEvents();
         this.updateActiveState();
+    },
+    
+    // 根据配置生成导航栏项
+    generateNavItems() {
+        const navContainer = document.querySelector('.bottom-nav');
+        if (!navContainer) return;
+        
+        // 清空现有导航项
+        navContainer.innerHTML = '';
+        
+        // 获取导航栏配置
+        const navItems = window.getBottomNavConfig ? window.getBottomNavConfig() : [];
+        
+        // 生成导航项
+        navItems.forEach(item => {
+            const navItem = document.createElement('div');
+            navItem.className = 'nav-item';
+            navItem.setAttribute('data-page', item.id);
+            
+            const navIcon = document.createElement('div');
+            navIcon.className = 'nav-icon';
+            navIcon.textContent = item.icon;
+            
+            const navText = document.createElement('div');
+            navText.className = 'nav-text';
+            navText.textContent = item.name;
+            
+            navItem.appendChild(navIcon);
+            navItem.appendChild(navText);
+            navContainer.appendChild(navItem);
+        });
     },
     
     // 绑定事件
@@ -354,6 +393,24 @@ const App = {
         if (window.loadBackgroundTheme) {
             window.loadBackgroundTheme();
         }
+        
+        // 初始化日志按钮显示状态
+        const logEnabled = localStorage.getItem('logEnabled') === 'true';
+        // 检查并处理.log-button类的按钮
+        const logButton = document.querySelector('.log-button');
+        if (logButton) {
+            logButton.style.display = logEnabled ? 'block' : 'none';
+        }
+        // 检查并处理移动调试按钮
+        const mobileDebugButtons = document.querySelectorAll('button[title="打开移动调试日志"], .mobile-debug-button');
+        mobileDebugButtons.forEach(btn => {
+            btn.style.display = logEnabled ? 'block' : 'none';
+        });
+        // 检查并处理移动调试面板
+        const mobileDebugPanels = document.querySelectorAll('.mobile-debug-panel');
+        mobileDebugPanels.forEach(panel => {
+            panel.style.display = logEnabled ? 'none' : 'none';
+        });
     },
 
     // 初始化 HA 连接
@@ -361,7 +418,7 @@ const App = {
         const haConfig = window.getHAConfig ? window.getHAConfig() : { url: '', token: '' };
 
         if (haConfig && haConfig.enabled && window.haConnection) {
-            window.haConnection.init(haConfig.url, haConfig.token);
+            window.haConnection.init(haConfig.url, haConfig.token, haConfig.appDaemonUrl);
 
             // 初始化状态管理器
             if (window.DeviceStateManager) {
@@ -536,3 +593,42 @@ window.app = {
     handleDeviceClick: (device) => window.DeviceController ? window.DeviceController.handleDeviceClick(device) : Promise.resolve(),
     callService: (domain, service, data) => window.haConnection ? window.haConnection.callService(domain, service, data) : Promise.reject(new Error('HA 未连接'))
 };
+
+// 监听来自子窗口或 iframe 的 postMessage 请求，作为 callAppDaemonService 的代理
+window.addEventListener('message', async (e) => {
+    try {
+        const data = e.data;
+        if (!data || !data.__webui_action) return;
+
+        const id = data.__webui_id;
+        const action = data.__webui_action;
+        const payload = data.__webui_payload || {};
+
+        if (action === 'callAppDaemonService') {
+            if (!window.haConnection || typeof window.haConnection.callAppDaemonService !== 'function') {
+                e.source.postMessage({ __webui_id: id, __webui_error: 'haConnection 未准备' }, '*');
+                return;
+            }
+
+            // 支持多种 payload 结构：{ namespace, app, service, args } 或 { domain, service, args }
+            let namespace = payload.namespace || payload.ns || 'default';
+            let app = payload.app || payload.domain || payload.serviceDomain || null;
+            let service = payload.service || payload.action || null;
+            let args = payload.args || payload.data || {};
+
+            if (!app || !service) {
+                e.source.postMessage({ __webui_id: id, __webui_error: '参数不足: 需提供 app/domain 与 service' }, '*');
+                return;
+            }
+
+            try {
+                const result = await window.haConnection.callAppDaemonService(namespace, app, service, args);
+                e.source.postMessage({ __webui_id: id, __webui_result: result }, '*');
+            } catch (err) {
+                e.source.postMessage({ __webui_id: id, __webui_error: err?.message || String(err) }, '*');
+            }
+        }
+    } catch (ex) {
+        // 忽略解析错误
+    }
+});

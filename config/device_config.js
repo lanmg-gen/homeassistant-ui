@@ -117,7 +117,7 @@ const DEVICE_PET_FEEDING = {
 // 餐厅灯控制卡片
 const DEVICE_DINING_LIGHT = {
     name: '餐厅灯',
-    icon: '💡',
+    icon: '🍽️',
     stateEntity: 'light.can_ting_deng_kai_guan_1',
     controlEntity: 'light.can_ting_deng_kai_guan_1',
     deviceType: 'light',

@@ -21,6 +21,9 @@ if (!window.SettingsPageDesktop) {
         // 处理设置项点击
         handleSettingsClick(item) {
             const settingName = item.querySelector('h3').textContent;
+            const settingType = item.getAttribute('data-setting');
+            
+
             
             // 触发设置点击事件
             window.dispatchEvent(new CustomEvent('settings-navigate', {
@@ -31,7 +34,11 @@ if (!window.SettingsPageDesktop) {
             if (window.showToast) {
                 window.showToast(`打开: ${settingName}`);
             }
-        }
+        },
+        
+
+        
+
     };
     
     // 页面加载完成后初始化

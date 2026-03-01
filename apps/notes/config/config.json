@@ -1,0 +1,21 @@
+{
+  "api": {
+    "serverUrl": "http://192.168.4.13:6806",
+    "apiToken": "kynm8bx11zmhgdst",
+    "authPrefix": "Token"
+  },
+  "app": {
+    "name": "思源笔记",
+    "version": "1.0.0",
+    "description": "思源笔记客户端",
+    "icon": "📒"
+  },
+  "ui": {
+    "theme": "light",
+    "language": "zh-CN"
+  },
+  "features": {
+    "enableDebug": false,
+    "enableAnalytics": false
+  }
+}
