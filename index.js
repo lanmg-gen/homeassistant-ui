@@ -103,8 +103,8 @@ const PageManager = {
     async loadPage(pageName, force = false) {
         const deviceType = AppState.data.isMobile ? 'mobile' : 'desktop';
         const pagePath = window.AppConfig ? window.AppConfig.pages.paths[deviceType][pageName] : null;
-        const cssPath = `pages/${deviceType}/${pageName}.css`;
-        const jsPath = `pages/${deviceType}/${pageName}.js`;
+        const cssPath = `src/pages/${deviceType}/${pageName}.css`;
+        const jsPath = `src/pages/${deviceType}/${pageName}.js`;
         
         if (!pagePath) {
             // console.error(`Page path not found: ${pageName}`);
@@ -112,6 +112,14 @@ const PageManager = {
         }
         
         try {
+            // 先添加淡出动画，确保内容区域在CSS被移除前已经不可见
+            this.contentArea.style.opacity = '0';
+            this.contentArea.style.transform = 'translateY(20px)';
+            this.contentArea.style.transition = 'all 0.3s ease';
+
+            // 等待动画完成
+            await this.delay(300);
+
             // 移除旧页面的CSS和JS
             this.removeOldResources();
 
@@ -132,14 +140,6 @@ const PageManager = {
                 }
             });
 
-            // 添加淡出动画
-            this.contentArea.style.opacity = '0';
-            this.contentArea.style.transform = 'translateY(20px)';
-            this.contentArea.style.transition = 'all 0.3s ease';
-
-            // 等待动画完成
-            await this.delay(300);
-
             // 加载页面内容
             const response = await fetch(pagePath);
             if (!response.ok) {
@@ -151,14 +151,36 @@ const PageManager = {
             // 先加载页面的CSS，确保样式先应用
             await this.loadCSS(cssPath, pageName);
 
-            // 插入新内容（CSS已加载完成）
+            // 加载页面内容
             this.contentArea.innerHTML = html;
 
             // 加载页面的JS
             await this.loadJS(jsPath);
 
+            // 确保 window.DEVICE_CARDS 存在（仅首页需要）
+            if (pageName === 'home' && !window.DEVICE_CARDS) {
+                // 等待 DEVICE_CARDS 加载完成，最多等待5秒
+                await new Promise(resolve => {
+                    let attempts = 0;
+                    const maxAttempts = 100; // 5秒
+                    
+                    const checkDeviceCards = () => {
+                        if (window.DEVICE_CARDS) {
+                            resolve();
+                        } else if (attempts < maxAttempts) {
+                            attempts++;
+                            setTimeout(checkDeviceCards, 50);
+                        } else {
+                            // 超时，创建空的 DEVICE_CARDS
+                            window.DEVICE_CARDS = [];
+                            resolve();
+                        }
+                    };
+                    checkDeviceCards();
+                });
+            }
+
             // 通用页面Vue应用创建逻辑
-            const deviceType = AppState.data.isMobile ? 'mobile' : 'desktop';
             const pageObjectName = pageName.charAt(0).toUpperCase() + pageName.slice(1) + 'Page';
             const pageObjectNameDesktop = pageName.charAt(0).toUpperCase() + pageName.slice(1) + 'PageDesktop';
 
@@ -468,7 +490,7 @@ const App = {
             }
             
             // 加载页眉HTML
-            const headerbarPath = window.AppConfig ? window.AppConfig.pages.paths.mobile.headerbar : 'pages/mobile/headerbar/headerbar.html';
+            const headerbarPath = window.AppConfig ? window.AppConfig.pages.paths.mobile.headerbar : 'src/pages/mobile/headerbar/headerbar.html';
             const response = await fetch(headerbarPath);
             if (!response.ok) {
                 throw new Error(`Failed to load headerbar: ${response.statusText}`);
@@ -480,12 +502,12 @@ const App = {
             // 加载页眉CSS
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = 'pages/mobile/headerbar/headerbar.css';
+            link.href = 'src/pages/mobile/headerbar/headerbar.css';
             document.head.appendChild(link);
             
             // 加载页眉JS
             const script = document.createElement('script');
-            script.src = 'pages/mobile/headerbar/headerbar.js';
+            script.src = 'src/pages/mobile/headerbar/headerbar.js';
             document.body.appendChild(script);
         } catch (error) {
             // 加载移动端页眉失败，静默处理

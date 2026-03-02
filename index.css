@@ -64,6 +64,13 @@ body {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
+/* 统一页面容器边距 */
+.page-container {
+    padding: 20px;
+    min-height: 100%;
+    box-sizing: border-box;
+}
+
 /* 移动端页眉容器 */
 .mobile-headerbar-container {
     position: fixed;
@@ -84,9 +91,9 @@ body {
 /* 移动端调整主内容区域的上边距 */
 @media (max-width: 767px) {
     .main-content {
-        padding-top: 120px !important;
-        padding-left: 12px !important;
-        padding-right: 12px !important;
+        padding-top: 112px !important;
+        padding-left: 4px !important;
+        padding-right: 4px !important;
         transition: opacity 0.3s ease;
     }
 
@@ -167,25 +174,7 @@ body {
 }
 
 .error-button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    padding: 12px 32px;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-}
-
-.error-button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
-}
-
-.error-button:active {
-    transform: translateY(0);
+    /* 使用btn-primary样式 */
 }
 
 /* ==================== 底部导航栏 ==================== */

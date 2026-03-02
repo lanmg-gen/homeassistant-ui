@@ -8,26 +8,37 @@
 ├── index.html          # 入口页面
 ├── index.css           # 全局样式
 ├── index.js            # 主逻辑
-├── config/             # 配置文件
-│   ├── config.js       # 应用配置
-│   └── device_config.js # 设备配置
-├── app/                # 核心应用逻辑
-│   ├── ha-connection.js    # HA连接
-│   ├── state-manager.js    # 状态管理
-│   ├── websocket-manager.js # WebSocket
-│   └── device-controller.js # 设备控制
-├── cards/              # 卡片组件
-├── pages/              # 页面
-│   ├── mobile/         # 移动端页面
-│   └── desktop/        # 桌面端页面
+├── src/                # 主源码目录
+│   ├── assets/         # 静态资源
+│   │   ├── backgrounds/ # 背景主题
+│   │   ├── images/     # 图片资源
+│   │   └── fonts/      # 字体资源
+│   ├── components/     # 通用组件
+│   │   ├── ui/         # UI组件（按钮、滑动条等）
+│   │   └── icons/      # 图标组件
+│   ├── config/         # 配置文件
+│   │   ├── config.js   # 应用配置
+│   │   └── device_config.js # 设备配置
+│   ├── core/           # 核心应用逻辑
+│   │   ├── ha-connection.js    # HA连接
+│   │   ├── state-manager.js    # 状态管理
+│   │   ├── websocket-manager.js # WebSocket
+│   │   ├── device-controller.js # 设备控制
+│   │   └── cards-loader.js     # 卡片加载器
+│   ├── cards/          # 卡片组件
+│   ├── pages/          # 页面
+│   │   ├── mobile/     # 移动端页面
+│   │   └── desktop/    # 桌面端页面
+│   └── libs/           # 第三方库
 ├── apps/               # 应用目录
 │   ├── apps.json       # 应用配置
 │   ├── notes/          # 笔记应用
 │   ├── inventory/      # 库存应用
 │   └── voron/          # 打印机应用
-├── libs/               # 第三方库
-├── backgrounds/        # 背景主题
-└── docs/               # 文档
+├── appdaemon-config/   # AppDaemon配置
+├── docs/               # 文档
+├── manifest.json       # PWA配置
+└── sw.js               # Service Worker
 ```
 
 ### 1.2 应用目录结构

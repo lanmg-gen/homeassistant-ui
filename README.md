@@ -16,12 +16,16 @@
    ├── index.js
    ├── manifest.json
    ├── sw.js
-   ├── app/
-   ├── cards/
-   ├── config/
-   ├── pages/
-   ├── libs/
-   └── backgrounds/
+   ├── src/
+   │   ├── assets/
+   │   ├── components/
+   │   ├── config/
+   │   ├── core/
+   │   ├── cards/
+   │   ├── pages/
+   │   └── libs/
+   ├── apps/
+   └── appdaemon-config/
    ```
    **嵌入页面方法**
    ### 在home assistant中打开"设置->仪表盘->添加仪表盘"->"网页表盘"->"复制以下内容"->"保存"
@@ -59,7 +63,7 @@ python -m http.server 8000
 
 ### 一、配置 Home Assistant 连接
 
-编辑 `config/config.js` 文件，修改 HA 配置：
+编辑 `src/config/config.js` 文件，修改 HA 配置：
 
 ```javascript
 homeAssistant: {
@@ -84,7 +88,7 @@ homeAssistant: {
 
 ### 二、配置设备
 
-所有设备配置在 `config/device_config.js` 文件中。
+所有设备配置在 `src/config/device_config.js` 文件中。
 
 #### 1. 添加新设备
 
@@ -214,15 +218,35 @@ A: 修改 `device_config.js` 后刷新页面即可生效
 ├── index.html          # 入口页面
 ├── index.css           # 全局样式
 ├── index.js            # 主逻辑
-├── config/
-│   ├── config.js       # 应用配置
-│   └── device_config.js # 设备配置
-├── app/
-│   ├── ha-connection.js    # HA连接
-│   ├── state-manager.js    # 状态管理
-│   ├── websocket-manager.js # WebSocket
-│   └── device-controller.js # 设备控制
-├── cards/              # 卡片组件
-├── pages/              # 页面
-└── libs/               # 第三方库
+├── src/                # 主源码目录
+│   ├── assets/         # 静态资源
+│   │   ├── backgrounds/ # 背景主题
+│   │   ├── images/     # 图片资源
+│   │   └── fonts/      # 字体资源
+│   ├── components/     # 通用组件
+│   │   ├── ui/         # UI组件（按钮、滑动条等）
+│   │   └── icons/      # 图标组件
+│   ├── config/         # 配置文件
+│   │   ├── config.js   # 应用配置
+│   │   └── device_config.js # 设备配置
+│   ├── core/           # 核心应用逻辑
+│   │   ├── ha-connection.js    # HA连接
+│   │   ├── state-manager.js    # 状态管理
+│   │   ├── websocket-manager.js # WebSocket
+│   │   ├── device-controller.js # 设备控制
+│   │   └── cards-loader.js     # 卡片加载器
+│   ├── cards/          # 卡片组件
+│   ├── pages/          # 页面
+│   │   ├── mobile/     # 移动端页面
+│   │   └── desktop/    # 桌面端页面
+│   └── libs/           # 第三方库
+├── apps/               # 应用目录
+│   ├── apps.json       # 应用配置
+│   ├── notes/          # 笔记应用
+│   ├── inventory/      # 库存应用
+│   └── voron/          # 打印机应用
+├── appdaemon-config/   # AppDaemon配置
+├── docs/               # 文档
+├── manifest.json       # PWA配置
+└── sw.js               # Service Worker
 ```

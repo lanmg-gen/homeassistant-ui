@@ -11,8 +11,14 @@
     <link rel="apple-touch-icon" href="icon-192x192.png">
     
     <!-- 引入样式文件 -->
-    <link rel="stylesheet" href="index.css">
-    <link rel="stylesheet" href="pages/desktop/home.css">
+    <link rel="stylesheet" href="index.css"><!-- 引入组件样式 -->
+    <link rel="stylesheet" href="src/components/ui/buttons.css">
+    <link rel="stylesheet" href="src/components/ui/sliders.css">
+    <link rel="stylesheet" href="src/pages/desktop/home.css">
+    
+    <!-- 引入图标组件 -->
+    <script src="src/components/icons/IconComponent.js"></script>
+    <script src="src/components/icons/icons.js"></script>
 </head>
 <body>
     <!-- 初始隐藏，防止样式加载前的闪烁 -->
@@ -56,19 +62,19 @@
     </nav>
 
     <!-- 引入Vue -->
-    <script src="libs/vue.global.js"></script>
+    <script src="src/libs/vue.global.js"></script>
 
     <!-- 引入配置文件 -->
-    <script src="config/config.js"></script>
-    <script src="config/device_config.js"></script>
+    <script src="src/config/config.js"></script>
+    <script src="src/config/device_config.js"></script>
 
     <!-- 引入HA连接、WebSocket、状态管理器、定时器管理器、设备控制和设置同步 -->
-    <script src="app/ha-connection.js"></script>
-    <script src="app/websocket-manager.js"></script>
-    <script src="app/state-manager.js"></script>
-    <script src="app/timer-manager.js"></script>
-    <script src="app/device-controller.js"></script>
-    <script src="app/ha-settings-sync.js"></script>
+    <script src="src/core/ha-connection.js"></script>
+    <script src="src/core/websocket-manager.js"></script>
+    <script src="src/core/state-manager.js"></script>
+    <script src="src/core/timer-manager.js"></script>
+    <script src="src/core/device-controller.js"></script>
+    <script src="src/core/ha-settings-sync.js"></script>
     
     <!-- 注册 Service Worker -->
     <script>
@@ -95,6 +101,6 @@
     </script>
 
     <!-- 卡片组件由 config.js 的 cards 配置统一加载，无需在此逐个引入；加载完成后再加载 index.js -->
-    <script src="app/cards-loader.js"></script>
+    <script src="src/core/cards-loader.js"></script>
 </body>
 </html>
